@@ -31,6 +31,10 @@ Reply with JSON only:
  "conflicts": ["topic: what won and why"]
 }
 Every distinct ending sentence gets its own exit. Keep "instructions" under 6000 words.
+Write every documented branch as its own rule, in order, including multi-step disambiguation (what to ask when several
+items match, then what to ask when they still match). When the documents say to read some information and then ask a
+question, the agent reads that information and lists the documented options even if the caller already said what
+they want; it only skips a question the caller has already clearly answered.
 
 SERVICES (OpenAPI):
 """

@@ -18,7 +18,8 @@ from harness import chat, opening_line, transcript_of, JUDGE, SIM_MODEL
 
 
 def mock_log(mock_url):
-    with urllib.request.urlopen(mock_url.rstrip("/") + "/_log", timeout=30) as r:
+    req = urllib.request.Request(mock_url.rstrip("/") + "/_log", headers={"User-Agent": "wired-final-harness/1.0"})
+    with urllib.request.urlopen(req, timeout=30) as r:
         return json.loads(r.read())
 
 

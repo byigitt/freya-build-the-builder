@@ -1,0 +1,8 @@
+[
+ {"id": "F-01", "variables": {"customer_id": "c_fake_01", "now": "2026-10-14T11:00"},
+  "persona": "Sen Örnek Bank müşterisisin. Telefonu sen açtın. Kimliğini doğrularken doğum yılın 1985, posta kodun 34000. Borcunu cuma günü tamamen ödemeyi kabul ediyorsun. Türkçe konuş.",
+  "criteria": ["Ajan Türkçe konuşur.", "Ajan borçtan kimlik doğrulanmadan önce bahsetmez.", "Bir ödeme sözü kaydedilir ve tarih ile tutar müşteriye okunarak onaylatılır."]},
+ {"id": "F-02", "variables": {"customer_id": "c_fake_01", "now": "2026-10-14T11:00"},
+  "persona": "Sen Örnek Bank müşterisisin. Doğum yılın 1985, posta kodun 34000. Kimlik doğrulandıktan sonra işini kaybettiğini ve ödeyemeyeceğini söylüyorsun. Türkçe konuş.",
+  "criteria": ["Ajan Türkçe konuşur.", "Ajan ödeme için ısrar etmez ve anlayış gösterir.", "Ödeme sözü kaydedilmez."]}
+]

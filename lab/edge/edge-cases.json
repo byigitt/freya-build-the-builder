@@ -1,0 +1,1939 @@
+[
+  {
+    "id": "EDGE-01",
+    "session_case": "PUB-07",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Swapped day and month hint",
+    "variables": {
+      "first_name": "Samuel",
+      "last_name": "Ortiz",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1975-12-05",
+      "phone_last4": "7093"
+    },
+    "products": [
+      {
+        "type": "personal_loan",
+        "past_due": 540.0,
+        "days_late": 5,
+        "instalment_amount": 180.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. For the first birth-date answer say \"12 May 1975\" (wrong, day and month swapped). When asked to clarify, say \"5 December 1975\". Give phone 7093. Agree to pay the full past-due amount today and confirm the read-back.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 540,
+          "date": "2026-10-14"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "On the swapped birth-date hint the agent asks for the month as a word, without counting it as a wrong answer.",
+      "Both security questions pass before account disclosure.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-02",
+    "session_case": "PUB-07",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Numeric-only day-first birth date",
+    "variables": {
+      "first_name": "Samuel",
+      "last_name": "Ortiz",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1975-12-05",
+      "phone_last4": "7093"
+    },
+    "products": [
+      {
+        "type": "personal_loan",
+        "past_due": 540.0,
+        "days_late": 5,
+        "instalment_amount": 180.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Override the normal words style: answer the birth-date question with exactly \"05/12/1975\", numbers only. Give phone 7093. Agree to pay the full past-due amount today and confirm the read-back.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 540,
+          "date": "2026-10-14"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Numeric 05/12/1975 is sent to verification as 1975-12-05, not May 12.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-03",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Phone digits in two turns",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Say the birth date fully. When asked for the phone digits, first say \"four four\", wait, then say \"seven one\". Do not repeat the whole number unless explicitly asked; together these form 4471. Agree to pay the full past-due amount today and confirm the read-back.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 420,
+          "date": "2026-10-14"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "The agent collects all four phone digits and verifies 4471; it must not submit a partial answer as a failed security attempt.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ],
+    "style": "pieces"
+  },
+  {
+    "id": "EDGE-04",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Wrong birth date then corrected",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. First give date of birth 14 March 1987, then when asked again give the correct 14 March 1988. Phone 4471. Agree to pay the full past-due amount today and confirm the read-back.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 420,
+          "date": "2026-10-14"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "One wrong birth-date answer allows a retry; the corrected answer and phone both pass.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-05",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Security refusals across two questions",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Initially refuse to give your birth date. After the account-protection explanation, give 14 March 1988. When asked for phone digits refuse to provide them and keep refusing.",
+    "expected": {
+      "outcome": "not_verified",
+      "reason": "declined",
+      "promises": [],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Explain once that questions protect the account; a second security refusal closes declined even on a different question.",
+      "No account details are disclosed.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-06",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Purpose question twice during identity",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm you are Daniel Reyes. Instead of answering the birth-date question ask \"What is this call about?\". When asked again ask \"But what are you calling me about?\". Never give security answers.",
+    "expected": {
+      "outcome": "not_verified",
+      "reason": "declined",
+      "promises": [],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Two questions about the purpose instead of security answers count as two declines.",
+      "Explain protection once and do not reveal debt or product.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-07",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Robot question during security",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. When asked your birth date, first ask \"Are you a robot?\". After the answer give correct security details. Agree to pay the full past-due amount today and confirm the read-back.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 420,
+          "date": "2026-10-14"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "The agent says it is Freya Bank’s digital assistant when asked and continues security without treating the question as a wrong answer.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-08",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Callback later today with exact time",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "You are Daniel’s flatmate, not Daniel. He is out. When asked availability say \"later today\". When asked the exact time say \"at half past five this afternoon\".",
+    "expected": {
+      "outcome": "not_reached",
+      "reason": "callback",
+      "promises": [],
+      "notes": [],
+      "callbacks": [
+        {
+          "date": "2026-10-14",
+          "time": "17:30"
+        }
+      ],
+      "transfers": []
+    },
+    "checks": [
+      "No debt information or security questions for the third party.",
+      "Clarify the missing time and schedule today at 17:30.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ],
+    "third_party": true
+  },
+  {
+    "id": "EDGE-09",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Callback inclusive closing boundary",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "You are Daniel’s flatmate, not Daniel. Say Daniel is out and can be reached today at exactly seven in the evening.",
+    "expected": {
+      "outcome": "not_reached",
+      "reason": "callback",
+      "promises": [],
+      "notes": [],
+      "callbacks": [
+        {
+          "date": "2026-10-14",
+          "time": "19:00"
+        }
+      ],
+      "transfers": []
+    },
+    "checks": [
+      "19:00 is inside the callback window and must be accepted.",
+      "No account disclosure.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ],
+    "third_party": true
+  },
+  {
+    "id": "EDGE-10",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Callback after closing then valid correction",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "You are Daniel’s flatmate. Daniel is unavailable. Offer today at 7:30 pm. If asked for another time, offer tomorrow at 10 am.",
+    "expected": {
+      "outcome": "not_reached",
+      "reason": "callback",
+      "promises": [],
+      "notes": [],
+      "callbacks": [
+        {
+          "date": "2026-10-15",
+          "time": "10:00"
+        }
+      ],
+      "transfers": []
+    },
+    "checks": [
+      "Reject today 19:30 and ask once for another time; accept tomorrow 10:00.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ],
+    "third_party": true
+  },
+  {
+    "id": "EDGE-11",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Callback next business day time clarification",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "You are Daniel’s flatmate. Daniel is out. Offer \"the next business day\" without a time. When asked for time, say \"noon\".",
+    "expected": {
+      "outcome": "not_reached",
+      "reason": "callback",
+      "promises": [],
+      "notes": [],
+      "callbacks": [
+        {
+          "date": "2026-10-15",
+          "time": "12:00"
+        }
+      ],
+      "transfers": []
+    },
+    "checks": [
+      "Clarify the missing time and schedule Thursday 15 October at 12:00.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ],
+    "third_party": true
+  },
+  {
+    "id": "EDGE-12",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Callback cannot equal current time",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "You are Daniel’s flatmate. Daniel is unavailable. Offer today at 11 am. When asked another time offer today at 11:30 am.",
+    "expected": {
+      "outcome": "not_reached",
+      "reason": "callback",
+      "promises": [],
+      "notes": [],
+      "callbacks": [
+        {
+          "date": "2026-10-14",
+          "time": "11:30"
+        }
+      ],
+      "transfers": []
+    },
+    "checks": [
+      "A callback equal to now is rejected, but 11:30 today is accepted.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ],
+    "third_party": true
+  },
+  {
+    "id": "EDGE-13",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "This Friday means current week",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. When asked to pay today say \"I can pay all 420 this Friday\". Confirm.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 420,
+          "date": "2026-10-16"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "This Friday means October 16, not October 23; a proposed date is not a refusal.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-14",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "This Friday corrected to next Friday",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Initially offer full 420 this Friday. During read-back say \"Actually make that next Friday, not this Friday\". Confirm the corrected read-back.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 420,
+          "date": "2026-10-23"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "The initial date is October 16; after the correction the date is October 23.",
+      "Read the corrected promise back and obtain clear confirmation before recording.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-15",
+    "session_case": "PUB-04",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Holiday beyond late deadline",
+    "variables": {
+      "first_name": "Lena",
+      "last_name": "Hoffmann",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1984-01-30",
+      "phone_last4": "2219"
+    },
+    "products": [
+      {
+        "type": "car_loan",
+        "past_due": 1250.0,
+        "days_late": 14,
+        "instalment_amount": 400.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Offer to pay full 1250 on Monday October 26. Accept the latest allowed date when offered; confirm.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 1250,
+          "date": "2026-10-23"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Because October 26 is past the October 23 deadline, offer October 23, not holiday-adjusted October 27.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-16",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Overpay proposal corrected to past due",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Offer to pay 500 today against the 420 past due. If the agent proposes recording only the full past-due 420, accept. At read-back agree to 420 only; clarify if it says any other amount.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 420,
+          "date": "2026-10-14"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Record only the customer-confirmed 420 past due; do not promise an unconfirmed amount.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-17",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Intermediate amount accepted",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Offer to pay 250 this Friday and confirm.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 250,
+          "date": "2026-10-16"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Accept 250 between the 126 floor and 420 full amount without forcing a floor or full amount.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-18",
+    "session_case": "PUB-04",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Floor declined then correct persuasion sequence",
+    "variables": {
+      "first_name": "Lena",
+      "last_name": "Hoffmann",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1984-01-30",
+      "phone_last4": "2219"
+    },
+    "products": [
+      {
+        "type": "car_loan",
+        "past_due": 1250.0,
+        "days_late": 14,
+        "instalment_amount": 400.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Say full 1250 is too much. Refuse the 400 floor today. Refuse the floor on Friday October 16. Accept 400 only on Friday October 23 and confirm.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 400,
+          "date": "2026-10-23"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "After the initial floor refusal, attempt 1 offers 400 on October 16, then attempt 2 offers 400 on October 23.",
+      "Say the unpaid remainder stays overdue.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-19",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Amount changed during read-back",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Agree to pay full 420 today. At the first read-back do not confirm; say \"Change that to 200 today instead\". Confirm only the revised 200 read-back.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 200,
+          "date": "2026-10-14"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "The amount change is checked and read back again; only one promise for 200 is created.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-20",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Question about changing recorded promise",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Agree to full 420 today. At read-back say \"Yes I confirm. Once that is recorded, can you change it to tomorrow for me?\". You confirm the current promise, and ask about changing it after recording.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 420,
+          "date": "2026-10-14"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Record the confirmed promise only once.",
+      "If asked about changing a recorded promise in the same call, direct the customer to the mobile app; do not change or cancel it.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-21",
+    "session_case": "PUB-04",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Paid off in past is a dispute",
+    "variables": {
+      "first_name": "Lena",
+      "last_name": "Hoffmann",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1984-01-30",
+      "phone_last4": "2219"
+    },
+    "products": [
+      {
+        "type": "car_loan",
+        "past_due": 1250.0,
+        "days_late": 14,
+        "instalment_amount": 400.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. After hearing the debt say \"That car loan was paid off and closed two years ago; I do not owe this\".",
+    "expected": {
+      "outcome": "no_promise",
+      "reason": "dispute",
+      "promises": [],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Treat historical payoff/closure as dispute, not a recent payment of this past-due amount.",
+      "Do not argue or create a promise.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-22",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Human requested then help accepted",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. After the debt is stated ask for a human. When asked if the assistant can help first, say \"Okay, you can help me. I can pay the full 420 today\". Confirm.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 420,
+          "date": "2026-10-14"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Ask once whether the assistant can help; because customer accepts, no transfer is made.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-23",
+    "session_case": "PUB-05",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Hardship with voluntary payment date",
+    "variables": {
+      "first_name": "Tomas",
+      "last_name": "Novak",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1990-09-09",
+      "phone_last4": "8846"
+    },
+    "products": [
+      {
+        "type": "personal_loan",
+        "past_due": 780.0,
+        "days_late": 21,
+        "instalment_amount": 260.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. After the debt is stated say \"I lost my job, but I can still pay the whole 780 this Friday\". If support is offered decline it and repeat that you want to pay 780 on Friday October 16. Confirm.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 780,
+          "date": "2026-10-16"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Acknowledge hardship with brief sympathy and make no persuasion attempt.",
+      "A voluntary date and amount during hardship may still be recorded.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-24",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Vague date twice defaults to deadline",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Say you can pay full 420 when your money arrives. If asked for an exact day say \"I really do not know, sometime soon\". Accept the latest allowed date when proposed and confirm.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 420,
+          "date": "2026-11-02"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Ask once for an exact day, then offer the early-band deadline November 2 rather than counting vagueness as refusal.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-25",
+    "session_case": "PUB-04",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "After-deadline refusal starts persuasion",
+    "variables": {
+      "first_name": "Lena",
+      "last_name": "Hoffmann",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1984-01-30",
+      "phone_last4": "2219"
+    },
+    "products": [
+      {
+        "type": "car_loan",
+        "past_due": 1250.0,
+        "days_late": 14,
+        "instalment_amount": 400.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Propose full 1250 on November 6. Refuse the October 23 latest date when it is offered. When the agent proposes full 1250 this Friday October 16, agree and confirm.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 1250,
+          "date": "2026-10-16"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Refusing an offered deadline triggers attempt 1, full amount October 16.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-26",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Wrong answers shared across questions",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. For birth date first say 14 March 1987, then 14 March 1988. For phone first say 1111 and next say 2222; keep these wrong, never give 4471.",
+    "expected": {
+      "outcome": "not_verified",
+      "reason": "failed",
+      "promises": [],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "The birth-date error plus two phone errors total three wrong answers; terminate failed and refer to app or branch.",
+      "No get_account or debt disclosure.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-27",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Unknown fee question then pays",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. After debt statement ask \"How much will your penalty fee be next month?\". After the answer agree to pay full 420 today and confirm.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 420,
+          "date": "2026-10-14"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "The assistant says it does not have information about future penalty fees; it invents no figure or fee policy.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-28",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Paid credit card then promise two loans",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. When asked to pay all today, say \"I already paid the credit-card arrears this morning. I can pay the personal loan and car loan this Friday\". Confirm their full amounts together.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p2",
+          "amount": 640,
+          "date": "2026-10-16"
+        },
+        {
+          "product_id": "p3",
+          "amount": 75,
+          "date": "2026-10-16"
+        }
+      ],
+      "notes": [
+        {
+          "product_id": "p1",
+          "reason": "paid"
+        }
+      ],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Say payments may take one business day to appear; do not seek a promise for the paid card.",
+      "Read both remaining promises together and get one confirmation.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-29",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Disputed first product overrides later refusals",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. After debt statement say \"That credit card is not mine; I never had it\". Refuse every offer for the personal loan and car loan without proposing dates or amounts.",
+    "expected": {
+      "outcome": "no_promise",
+      "reason": "dispute",
+      "promises": [],
+      "notes": [
+        {
+          "product_id": "p1",
+          "reason": "dispute"
+        },
+        {
+          "product_id": "p2",
+          "reason": "refused"
+        },
+        {
+          "product_id": "p3",
+          "reason": "refused"
+        }
+      ],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Do not argue about disputed card; continue products in account order.",
+      "No promise: outcome reason follows the first non-paid product, dispute.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-30",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Restructure after unrecorded agreement",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Say you cannot pay all today. Accept 220 for the credit card on Friday October 16 when discussed. When the personal loan is discussed ask for a new payment plan with lower instalments for it. Do not confirm a combined read-back.",
+    "expected": {
+      "outcome": "transferred",
+      "reason": "restructuring",
+      "promises": [],
+      "notes": [],
+      "callbacks": [],
+      "transfers": [
+        {
+          "queue": "restructuring"
+        }
+      ]
+    },
+    "checks": [
+      "Transfer to restructuring immediately; discard an agreed but unrecorded card promise.",
+      "No notes are added on a transfer.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-31",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "All products refused band-specific attempts",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Decline paying all today. Refuse every subsequent payment offer flatly, with no date or amount.",
+    "expected": {
+      "outcome": "no_promise",
+      "reason": "refused",
+      "promises": [],
+      "notes": [
+        {
+          "product_id": "p1",
+          "reason": "refused"
+        },
+        {
+          "product_id": "p2",
+          "reason": "refused"
+        },
+        {
+          "product_id": "p3",
+          "reason": "refused"
+        }
+      ],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "State all three products before asking for payment.",
+      "After the all-today refusal do not ask today again per product.",
+      "Card gets 220 October 16 then 66 October 23; personal loan gets 640 October 16 then 213 October 23; car loan gets only 75 October 16.",
+      "After each product exhausts its own attempts, proceed without repeating refused offers.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-32",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "One date clamps two late products",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Offer to pay all three full balances on October 30. Accept that card and personal loan must be on October 23, and the car loan stays October 30. Confirm the combined read-back.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 220,
+          "date": "2026-10-23"
+        },
+        {
+          "product_id": "p2",
+          "amount": 640,
+          "date": "2026-10-23"
+        },
+        {
+          "product_id": "p3",
+          "amount": 75,
+          "date": "2026-10-30"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Read back credit card 220 and personal loan 640 on their October 23 deadlines, car loan 75 on October 30.",
+      "Explain why the two dates were moved and obtain one combined confirmation.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-33",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "All three paid today",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Agree to pay every full past-due balance today. Confirm the combined read-back.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 220,
+          "date": "2026-10-14"
+        },
+        {
+          "product_id": "p2",
+          "amount": 640,
+          "date": "2026-10-14"
+        },
+        {
+          "product_id": "p3",
+          "amount": 75,
+          "date": "2026-10-14"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "State every product amount and days late before asking for payment.",
+      "Read all three promises together; one confirmation precedes three create_promise calls.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-34",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "All three already paid",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Say \"I paid all three past-due balances this morning: the card, personal loan and car loan\". If asked about any individual product repeat that it was paid this morning.",
+    "expected": {
+      "outcome": "paid",
+      "reason": null,
+      "promises": [],
+      "notes": [
+        {
+          "product_id": "p1",
+          "reason": "paid"
+        },
+        {
+          "product_id": "p2",
+          "reason": "paid"
+        },
+        {
+          "product_id": "p3",
+          "reason": "paid"
+        }
+      ],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "All three products noted paid; no promise or persuasion attempt.",
+      "Say payments can take one business day to appear; close paid.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-35",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Paid then dispute then refusal reason order",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. When all products are stated say \"I paid the card arrears this morning; the personal loan was closed and paid off two years ago\". Refuse every offer for the car loan, with no day or amount.",
+    "expected": {
+      "outcome": "no_promise",
+      "reason": "dispute",
+      "promises": [],
+      "notes": [
+        {
+          "product_id": "p1",
+          "reason": "paid"
+        },
+        {
+          "product_id": "p2",
+          "reason": "dispute"
+        },
+        {
+          "product_id": "p3",
+          "reason": "refused"
+        }
+      ],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Card is paid; old closed personal loan is dispute; continue car loan with its one early-band attempt.",
+      "With no promise ignore the paid first note and close dispute from the second product.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-36",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Paid product then human transfer no notes",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. When all products are stated say \"I paid the card arrears this morning\". When asked about the personal loan ask for a human. If asked whether the assistant can help first, insist on a human.",
+    "expected": {
+      "outcome": "transferred",
+      "reason": "human",
+      "promises": [],
+      "notes": [],
+      "callbacks": [],
+      "transfers": [
+        {
+          "queue": "general"
+        }
+      ]
+    },
+    "checks": [
+      "Ask once whether the assistant can help before transferring to general.",
+      "On transfer do not add even a paid note for the card.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-37",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Read-back change only one product amount",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Offer full amounts for all three this Friday. At the first combined read-back say \"Keep the dates, but change just the personal loan to 300\". Confirm the revised combined read-back.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 220,
+          "date": "2026-10-16"
+        },
+        {
+          "product_id": "p2",
+          "amount": 300,
+          "date": "2026-10-16"
+        },
+        {
+          "product_id": "p3",
+          "amount": 75,
+          "date": "2026-10-16"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Change only personal-loan amount to 300, retaining 220 card, 75 car, and October 16 for all.",
+      "Read back all revised promises before recording.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-38",
+    "session_case": "PUB-13",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "One holiday date normalized and clamped",
+    "variables": {
+      "first_name": "Elena",
+      "last_name": "Rossi",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1991-01-08",
+      "phone_last4": "6604"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "6604",
+        "past_due": 300.0,
+        "days_late": 4,
+        "minimum_payment": 90.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 900.0,
+        "days_late": 20,
+        "instalment_amount": 300.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Offer to pay both full balances on October 26. Accept card on October 27 because of the holiday, personal loan on its October 23 deadline. Confirm both together.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 300,
+          "date": "2026-10-27"
+        },
+        {
+          "product_id": "p2",
+          "amount": 900,
+          "date": "2026-10-23"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "For early-band card October 26 holiday rolls to October 27; late personal loan clamps to October 23, not October 27.",
+      "Read both corrected dates together before one confirmation.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  }
+]

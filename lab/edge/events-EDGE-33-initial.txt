@@ -1,0 +1,7 @@
+ended: customer-ended-call
+USER  [opening] Hello?
+   EV tool_call_routing {"event": "tool_call_routing", "tool_name": "transition_to_opening_2", "from_node": "opening", "target": "opening_2"}
+   -> node opening_2 (from opening: Tool call: transition_to_opening_2)
+AGENT [opening_2] Am I speaking with Ms Almeida?
+   EV turn_completed {"event": "turn_completed", "turnIndex": 1, "userMessageId": "msg_1_1791696473237", "finalAssistantMessageId": "msg_4_1791696474058", "responseText": "Am I speaking with Ms Almeida?"}
+   EV conversation_resumed {"event": "conversation_resumed", "fromMessageId": "msg_4_1791696474058", "isBranch": false}

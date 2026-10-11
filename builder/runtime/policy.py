@@ -352,7 +352,9 @@ def ladder_date(kind, today, deadline):
         d = nth_bd_after(today, int(kind.split(":")[1]))
     elif kind == "last_business_day_this_week":
         d = last_bd_of_week(today)
-        if d is None or d <= today:
+        if d is None or d < today:
+            d = nth_bd_after(today, 1)
+        elif d == today:
             d = last_bd_of_week(today + datetime.timedelta(days=7))
     elif kind == "last_business_day_next_week":
         d = last_bd_of_week(today + datetime.timedelta(days=7))
@@ -475,6 +477,11 @@ def readback_text(st):
 
 def start_transfer(vars, st, queue):
     """Ask the workflow to transfer the call now (an engine step calls the bank's transfer tool)."""
+    for p in st["products"]:
+        if p["status"] == "agreed":
+            p["status"] = "closed"
+            p["agreed_amount"] = None
+            p["agreed_date"] = None
     st["transfer_queue"] = str(queue or "")
     vars["transfer_now"] = str(queue or "")
     return cfg("texts.transfer_say", "Say that you are transferring them now.")
@@ -716,7 +723,8 @@ def decide_date(p, d, today, single_date_for_all=False):
     """Return (ok_date, offer_date, why). ok_date set when d is acceptable as is."""
     deadline = datetime.date.fromisoformat(p["deadline"])
     if d < today:
-        return None, None, "past"
+        earliest = today if cfg("dates.today_allowed", True) and is_bd(today) else nth_bd_after(today, 1)
+        return None, earliest, "past"
     if d > deadline:
         if single_date_for_all and cfg("multi.single_date_after_deadline", "offer_deadline") == "use_product_deadline":
             return deadline, None, "clamped"
@@ -742,6 +750,10 @@ def refusal(p, st, today):
             continue
         steps.append(s)
     used = p["attempts_used"]
+    if p.get("no_persuasion"):
+        p["status"] = "closed"
+        p["reason"] = cfg("reasons.hardship", "hardship")
+        return None
     if used < p["attempts_allowed"] and used < len(steps):
         s = steps[used]
         p["attempts_used"] = used + 1
@@ -871,8 +883,13 @@ def run_assess(vars, params):
 
 def assess_one(p, st, ev, amt, dt, today, multi=False, raw_date=None):
     if p["status"] not in ("open", "offered"):
+        hardship = cfg("reasons.hardship", "hardship")
         if ev in ("propose", "propose_date", "propose_amount", "pay_today") and p["status"] == "agreed":
             p["status"] = "open"
+        elif ev in ("propose", "propose_date", "propose_amount", "pay_today") and p["status"] == "closed" and p.get("reason") == hardship:
+            p["status"] = "open"             # the customer still names a day or an amount: handle it, but never persuade
+            p["no_persuasion"] = True
+            p["reason"] = None
         else:
             return ""
     if ev in ("stop_talking",):
@@ -894,7 +911,7 @@ def assess_one(p, st, ev, amt, dt, today, multi=False, raw_date=None):
     if ev == "no_answer":
         p["noans"] = int(p.get("noans") or 0) + 1
         if p["noans"] < 2:
-            return ask(p, "Their answer was not clear. Briefly acknowledge what they said and repeat your last question once.")
+            return ask(p, "Their answer was cut off or did not answer. Do not repeat your question: just say something short like 'Go on, I am listening.'")
         p["noans"] = 0
         if p["status"] == "offered":
             return refused_or_next(p, st, today)
@@ -973,7 +990,7 @@ def assess_one(p, st, ev, amt, dt, today, multi=False, raw_date=None):
             if res is not None:
                 return res
             if why == "past":
-                return ask(p, "That day is in the past. Ask for a day from today on.")
+                return make_offer(p, a, offer, "that day is in the past")
             if why in ("after_deadline", "not_business_after"):
                 return make_offer(p, a, offer, reason, latest=True)
             return make_offer(p, a, offer, reason)
@@ -1031,7 +1048,7 @@ def agree(p, amount, d):
     p["agreed_amount"] = round(float(amount), 2)
     p["agreed_date"] = d.isoformat()
     p["pending_floor"] = False
-    return "Agreed for the " + p["words"] + ": " + money(amount) + " on " + say_date(d) + "."
+    return "Agreed (not recorded yet: never say it is recorded) for the " + p["words"] + ": " + money(amount) + " on " + say_date(d) + "."
 
 
 def refused_or_next(p, st, today):
@@ -1046,6 +1063,11 @@ def refused_or_next(p, st, today):
 def run_commit_check(vars):
     try:
         st = load_state(vars)
+        if st and (st.get("transfer_queue") or vars.get("transfer_now")):
+            vars["commit_ready"] = "no"
+            for i in range(3):
+                vars["c" + str(i + 1) + "_go"] = "no"
+            return
         agreed = [p for p in st["products"] if p["status"] == "agreed"] if st else []
         if not st or not agreed or open_products(st):
             vars["commit_ready"] = "no"

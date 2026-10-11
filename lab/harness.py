@@ -42,25 +42,44 @@ def chat(workflow_id, message, variables=None, call_id=None):
             return freya.api("POST", "/api/v2/chat/message", body)
         return {"callId": call_id, "response": "", "error": str(e)[:200]}
 
-def transcript_of(call):
+def opening_line(workflow_id, variables):
+    """The fixed first line of the workflow (its initial node's TTS), with call variables filled in."""
+    try:
+        wf = freya.api("GET", f"/api/v2/workflow/{workflow_id}", workspaceId=freya.workspace_id())["workflow"]["workflow"]
+        text = ((wf["nodes"][wf["initial_node"]].get("on_enter") or {}).get("text")) or ""
+    except Exception:
+        return ""
+    for k, v in variables.items():
+        text = text.replace("{{" + k + "}}", str(v))
+    return text
+
+
+def transcript_of(call, first_line=""):
     lines = []
+    pending_close = []
     for m in call.get("messages", []):
         role, text = m.get("role"), m.get("message") or ""
         if role in ("assistant", "user"):
+            if role == "user" and not lines and first_line:
+                lines.append("AGENT: " + first_line)
             lines.append(("AGENT: " if role == "assistant" else "USER: ") + text)
+            if role == "assistant" and pending_close:
+                lines += pending_close
+                pending_close = []
         elif role == "system":
             try:
                 ev = json.loads(text)
             except ValueError:
                 continue
+            target = pending_close if (pending_close or ev.get("function") in ("close_call", "end_call") or "close_call" in json.dumps(ev.get("args") or "")) else lines
             if ev.get("event") == "function_call_start":
                 body = ((ev.get("args") or {}).get("body")) if isinstance(ev.get("args"), dict) else None
-                lines.append(f"SYSTEM: call {ev.get('function')} {json.dumps(body if body is not None else ev.get('args'))[:300]}")
+                target.append(f"SYSTEM: call {ev.get('function')} {json.dumps(body if body is not None else ev.get('args'))[:300]}")
             elif ev.get("event") == "function_call_complete":
                 res = ev.get("result")
                 data = res.get("data") if isinstance(res, dict) else res
-                lines.append(f"SYSTEM: result {ev.get('function')} {json.dumps(data)[:300]}")
-    return "\n".join(lines)
+                target.append(f"SYSTEM: result {ev.get('function')} {json.dumps(data)[:300]}")
+    return "\n".join(lines + pending_close)
 
 
 def run_case(workflow_id, case, style=None, max_turns=40):
@@ -68,7 +87,12 @@ def run_case(workflow_id, case, style=None, max_turns=40):
     persona = persona_for(case, {"identity": case["identity"]}, style)
     system = persona["prompt"]
     history = []                       # from the customer's point of view: agent = user, customer = assistant
-    customer_says = "Hello?"
+    first = opening_line(workflow_id, sess)
+    if first:                           # a simulation starts with the agent's opening line; the customer answers it
+        history.append({"role": "user", "content": first})
+        customer_says = llm.call([{"role": "system", "content": system}, {"role": "user", "content": first}], model=SIM_MODEL, purpose=f"customer {case['id']}").strip() or "Hello?"
+    else:
+        customer_says = "Hello?"
     call_id, ended, turns = None, False, 0
     t0 = time.time()
     slowest = 0.0
@@ -89,7 +113,7 @@ def run_case(workflow_id, case, style=None, max_turns=40):
         if led.get("calls") and led["calls"][-1]["tool"] == "close_call":
             ended = True
             break
-        msgs = [{"role": "system", "content": system}] + [{"role": "user" if h["role"] == "user" else "assistant", "content": h["content"]} for h in history[1:]]
+        msgs = [{"role": "system", "content": system}] + [{"role": "user" if h["role"] == "user" else "assistant", "content": h["content"]} for h in history]
         customer_says = llm.call(msgs, model=SIM_MODEL, purpose=f"customer {case['id']}").strip() or "..."
     led = http("/v1/practice/ledger/" + sess["customer_id"])
     res = score_ledger(case, led)
@@ -105,7 +129,7 @@ def run_case(workflow_id, case, style=None, max_turns=40):
                 break
             except RuntimeError:
                 time.sleep(2)
-    tr = transcript_of(call) if call else "\n".join(("USER: " if h["role"] == "assistant" else "AGENT: ") + h["content"] for h in history)
+    tr = transcript_of(call, first) if call else "\n".join(("USER: " if h["role"] == "assistant" else "AGENT: ") + h["content"] for h in history)
     verdict = {"pass": False, "reason": "no verdict"}
     try:
         verdict = llm.parse_json(llm.call([{"role": "user", "content": JUDGE.format(criteria=persona["successCriteria"], transcript=tr)}], model=SIM_MODEL, purpose=f"judge {case['id']}", json_mode=True))

@@ -34,7 +34,7 @@ SCEN = {
     "PUB-11b": [("refuse", "all", None, None), ("accept_offer", "p1", None, None), ("accept_offer", "p2", None, None), ("accept_offer", "p3", None, None)],
     "PUB-12": [("propose", "p1", None, "tomorrow"), ("refuse", "p2", None, None), ("refuse", "p2", None, None), ("refuse", "p3", None, None)],
     "PUB-13": [("propose", "all", None, "30 October")],
-    "PUB-05": [("hardship_declined", "all", None, None)],
+    "PUB-05": [("hardship_declined", "all", None, None), ("refuse", "all", None, None)],
 }
 for name, events in SCEN.items():
     case = cases[name.rstrip("b")]

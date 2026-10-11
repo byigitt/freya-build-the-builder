@@ -1,0 +1,383 @@
+{
+ "bank_name": "Alder Bank",
+ "agent_identity": "Alder Bank's digital assistant",
+ "language": "English",
+ "variables": {
+  "customer_id": "customer_id",
+  "first_name": "first_name",
+  "last_name": "last_name",
+  "title": "title",
+  "now": "now"
+ },
+ "address": "{{title}} {{last_name}}",
+ "customer_full_name": "{{first_name}} {{last_name}}",
+ "test_variables": {
+  "customer_id": "c_test",
+  "first_name": "Anna",
+  "last_name": "Hughes",
+  "title": "Ms",
+  "now": "2026-11-04T11:00"
+ },
+ "texts": {
+  "opening": "Hello, this is Alder Bank's digital assistant calling. Please note that we are recording this call.",
+  "identity_question": "Am I speaking with {{title}} {{last_name}}?",
+  "condolence": "I am sorry for your loss.",
+  "identity_failed": "I am sorry, I could not verify your identity. Please use the Alder Bank mobile app or visit a branch.",
+  "identity_why": "These security questions protect your account.",
+  "debt_intro": "I am calling from the collections team about a late payment.",
+  "ask_today": "Can you make this payment today?",
+  "ask_today_all": "Can you pay all of them today?",
+  "rest_overdue": "Say that the rest stays overdue.",
+  "readback_prefix": "So that is",
+  "confirm_question": "Do you confirm?",
+  "recorded": "Your promise is recorded.",
+  "after_promise": "",
+  "service_error": "I am sorry, I could not record your promise because of a technical problem.",
+  "paid_response": "Say that payments can take one business day to appear.",
+  "robot_answer": "Say that you are Alder Bank's digital assistant, then continue.",
+  "scam_answer": "Say they can verify the call by calling Alder Bank customer service, then continue.",
+  "unknown_answer": "Say that you do not have that information. Never invent information.",
+  "transfer_say": "I am transferring you now.",
+  "goodbye": "Thank you for your time, {{title}} {{last_name}}. Goodbye.",
+  "currency_word": "pounds",
+  "floor_name": "minimum amount"
+ },
+ "forbidden_before_verification": [
+  "collections",
+  "debt",
+  "payment",
+  "a product",
+  "any amount"
+ ],
+ "opening": {
+  "max_asks": 2,
+  "confirmation": "Only \"yes\", \"that's me\", \"speaking\" or the customer's own name counts as confirmation. \"Hello\", \"go ahead\" and \"who is this\" do not.",
+  "rules": [
+   "Answer the person's question first and then repeat the identity question. This uses the second ask.",
+   "Two unclear answers close the call as not reached, unclear."
+  ]
+ },
+ "third_party": {
+  "rules": [
+   "If a third party answers, ask when the customer is available without any disclosure.",
+   "Relatives cannot answer security questions or receive account information, even if they offer to pay.",
+   "An exact callback time is required. If the time is outside the window, ask for one alternative, then close if it is still invalid.",
+   "If told the customer has died, say the condolence sentence and close without further questions."
+  ]
+ },
+ "callback": {
+  "start": "09:30",
+  "end": "18:00",
+  "allow_today": true,
+  "today_requires_business_day": true,
+  "business_days_ahead": 1,
+  "reask_once": true
+ },
+ "identity": {
+  "questions": [
+   {
+    "field": "birth_year",
+    "ask": "For security, what year were you born?",
+    "kind": "year",
+    "digits": 4,
+    "say_name": "birth year"
+   },
+   {
+    "field": "mobile_suffix",
+    "ask": "What are the last three digits of your registered mobile number?",
+    "kind": "digits",
+    "digits": 3,
+    "say_name": "last three digits of your registered mobile number"
+   }
+  ],
+  "date_numeric_order": "DMY",
+  "max_wrong_total": 3,
+  "hints": {},
+  "decline_rule": "If the customer refuses to answer or instead asks what the call is about, explain once: \"These security questions protect your account.\" A second refusal or a second such question closes the call as unverified, security declined.",
+  "rules": [
+   "Check each answer separately.",
+   "Three wrong answers in total end the check. Say the identity failed sentence and close as unverified, security failed."
+  ]
+ },
+ "account": {
+  "products_field": "facilities",
+  "id_field": "facility_ref",
+  "type_field": "facility_kind",
+  "amount_field": "arrears_balance",
+  "days_late_field": "arrears_days",
+  "types": {
+   "CARD": {
+    "words": "credit card ending <card_suffix>",
+    "floor_field": "minimum_due",
+    "floor_name": "minimum due"
+   },
+   "TERM_LOAN": {
+    "words": "term loan",
+    "floor_field": "contractual_instalment",
+    "floor_name": "contractual instalment"
+   },
+   "OVERDRAFT": {
+    "words": "overdraft",
+    "floor_field": null,
+    "floor_percent": 22.5,
+    "floor_rounding": "ceil",
+    "floor_name": "minimum amount"
+   }
+  }
+ },
+ "calendar": {
+  "business_weekdays": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "holidays": [
+   "2026-11-02",
+   "2026-11-03",
+   "2026-12-25",
+   "2026-12-28"
+  ]
+ },
+ "bands": [
+  {
+   "name": "stage1",
+   "min_days": 1,
+   "max_days": 10,
+   "deadline": {
+    "kind": "business_days_after_today",
+    "n": 8
+   },
+   "attempts": 1
+  },
+  {
+   "name": "stage2",
+   "min_days": 11,
+   "max_days": 30,
+   "deadline": {
+    "kind": "business_days_after_today",
+    "n": 4
+   },
+   "attempts": 2
+  },
+  {
+   "name": "stage3",
+   "min_days": 31,
+   "max_days": 90,
+   "deadline": {
+    "kind": "business_days_after_today",
+    "n": 3
+   },
+   "attempts": 3
+  }
+ ],
+ "dates": {
+  "today_allowed": true
+ },
+ "persuasion": [
+  {
+   "amount": "full",
+   "date": "next_business_day"
+  },
+  {
+   "amount": "current",
+   "date": "business_days_after_today:2",
+   "bands": [
+    "stage2",
+    "stage3"
+   ]
+  },
+  {
+   "amount": "floor",
+   "date": "deadline",
+   "bands": [
+    "stage3"
+   ]
+  }
+ ],
+ "multi": {
+  "notes": true,
+  "single_date_after_deadline": "use_product_deadline",
+  "no_notes_on_transfer": true
+ },
+ "reasons": {
+  "refused": "REFUSAL",
+  "hardship": "HARDSHIP",
+  "dispute": "DISPUTED",
+  "paid": "PAID_CLAIM",
+  "service_error": "SYSTEM_ERROR"
+ },
+ "outcomes": {
+  "promise": "PTP",
+  "paid": "PAID",
+  "transferred": "XFER",
+  "no_promise": "NO_PTP",
+  "not_verified": "UNVERIFIED",
+  "not_reached": "UNREACHED"
+ },
+ "closing": {
+  "no_promise_reason_priority": [
+   "SYSTEM_ERROR",
+   "DISPUTED",
+   "HARDSHIP",
+   "REFUSAL",
+   "PAID_CLAIM"
+  ]
+ },
+ "transfer_reasons": {
+  "ARRANGEMENTS": "PLAN_REQUEST",
+  "CUSTOMER_CARE": "HUMAN_REQUEST",
+  "VULNERABILITY": "SUPPORT_ACCEPTED"
+ },
+ "early_closes": {
+  "unclear": [
+   "UNREACHED",
+   "UNCLEAR"
+  ],
+  "callback": [
+   "UNREACHED",
+   "CALLBACK"
+  ],
+  "no_callback": [
+   "UNREACHED",
+   "NO_CALLBACK"
+  ],
+  "wrong_number": [
+   "UNREACHED",
+   "WRONG_NUMBER"
+  ],
+  "deceased": [
+   "UNREACHED",
+   "DECEASED"
+  ],
+  "id_failed": [
+   "UNVERIFIED",
+   "SECURITY_FAILED"
+  ],
+  "id_declined": [
+   "UNVERIFIED",
+   "SECURITY_DECLINED"
+  ]
+ },
+ "close_texts": {
+  "deceased": "I am sorry for your loss. Thank you for your time. Goodbye.",
+  "id_failed": "I am sorry, I could not verify your identity. Please use the Alder Bank mobile app or visit a branch. Thank you for your time, {{title}} {{last_name}}. Goodbye."
+ },
+ "situations": {
+  "hardship": {
+   "trigger": "The customer mentions illness, bereavement or job loss.",
+   "action": "Say one sympathetic sentence. Make no persuasion attempt. Offer once to connect them with the vulnerability team.",
+   "effect": "product",
+   "reason": "HARDSHIP",
+   "scope": "all",
+   "offer_queue": "VULNERABILITY"
+  },
+  "restructuring": {
+   "trigger": "The customer asks for a new plan, lower instalments or a restructuring.",
+   "action": "Do not describe any plan. Transfer immediately.",
+   "effect": "transfer",
+   "queue": "ARRANGEMENTS"
+  },
+  "human": {
+   "trigger": "The customer asks to speak to a human.",
+   "action": "First ask whether you can help. If they insist, the call is transferred.",
+   "effect": "transfer",
+   "queue": "CUSTOMER_CARE",
+   "ask_first": true,
+   "say": "Ask once whether you can help them first."
+  },
+  "paid": {
+   "trigger": "The customer says they already paid this past-due amount.",
+   "action": "Mark it as a paid claim. Take no promise for that product.",
+   "effect": "product",
+   "reason": "PAID_CLAIM",
+   "say": "Say that payments can take one business day to appear.",
+   "close_say": "Payments can take one business day to appear."
+  },
+  "dispute": {
+   "trigger": "The customer disputes liability, including saying the product was closed or paid off in the past.",
+   "action": "Do not argue. Mark that product disputed. Take no promise for it.",
+   "effect": "product",
+   "reason": "DISPUTED"
+  },
+  "stop_talking": {
+   "trigger": "The customer says for the second time that they do not want to talk.",
+   "action": "Mark all remaining products refused.",
+   "effect": "product",
+   "reason": "REFUSAL",
+   "scope": "all"
+  }
+ },
+ "negotiation_rules": [
+  "State every facility and its past-due amount after security.",
+  "Ask for the full amount first. Never ask how much the customer can pay.",
+  "Propose the floor only when the full amount is unaffordable or the ladder reaches a floor offer. State that the rest stays overdue.",
+  "Do not accept less than the floor. Never offer discounts, waivers or new instalment terms.",
+  "A promise for today is allowed only if today is a business day.",
+  "Never accept a promise beyond that facility's deadline or on a non-business day. Propose the next business day, or the deadline if that would be too late.",
+  "Clamp ladder dates to the product deadline. Do not exceed the band's attempt count. After the final refusal mark the product refused.",
+  "One promise per facility. A recorded promise cannot be changed in this call.",
+  "Only explicit confirmation permits recording. Retry a failed recording once; after a second failure mark it as a system error.",
+  "Do not promise any text message or further confirmation."
+ ],
+ "global_rules": [
+  "If asked whether you are an AI or a robot, say that you are Alder Bank's digital assistant and continue.",
+  "If asked whether this is a scam, say they can verify by calling Alder Bank customer service, and continue.",
+  "Never invent information. If you do not know, say you do not have that information.",
+  "close_call is always the final tool."
+ ],
+ "coverage": [
+  "header currency pounds -> texts.currency_word",
+  "header one to three late facilities -> account (compiler handles 1-3 products)",
+  "1.1 variables -> variables, address, customer_full_name",
+  "1.2 opening sentence -> texts.opening",
+  "1.2 identity question, max two asks -> texts.identity_question, opening.max_asks",
+  "1.2 confirmation words -> opening.confirmation",
+  "1.2 answer question first, second ask -> opening.rules",
+  "1.2 two unclear -> UNREACHED/UNCLEAR -> early_closes.unclear, opening.rules",
+  "1.3 no disclosure before verification -> forbidden_before_verification",
+  "1.3 relatives -> third_party.rules",
+  "1.4 AI/scam/no invention -> global_rules, texts.robot_answer, texts.scam_answer, texts.unknown_answer",
+  "1.4 goodbye -> texts.goodbye",
+  "2.1 questions birth_year then mobile_suffix -> identity.questions",
+  "2.1 check each separately -> identity.rules",
+  "2.1 three wrong total -> identity.max_wrong_total",
+  "2.1 no hints -> identity.hints (empty)",
+  "2.1 day/month/year -> identity.date_numeric_order",
+  "2.2 explain once / declined -> texts.identity_why, identity.decline_rule, early_closes.id_declined",
+  "2.2 failed security text and close -> texts.identity_failed, early_closes.id_failed, close_texts.id_failed",
+  "2.3 wrong number, callback, no callback -> early_closes",
+  "2.3 deceased, condolence, no further questions -> texts.condolence, early_closes.deceased, close_texts.deceased, third_party.rules",
+  "3.1 third party ask availability without disclosure -> third_party.rules",
+  "3.1 callback window (M1.C start 09:30 kept, M2 end restored to 18:00), today later than now if business day or next business day -> callback",
+  "3.1 one alternative, exact time -> callback.reask_once, third_party.rules",
+  "3.2 business days Mon-Fri; holidays 2026-11-02, 2026-12-25, 2026-12-28 + M1.D 2026-11-03 (kept by M2) -> calendar",
+  "4.1 facilities, facility_ref, facility_kind, arrears_balance, arrears_days -> account",
+  "4.1 CARD/TERM_LOAN words and floors -> account.types",
+  "4.1 OVERDRAFT floor: M1.A 30% rolled back by M2 to 22.5%, round up to penny -> account.types.OVERDRAFT",
+  "4.2 bands boundaries and attempts -> bands",
+  "4.2 stage1 deadline 8 -> bands; M1.B stage2 = 4 (kept by M2) -> bands; M1.B stage3 = 2 rolled back by M2 to 3 -> bands",
+  "4.3 state every facility -> negotiation_rules",
+  "4.3 debt intro, ask today -> texts.debt_intro, texts.ask_today, texts.ask_today_all",
+  "4.3 today only if business day -> dates.today_allowed, negotiation_rules",
+  "4.3 deadlines, non-business days, floor, rest overdue, no discounts -> negotiation_rules, texts.rest_overdue",
+  "5.1 ladder -> persuasion",
+  "5.1 clamp and attempt limits, refused after final refusal -> negotiation_rules",
+  "5.2 one promise per facility, no change -> negotiation_rules",
+  "5.2 single date after deadline -> multi.single_date_after_deadline",
+  "5.2 read-back, confirm, recorded, retry, service error -> texts.readback_prefix, texts.confirm_question, texts.recorded, texts.service_error, negotiation_rules",
+  "5.2 no SMS -> texts.after_promise (empty), negotiation_rules",
+  "5.3 notes, none on transfer -> multi.notes, multi.no_notes_on_transfer",
+  "5.3 close_call final -> global_rules (prose only)",
+  "5.3 PTP/PAID/NO_PTP closes -> outcomes",
+  "5.3 reason priority -> closing.no_promise_reason_priority",
+  "6.1 hardship -> situations.hardship",
+  "6.2 restructuring -> situations.restructuring",
+  "6.3 human -> situations.human",
+  "6.4 paid / dispute -> situations.paid, situations.dispute, texts.paid_response",
+  "6.5 stop talking -> situations.stop_talking",
+  "6.5 transfer reasons -> transfer_reasons; transfer sentence -> texts.transfer_say",
+  "code list wire enums (API spelling) -> reasons, outcomes, early_closes, transfer_reasons"
+ ]
+}

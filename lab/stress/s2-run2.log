@@ -1,0 +1,41 @@
+model call: anthropic/claude-opus-5.5 | extract the spec from the brief | 11526 in / 7486 out tokens | $0.1958 | 53.1 s
+spec check after extraction: no problems
+model call: anthropic/claude-opus-5.5 | review the spec rule by rule against the brief and fix it | 18639 in / 7866 out tokens | $0.2319 | 60.8 s
+DIFF account 
+  expected: {"amount_field": "overdue_amount", "days_late_field": "dpd", "id_field": "product_id", "products_field": "products", "type_field": "type", "types": {"bnpl": {"floor_field": null, "floor_percent": 40}, "revolving_card": {"floor_field": "minimum_due"}}} 
+  got:      {"amount_field": "overdue_amount", "days_late_field": "dpd", "id_field": "product_id", "products_field": "products", "type_field": "type", "types": {"bnpl": {"floor_field": null, "floor_percent": 40, "floor_rounding": "round"}, "revolving_card": {"floor_field": "minimum_due"}}}
+DIFF early_closes 
+  expected: {"callback": ["not_reached", "callback"], "deceased": ["not_reached", "deceased"], "id_declined": ["not_verified", "declined"], "id_failed": ["not_verified", "failed"], "no_callback": ["not_reached", "no_callback"], "unclear": ["not_reached", "unclear"], "wrong_number": ["not_reached", "wrong_number"]} 
+  got:      {"callback": ["not_reached", "callback"], "debt_management": ["transferred", "managed_plan"], "deceased": ["not_reached", "deceased"], "id_declined": ["not_verified", "declined"], "id_failed": ["not_verified", "failed"], "no_callback": ["not_reached", "no_callback"], "unclear": ["not_reached", "unclear"], "wrong_number": ["not_reached", "wrong_number"]}
+DIFF callback 
+  expected: {"allow_today": true, "business_days_ahead": 2, "end": "17:00", "start": "08:30", "today_requires_business_day": true} 
+  got:      {"allow_today": true, "business_days_ahead": 2, "end": "17:00", "reask_once": true, "start": "08:30", "today_requires_business_day": true}
+DIFF situation debt_management {'effect': 'transfer', 'queue': 'debt_management', 'reason': None, 'outcome': None, 'scope': None} | {'effect': 'transfer', 'queue': 'debt_management', 'reason': 'managed_plan', 'outcome': None, 'scope': None}
+4 differences
+
+compiled 37 nodes
+  self-test refuse-all days_late=1 products=1: phase=done outcome=no_promise/refused attempts=[1]
+  self-test late-date days_late=1 products=1: commit_ready=yes dates=['2026-10-23']
+  self-test refuse-all days_late=1 products=2: phase=done outcome=no_promise/refused attempts=[1, 1]
+  self-test late-date days_late=1 products=2: commit_ready=yes dates=['2026-10-23', '2026-10-23']
+  self-test refuse-all days_late=14 products=1: phase=done outcome=no_promise/refused attempts=[1]
+  self-test late-date days_late=14 products=1: commit_ready=yes dates=['2026-10-23']
+  self-test refuse-all days_late=14 products=2: phase=done outcome=no_promise/refused attempts=[1, 1]
+  self-test late-date days_late=14 products=2: commit_ready=yes dates=['2026-10-23', '2026-10-23']
+  self-test refuse-all days_late=15 products=1: phase=done outcome=no_promise/refused attempts=[2]
+  self-test late-date days_late=15 products=1: commit_ready=yes dates=['2026-10-21']
+  self-test refuse-all days_late=15 products=2: phase=done outcome=no_promise/refused attempts=[2, 2]
+  self-test late-date days_late=15 products=2: commit_ready=yes dates=['2026-10-21', '2026-10-21']
+  self-test refuse-all days_late=45 products=1: phase=done outcome=no_promise/refused attempts=[2]
+  self-test late-date days_late=45 products=1: commit_ready=yes dates=['2026-10-21']
+  self-test refuse-all days_late=45 products=2: phase=done outcome=no_promise/refused attempts=[2, 2]
+  self-test late-date days_late=45 products=2: commit_ready=yes dates=['2026-10-21', '2026-10-21']
+  self-test refuse-all days_late=46 products=1: phase=done outcome=no_promise/refused attempts=[3]
+  self-test late-date days_late=46 products=1: commit_ready=yes dates=['2026-10-19']
+  self-test refuse-all days_late=46 products=2: phase=done outcome=no_promise/refused attempts=[3, 3]
+  self-test late-date days_late=46 products=2: commit_ready=yes dates=['2026-10-19', '2026-10-19']
+  self-test refuse-all days_late=120 products=1: phase=done outcome=no_promise/refused attempts=[3]
+  self-test late-date days_late=120 products=1: commit_ready=yes dates=['2026-10-19']
+  self-test refuse-all days_late=120 products=2: phase=done outcome=no_promise/refused attempts=[3, 3]
+  self-test late-date days_late=120 products=2: commit_ready=yes dates=['2026-10-19', '2026-10-19']
+self-test problems: 0

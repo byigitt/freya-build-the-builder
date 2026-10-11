@@ -1,0 +1,5 @@
+ended: customer-ended-call
+USER  [opening] Hello?
+AGENT [opening] Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Ms Rossi?
+   EV turn_completed {"event": "turn_completed", "turnIndex": 1, "userMessageId": "msg_1_1791696546443", "finalAssistantMessageId": "msg_2_1791696546836", "responseText": "Hello, this is Freya Bank's digital assistant cal
+   EV conversation_resumed {"event": "conversation_resumed", "fromMessageId": "msg_2_1791696546836", "isBranch": false}

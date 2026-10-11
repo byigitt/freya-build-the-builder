@@ -346,7 +346,7 @@ def compile_workflow(spec, openapi):
         key = "opening" if k == 1 else "opening_" + str(k)
         nxt = ("opening_" + str(k + 1)) if k < max_asks else "close_unclear"
         task = (
-            ("If you have not said anything yet in this call, say exactly: \"" + first_line + "\" and stop.\n" if k == 1 else "") +
+            ("The opening line was already said: \"" + first_line + "\"\n" if k == 1 else "") +
             "You have asked \"" + idq_text + "\" " + str(k) + " time(s) now.\n\n"
             "Your only job in this step: find out whether " + addr + " is the person on the line. Never say why you are calling. "
             "If asked what it is about, say you can only discuss it with " + addr + " personally.\n"
@@ -422,7 +422,7 @@ def compile_workflow(spec, openapi):
         "\nNever say why you are calling and never mention " + forbidden + " until every security answer is verified.\n" + decline_rule + "\n"
         "When the customer declines the second time, call transition_to_close_id_declined.\n"
         "If the customer asks for a human: the first time, ask whether you can help first. If they insist, call transfer_" + human_q + ".\n"
-        + bullets(spec.get("identity", {}).get("rules", [])) + "\nALWAYS (also while asking security questions):\n" + bullets(spec.get("global_rules", [])) + "\nDo not call any other tool."
+        + bullets(spec.get("identity", {}).get("rules", [])) + "\nIf the customer asked a question earlier in the call that has not been answered yet (for example whether this is a scam or whether you are a robot), answer it in one sentence before your next question.\nALWAYS (also while asking security questions):\n" + bullets(spec.get("global_rules", [])) + "\nDo not call any other tool."
     )
     hints = spec.get("identity", {}).get("hints", {})
     order = spec.get("identity", {}).get("date_numeric_order", "DMY")
@@ -451,7 +451,7 @@ def compile_workflow(spec, openapi):
         failed_tr["condition"]["conditions"].append({"variable": "verify_identity_state", "operator": "equals", "operand": "failed"})
         nodes["identity"] = conv("identity", task, [tool] + ([human_tr] if human_tr else []), [
             eq_any("verify_identity_state", ["verified"], "load_account", "answers verified"), failed_tr] + human_exit() + [declined_tr],
-            on_enter={"type": "llm", "prompt": "If the customer's last message asked a question (for example whether this is a scam or whether you are a robot), first answer it in one sentence following the rules. Then say exactly: \"Thank you, " + addr + ". " + idq[0].get("ask", "") + "\" Say nothing else and call no tool."})
+            on_enter={"type": "tts", "text": "Thank you, " + addr + ". " + idq[0].get("ask", "")})
         idq = []
     for i, q in enumerate(idq):
         key = "identity" if i == 0 else "identity_" + str(i + 1)
@@ -476,7 +476,7 @@ def compile_workflow(spec, openapi):
             adesc = q.get("format", "The answer.")
         thanks = "Thank you, " + addr + ". " if i == 0 else "Thank you. "
         task = ("Security question " + str(i + 1) + " of " + str(len(idq)) + ": you asked for the " + q.get("say_name", q["field"].replace("_", " ")) + ".\n" + how +
-                "\nIf a message contains an answer together with a question or a complaint, FIRST call " + tool_name + " with the answer, then reply to the rest. Every answer given counts and must be checked.\n"
+                "\nIf the customer's message is cut off or has no answer in it, do not repeat the question: just say something short like 'Go on, I am listening.'\nIf a message contains an answer together with a question or a complaint, FIRST call " + tool_name + " with the answer, then reply to the rest. Every answer given counts and must be checked.\n"
                 "After each result, follow what_to_do_next exactly. A wrong answer is asked again; the check counts wrong answers itself. "
                 "Never ask a question that was already verified again." + id_common)
         tool = api_fn(api, "verify_identity", {cid_field: CID, f_field: leaf("string", q["field"]), a_field: leaf("string", "{{answer}}", adesc)}, name=tool_name,
@@ -492,7 +492,7 @@ def compile_workflow(spec, openapi):
                 {"variable": ok_var + "all_verified", "operator": "equals", "operand": "true"},
                 {"variable": ok_var + "all_verified", "operator": "equals", "operand": "True"}]}},
             failed_tr,
-        ] + human_exit() + [declined_tr], on_enter={"type": "llm", "prompt": "If the customer's last message asked a question (for example whether this is a scam or whether you are a robot), first answer it in one sentence following the rules. Then say exactly: \"" + thanks + q.get("ask", "") + "\" Say nothing else and call no tool."})
+        ] + human_exit() + [declined_tr], on_enter={"type": "tts", "text": thanks + q.get("ask", "")})
 
     # ---------------- account
     products_field = spec.get("account", {}).get("products_field", "products")
@@ -507,11 +507,11 @@ def compile_workflow(spec, openapi):
 
     # ---------------- negotiation
     events = {
-        "pay_today": "they agree to pay today (the full amount unless another amount was agreed)",
+        "pay_today": "they agree to pay TODAY / right now. Only when they say today or now. A named day (Friday, tomorrow, the 20th) is propose, even for all products",
         "propose": "they name a day and/or an amount themselves (pass what they said in date and amount)",
         "accept_offer": "they accept the offer you just made",
-        "too_much": "they say the full amount is too much, without naming an amount",
-        "refuse": "a clear refusal (no) to paying or to your offer, with no day and no amount",
+        "too_much": "they say the FULL amount is too much or that they could pay only part of it, without naming an amount (NOT a plain 'I can't pay')",
+        "refuse": "a clear no to paying or to your offer ('no', 'I can't pay', 'not now', 'not that day'), with no day and no amount",
         "vague": "they give a vague period (next week, end of the month, when my salary comes) instead of a day",
         "no_answer": "their message does not answer your question (it trails off, is cut off, or only talks about something else)",
         "situation": "one of the PRIORITY SITUATIONS below (give its name in situation)",
@@ -532,7 +532,7 @@ def compile_workflow(spec, openapi):
         "try:\n    b = config.get('body') or dict()\n    prm = dict()\n"
         "    for k in ('event', 'product', 'date', 'amount', 'situation'):\n        v = b.get('a_' + k)\n"
         "        if v is not None and str(v).strip().startswith('{'):\n            v = None\n        prm[k] = v\n"
-        "    run_assess(vars, prm)\n    config['body'] = dict([(" + repr(cid_field) + ", b.get(" + repr(cid_field) + "))])\n"
+        "    vars['assess_last_args'] = json.dumps(prm)\n    run_assess(vars, prm)\n    config['body'] = dict([(" + repr(cid_field) + ", b.get(" + repr(cid_field) + "))])\n"
         "except Exception as e:\n    vars['next_instruction'] = 'Continue carefully. (policy error ' + str(e)[:60] + ')'\n"))
     assess_post = ("try:\n    if isinstance(result, dict):\n        result.pop('header', None)\n"
                    "        result['data'] = dict(next_step=str(vars.get('next_instruction') or 'Continue.'), say_it='Say what next_step says, in your own short words. Do not add other offers.')\n"
@@ -545,7 +545,8 @@ def compile_workflow(spec, openapi):
     for key, s in situations.items():
         how = " -> call assess with a_event situation, a_situation " + key + (", a_product all" if s.get("scope") == "all" or s.get("effect") in ("call", "transfer") else ", and a_product the product it is about (or all)") + ". The result's next_step tells you what to say."
         if s.get("offer_queue"):
-            how += " When they answer your offer, call assess with a_event accept_offer or refuse."
+            how += (" When they answer your offer (yes or no, even together with another question), FIRST call assess with a_event accept_offer or refuse. "
+                    "After this situation, never ask about a payment, a day or an amount yourself; only the customer may bring one up.")
         sit_lines.append(key.upper() + ": " + s.get("trigger", "") + how)
     tr_tools = []
     neg_task = (

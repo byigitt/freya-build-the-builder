@@ -1,0 +1,47 @@
+--- a/builder/runtime/policy.py
++++ b/builder/runtime/policy.py
+@@ -353,4 +353,6 @@
+     elif kind == "last_business_day_this_week":
+         d = last_bd_of_week(today)
+-        if d is None or d <= today:
++        if d is None or d < today:
++            d = nth_bd_after(today, 1)
++        elif d == today:
+             d = last_bd_of_week(today + datetime.timedelta(days=7))
+@@ -477,1 +479,6 @@
+     """Ask the workflow to transfer the call now (an engine step calls the bank's transfer tool)."""
++    for p in st["products"]:
++        if p["status"] == "agreed":
++            p["status"] = "closed"
++            p["agreed_amount"] = None
++            p["agreed_date"] = None
+@@ -669,1 +676,5 @@
+             return
++        if outside >= 1 and cb.get("reask_once", True):
++            vars["cb_state"] = "give_up"
++            vars["cb_say"] = ""
++            return
+@@ -718,2 +729,3 @@
+     if d < today:
+-        return None, None, "past"
++        earliest = today if cfg("dates.today_allowed", True) and is_bd(today) else nth_bd_after(today, 1)
++        return None, earliest, "past"
+@@ -975,2 +987,0 @@
+-            if why == "past":
+-                return ask(p, "That day is in the past. Ask for a day from today on.")
+@@ -991,1 +1001,7 @@
++    if amt > p["full"]:
++        if d is not None:
++            return make_offer(p, p["full"], d, "only the full overdue balance can be recorded")
++        p["agreed_amount"] = p["full"]
++        return ask(p, "Only the full overdue balance of " + money(p["full"]) + " can be recorded. "
++                   + "Offer that amount and ask which day they can pay it.")
+     if p["floor"] is not None and amt < p["floor"] - 0.005:
+@@ -1048,1 +1064,7 @@
+         st = load_state(vars)
++        for i in range(1, 4):
++            vars["c" + str(i) + "_go"] = "no"
++        if st and (st.get("transfer_queue") or vars.get("transfer_now")):
++            vars["commit_ready"] = "no"
++            vars["next_instruction"] = cfg("texts.transfer_say", "Transfer the call now.")
++            return

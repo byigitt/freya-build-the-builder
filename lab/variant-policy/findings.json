@@ -1,0 +1,91 @@
+{
+  "execution": "python3 lab/variant-policy/run.py",
+  "scope": "Local runtime only; original extracted specs unchanged; simulated commit/transfer results; no network, deployments or Freya calls.",
+  "counts": {"v1": {"run":10,"pass":3,"mismatch":7}, "v2":{"run":10,"pass":7,"mismatch":3}, "v3":{"run":10,"pass":7,"mismatch":3}, "s1":{"run":10,"pass":9,"mismatch":1}, "s2":{"run":10,"pass":9,"mismatch":1}},
+  "findings": [
+    {
+      "id":"callback-nonbusiness-today",
+      "classification":"extraction error",
+      "scenarios":["v1-sunday-callback","v2-weekend-today","v3-holiday-today-callback"],
+      "rule":"Each variant rule 5 explicitly permits today even when not a business day.",
+      "expected":"Book respectively 2026-10-18 17:30, 2026-11-21 16:45, 2026-10-31 16:30.",
+      "got":"All return cb_state=ask, rejecting the date.",
+      "cause":"out/v1.spec.json:70, out/v2.spec.json:74, out/v3.spec.json:79 omit callback.today_requires_business_day. Policy line 616 defaults it to true. Field already exists and is correctly explicit true in both stress specs.",
+      "patch":"Set callback.today_requires_business_day=false in the three variant specs; add extraction coverage that emits this boolean even when false. Do not globally change the default: s1/s2 require true."
+    },
+    {
+      "id":"past-date-offer",
+      "classification":"policy bug",
+      "scenarios":["v1-past-offer-today","v3-past-next-business-day"],
+      "rule":"v1 rule 15 offers today if business day; v3 rule 15 offers strictly next business day for today or past. Both are retained in negotiation_rules and dates.today_allowed.",
+      "expected":"Immediately offer 100 on 2026-10-12 (v1) / 2026-11-02 (v3), zero attempts, then read back after acceptance.",
+      "got":"Status stays open, no amount/date offered, instruction asks for a day from today on. A subsequent generic accept happens to produce the correct final promise, masking the transcript defect.",
+      "location":"builder/runtime/policy.py:718-719,975-976",
+      "patch":"In decide_date replace the past branch with: if d < today: earliest = today if cfg('dates.today_allowed', True) and is_bd(today) else nth_bd_after(today, 1); return None, earliest, 'past'. Remove assess_one's special past return at lines 975-976 so the existing make_offer path handles it. The existing reason says that day is in the past."
+    },
+    {
+      "id":"hardship-voluntary-proposal",
+      "classification":"unsupported rule",
+      "scenarios":["v1-hardship-voluntary-promise","v3-hardship-voluntary-promise"],
+      "rule":"v1/v3 rule 25, also v2 rule 25: valid volunteered promises replace hardship after support declined. Spec action prose is correct, but no structured capability lets a proposal reopen a closed hardship product.",
+      "expected":"v1 records 50 on 2026-10-13 and closes promise_to_pay with no notes/reason; v3 records 50 on 2026-10-27 and closes payment_agreed with no reason/notes.",
+      "got":"Proposal ignored by assess_one closed-status guard; v1 no_commitment/financial_distress plus hardship note; v3 payment_unagreed/needs_care.",
+      "location":"builder/runtime/policy.py:819-836,843-845,872-877",
+      "new_spec_field":"situations.hardship.allow_voluntary_proposal: true for v1/v2/v3, default false. Extract from explicit hardship override language, not from arbitrary situation text.",
+      "patch":"Before run_assess selects all_events targets, for proposal events (propose/propose_date/propose_amount/pay_today), reopen matching products whose status is closed and reason equals the configured hardship reason ONLY when allow_voluntary_proposal is true: set status='open' and hardship_active=True, retain the hardship reason until agreement. Include all matched closed-hardship products for product='all'. At the start of refusal(), if hardship_active: set status='closed', reason=cfg('reasons.hardship'); return None (no persuasion). In agree(), clear reason after creating the valid agreement. Invalid/unfinished voluntary proposals retain hardship as the final fallback. Never reopen paid/disputed/recorded products."
+    },
+    {
+      "id":"nonanswer-consumes-step",
+      "classification":"unsupported rule",
+      "scenarios":["v1-nonanswer-advances"],
+      "rule":"v1 rule 23, also v2/v3 rule 23: a non-answer triggers the next permitted persuasion attempt; correct prose retained in all three negotiation_rules.",
+      "expected":"First no_answer offers full 100 on 2026-10-13, attempts_used=1. Subsequent refusal exhausts gentle's only step.",
+      "got":"First no_answer merely repeats question, status=open, attempts_used=0. The supplied subsequent refusal offers the first step instead of ending. Finalize later falls back to refusal, hiding transcript defect.",
+      "location":"builder/runtime/policy.py:894-903",
+      "new_spec_field":"negotiation.no_answer_reasks: 0 for these three briefs; existing behavior corresponds to 1.",
+      "patch":"Replace `if p['noans'] < 2:` with `if p['noans'] <= int(cfg('negotiation.no_answer_reasks', 1)):`. Retain rest of existing no_answer handling. Emit zero from extraction when every non-answer triggers persuasion; do not conflate vague-date requests with non-answers."
+    },
+    {
+      "id":"callback-second-incomplete",
+      "classification":"policy bug",
+      "scenarios":["v1-incomplete-correction"],
+      "rule":"v1 rule 6 and callback.rules: after invalid first offer, second invalid OR INCOMPLETE offer ends no_contact/return_call_unavailable. reask_once=true.",
+      "expected":"Oct 22 is beyond the next two BDs from Oct 16 (Oct 19 holiday); first ask, then date-only Oct 21 -> give_up.",
+      "got":"Second proposal returns ask for its missing time, granting an unauthorized third offer.",
+      "location":"builder/runtime/policy.py:665-675",
+      "patch":"After the complete valid booking branch and before `if d is not None:`, insert: `if outside >= 1 and cb.get('reask_once', True): vars['cb_state'] = 'give_up'; vars['cb_say'] = ''; return`. This applies only after a rejected initial offer; ordinary initial date/time collection stays unchanged."
+    },
+    {
+      "id":"transfer-commit-guard",
+      "classification":"policy bug",
+      "scenarios":["v1-transfer-discards-unrecorded","v2-transfer-discards-unrecorded","s1-transfer-discards-unrecorded","s2-managed-plan-discards-promise"],
+      "rule":"v1/v2 rule 38; s1 immediate arrangements transfer/no notes; s2 section 6 explicitly prohibits recording new promises after existing-plan transfer.",
+      "expected":"commit_ready=no and no commit slots, transfer outcomes handed_over/options_requested, C30/T11, XFER/PLAN_REQUEST, transferred/managed_plan; zero notes.",
+      "got":"Transfer requested correctly, but run_commit_check emits commit_ready=yes plus the previously agreed promise: respectively Oct12, Nov16, Oct26, Nov3, amount100. Transfer final outcome and notes are correct with simulated transfer success. This is a runtime guard defect, not evidence the compiled workflow actually calls commit after transfer.",
+      "location":"builder/runtime/policy.py:476-480,1046-1066",
+      "patch":"At the beginning of run_commit_check, clear c1_go/c2_go/c3_go to 'no'. After load_state and before collecting agreed, if st and (st.get('transfer_queue') or vars.get('transfer_now')): set commit_ready='no'; next_instruction=cfg('texts.transfer_say'); return. Also in start_transfer clear any unrecorded agreed proposals (agreed_amount/agreed_date) and mark them closed/discarded without notes, retaining recorded products. This makes the explicit transfer discard irreversible rather than relying only on workflow routing."
+    },
+    {
+      "id":"overbalance-needs-offer",
+      "classification":"policy bug",
+      "scenarios":["v1-above-balance-correction"],
+      "rule":"v1 rule 22 and negotiation_rules: explain only full overdue balance can be recorded and offer that amount; do not silently replace the proposal.",
+      "expected":"150 offered against balance100 -> status=offered, amount100/date2026-10-13, explanation; clear accept then agreement.",
+      "got":"Immediately status=agreed for100, no correction offer and no explanation. Final amount is right but transcript instruction violates the brief.",
+      "location":"builder/runtime/policy.py:987-1006,1014-1015",
+      "patch":"In check_amount, before the below-floor branch: if amt > p['full']: if d is not None: return make_offer(p,p['full'],d,'only the full overdue balance can be recorded'); otherwise set p['agreed_amount']=p['full'] and return ask(p,'Only the full overdue balance of '+money(p['full'])+' can be recorded. Offer that amount and ask which day they can pay it.'). Existing valid-date path then creates an explicit correction offer rather than silent clamp."
+    },
+    {
+      "id":"week-ended-next-business-day",
+      "classification":"policy bug",
+      "scenarios":["v2-saturday-week-ended"],
+      "rule":"v2 rule 24 and negotiation_rules[15]: on last BD itself use last BD next week, but after that day has passed use NEXT BD.",
+      "expected":"Saturday Nov21 -> next BD Tuesday Nov24 (Monday23 holiday), amount100.",
+      "got":"Friday Nov27, amount100; both offer and recorded date wrong.",
+      "location":"builder/runtime/policy.py:353-356",
+      "patch":"Replace the `d is None or d <= today` branch with: if d is None or d < today: d = nth_bd_after(today,1); elif d == today: d = last_bd_of_week(today + datetime.timedelta(days=7)). Keep existing deadline clamp. Monday/Friday scenarios already pass and must remain passing."
+    }
+  ],
+  "passing_coverage":"All tested band boundaries/deadlines, calendar-day previous/next adjustments, inclusive counts, both amendment chains, ceil/nearest percentage floors, all specified three-step ladders, Saturday business days, today-prohibited adjustments, multi-product clamping, failed-commit reason priority, no-notes single-product campaign, and existing-plan transfer with no account pass except defects listed above.",
+  "limitations":"No spoken transcript judge, opening/security execution, HTTP parameter mapping or compiled workflow routing was exercised. Callback outcomes are validator decisions, not bank scheduling success. Tool success/failure and transfer completion are intentionally synthetic local variables. Commit-ready is the policy's readiness output, not proof of actual API side effects. Line references are the source snapshot read before execution."
+}

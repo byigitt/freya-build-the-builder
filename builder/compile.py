@@ -155,8 +155,12 @@ def strip_source(src):
     return "\n".join(out)
 
 
+POLICY_KEYS = ("variables", "texts", "calendar", "bands", "dates", "persuasion", "multi", "reasons", "outcomes", "transfer_reasons",
+               "account", "callback", "situations", "closing", "promise_reasons")
+
+
 def policy_code(spec, entry):
-    cfg = json.dumps(spec, separators=(",", ":"))
+    cfg = json.dumps({k: spec[k] for k in POLICY_KEYS if k in spec}, separators=(",", ":"))
     src = strip_source(POLICY_SRC).replace("CFG = dict()  # replaced by the compiler", "CFG = json.loads(" + py_literal(cfg) + ")")
     return check_code(src + "\n" + entry + "\n")
 
@@ -477,7 +481,7 @@ def compile_workflow(spec, openapi):
             adesc = q.get("format", "The answer.")
         thanks = "Thank you, " + addr + ". " if i == 0 else "Thank you. "
         task = ("Security question " + str(i + 1) + " of " + str(len(idq)) + ": you asked for the " + q.get("say_name", q["field"].replace("_", " ")) + ".\n" + how +
-                "\nIf the customer's message is cut off or has no answer in it, do not repeat the question: just say something short like 'Go on, I am listening.'\nIf a message contains an answer together with a question or a complaint, FIRST call " + tool_name + " with the answer, then reply to the rest. Every answer given counts and must be checked.\n"
+                "\nIf the customer's message is cut off or has no answer in it, say something short like 'Go on, I am listening.' If you already said that and their next message is cut off again, briefly repeat the question.\nIf a message contains an answer together with a question or a complaint, FIRST call " + tool_name + " with the answer, then reply to the rest. Every answer given counts and must be checked.\n"
                 "After each result, follow what_to_do_next exactly. A wrong answer is asked again; the check counts wrong answers itself. "
                 "Never ask a question that was already verified again." + id_common)
         tool = api_fn(api, "verify_identity", {cid_field: CID, f_field: leaf("string", q["field"]), a_field: leaf("string", "{{answer}}", adesc)}, name=tool_name,
@@ -536,7 +540,7 @@ def compile_workflow(spec, openapi):
         "    vars['assess_last_args'] = json.dumps(prm)\n    run_assess(vars, prm)\n    config['body'] = dict([(" + repr(cid_field) + ", b.get(" + repr(cid_field) + "))])\n"
         "except Exception as e:\n    vars['next_instruction'] = 'Continue carefully. (policy error ' + str(e)[:60] + ')'\n"))
     assess_post = ("try:\n    if isinstance(result, dict):\n        result.pop('header', None)\n"
-                   "        result['data'] = dict(next_step=str(vars.get('next_instruction') or 'Continue.'), say_it='Say what next_step says, in your own short words. Do not add other offers.')\n"
+                   "        result['data'] = dict(next_step=str(vars.get('next_instruction') or 'Continue.'), say_it='Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said it in this turn, say something short like Take your time. Never reply with nothing, and do not add other offers.')\n"
                    "except Exception:\n    pass\n")
     assess_tool = api_fn(api, "get_account", assess_body, name="assess",
                          desc="Report what the customer just said. CALL it after EVERY customer answer about paying, a day, an amount, your offer, the debt or a PRIORITY SITUATION, BEFORE you reply. The result tells you exactly what to say next (next_step).",

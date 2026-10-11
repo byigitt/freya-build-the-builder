@@ -294,6 +294,10 @@ def product_floor(p):
     spec = types.get(t) or dict()
     fld = spec.get("floor_field")
     val = to_float(p.get(fld)) if fld else None
+    if val is None and spec.get("floor_percent") is not None:
+        val = round(to_float(p.get(cfg("account.amount_field", "past_due")), 0.0) * to_float(spec.get("floor_percent"), 0) / 100.0, 2)
+    if val is not None and spec.get("floor_min") is not None:
+        val = max(val, to_float(spec.get("floor_min"), 0))
     if val is None:
         for alt in cfg("account.floor_fields", ["minimum_payment", "instalment_amount", "installment_amount"]):
             if p.get(alt) is not None:
@@ -662,7 +666,7 @@ def run_assess(vars, params):
             ev = "situation"
             sid = pend
             st["offer_done_" + sid] = True
-        elif pend and ev not in ("situation",):
+        elif pend and ev not in ("situation", "no_answer"):
             st["pending_offer"] = ""
         if ev == "situation":
             s = sits.get(sid) or dict()
@@ -709,6 +713,11 @@ def run_assess(vars, params):
         else:
             p0 = prod_by_id(st, target)
             targets = [p0] if p0 is not None else []
+            cur = current_product(st)
+            if p0 is not None and cur is not None and p0 is not cur and p0["status"] in ("open", "offered") and len(st["products"]) > 1:
+                # Products are handled one by one. An answer about a later product is taken up when its turn comes.
+                # Do not write anything: a parallel call for the current product must not be overwritten.
+                return
         if not targets:
             set_outputs(vars, st, next_step_instruction(st))
             return
@@ -749,10 +758,21 @@ def assess_one(p, st, ev, amt, dt, today, multi=False, raw_date=None):
         p["status"] = "closed"
         p["reason"] = cfg("reasons.hardship", "hardship")
         return "Acknowledge kindly. Take no promise for the " + p["words"] + "."
+    if ev == "no_answer":
+        p["noans"] = int(p.get("noans") or 0) + 1
+        if p["noans"] < 2:
+            return ask(p, "Their answer was not clear. Briefly acknowledge what they said and repeat your last question once.")
+        p["noans"] = 0
+        if p["status"] == "offered":
+            return refused_or_next(p, st, today)
+        if p.get("vague_asked"):
+            return make_offer(p, target_amount(p), datetime.date.fromisoformat(p["deadline"]), "no exact day was given", latest=False)
+        return refused_or_next(p, st, today)
+    p["noans"] = 0
     if ev in ("accept_offer", "accept", "yes"):
         if p["status"] == "offered":
             return agree(p, p["offer_amount"], datetime.date.fromisoformat(p["offer_date"]))
-        ev = "pay_today"
+        ev = "propose" if (dt is not None or amt is not None) else "pay_today"
     if ev == "pay_today":
         d = today
         ok, offer, why = decide_date(p, d, today)
@@ -972,7 +992,10 @@ def run_finalize(vars):
             if st.get("forced") and not rec:
                 outcome, reason = st["forced"][0], st["forced"][1]
             elif rec:
-                outcome, reason = oc.get("promise", "promise"), ""
+                outcome, reason = oc.get("promise", "promise"), cfg("promise_reasons.full", "")
+                if any(p.get("agreed_amount") is not None and p["agreed_amount"] < p["full"] - 0.005 for p in rec):
+                    outcome = oc.get("partial_promise", outcome)
+                    reason = cfg("promise_reasons.partial", reason)
             elif st["products"] and all(p.get("reason") == cfg("reasons.paid", "paid") for p in unp) and unp:
                 outcome, reason = oc.get("paid", "paid"), ""
             else:

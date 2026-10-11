@@ -1,12 +1,12 @@
 """Brief (+ tool API) -> spec JSON, with a strong model, then a deterministic check and one review pass."""
-import json, pathlib, re
+import json, os, pathlib, re
 
 import llm
 
 HERE = pathlib.Path(__file__).resolve().parent
 GUIDE = (HERE / "spec_guide.md").read_text()
 EXAMPLE = (HERE / "example_spec.json").read_text()
-MODEL = "anthropic/claude-opus-5.5"
+MODEL = os.environ.get("BUILDER_MODEL", "anthropic/claude-opus-5.5")
 
 DEADLINE_KINDS = {"business_days_after_today", "business_days_after_today_inclusive", "calendar_days_after_today", "end_of_month"}
 LADDER_DATES = {"today", "next_business_day", "last_business_day_this_week", "last_business_day_next_week", "deadline"}

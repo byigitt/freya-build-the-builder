@@ -64,7 +64,7 @@ def transcript_of(call):
 
 
 def run_case(workflow_id, case, style=None, max_turns=40):
-    sess = http("/v1/practice/sessions", {"case": case["id"]})["variables"]
+    sess = http("/v1/practice/sessions", {"case": case.get("session_case", case["id"])})["variables"]
     persona = persona_for(case, {"identity": case["identity"]}, style)
     system = persona["prompt"]
     history = []                       # from the customer's point of view: agent = user, customer = assistant

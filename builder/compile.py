@@ -175,7 +175,7 @@ def bullets(items):
 
 
 # ------------------------------------------------------------------ hooks
-POST_HEAD = "try:\n    if isinstance(result, dict):\n        result.pop('header', None)\n        d = result.get('data')\n        if not isinstance(d, dict):\n            d = dict()\n            result['data'] = d\n        ok = str(d.get('ok')).lower() == 'true' and str(result.get('status', 'success')) != 'error'\n"
+POST_HEAD = "try:\n    if isinstance(result, dict):\n        result.pop('header', None)\n        d = result.get('data')\n        if not isinstance(d, dict):\n            d = dict()\n            result['data'] = d\n        ok = (str(d.get('ok')).lower() == 'true' if 'ok' in d else True) and str(result.get('status', 'success')) != 'error'\n"
 POST_TAIL = "except Exception:\n    pass\n"
 
 
@@ -183,26 +183,41 @@ def post(body):
     return POST_HEAD + "\n".join("        " + l for l in body.strip("\n").split("\n")) + "\n" + POST_TAIL
 
 
-def verify_post(what, hints):
+def verify_post(what, hints, tool_name):
+    """Turn whatever the identity tool returns into what_to_do_next plus a stable `<tool>_state` variable for routing."""
     hint_lines = ""
     for h, txt in (hints or {}).items():
-        hint_lines += "if str(d.get('hint') or '') == " + repr(h) + ":\n    n = " + repr(txt) + "\nel"
-    return post(hint_lines + """if str(d.get('verified')).lower() == 'true' or str(d.get('all_verified')).lower() == 'true':
+        hint_lines += "if str(d.get('hint') or '') == " + repr(h) + ":\n    n = " + repr(txt) + "\n    s = 'hint'\nel"
+    return post("""def tv(keys):
+    for k in keys:
+        if k in d:
+            return str(d.get(k)).lower() == 'true'
+    return None
+ver = tv(['verified', 'match', 'matched', 'correct', 'passed', 'is_verified', 'valid'])
+allv = tv(['all_verified', 'fully_verified', 'identity_verified', 'all_passed'])
+left = None
+for k in ['wrong_answers_left', 'attempts_left', 'attempts_remaining', 'remaining_attempts', 'tries_left', 'wrong_left']:
+    if k in d:
+        try:
+            left = int(d.get(k))
+        except Exception:
+            left = None
+        break
+""" + hint_lines + """if ver or allv:
     n = 'Correct. Move on now.'
+    s = 'verified'
 elif not ok:
     n = 'The answer could not be checked (this does not count as wrong). Ask the customer to repeat WHAT.'
+    s = 'unreadable'
+elif left == 0 or str(d.get('locked')).lower() == 'true':
+    n = 'The identity check has failed. Say nothing about any account or amount.'
+    s = 'failed'
 else:
-    left = d.get('wrong_answers_left')
-    try:
-        left = int(left)
-    except Exception:
-        left = None
-    if left == 0:
-        n = 'The identity check has failed. Say nothing about any account or amount.'
-    else:
-        n = 'That answer does NOT match. Say it did not match and ask for WHAT again.'
+    n = 'That answer does NOT match. Say it did not match and ask for WHAT again.'
+    s = 'wrong'
 d['what_to_do_next'] = n
-""".replace("WHAT", what))
+vars['TOOL_state'] = s
+""".replace("WHAT", what).replace("TOOL", tool_name))
 
 
 def verify_pre(kind, order, digits):
@@ -313,9 +328,11 @@ def compile_workflow(spec, openapi):
         "3. Anything else is NOT a confirmation (\"hello\", \"go ahead\", \"who is this?\", a question, silence). Answer a question first if there was one, "
         "then ask once more: \"" + T.get("identity_question", "") + "\". You never ask it more than " + str(op.get("max_asks", 2)) + " times in total: "
         "if after the last ask it is still not a confirmation and not case 2, call transition_to_close_unclear.\n"
+        "   COUNT: the person has answered {{opening.total_turns}} time(s) so far. If that number is " + str(op.get("max_asks", 2)) + " or more and the latest answer is "
+        "still not a confirmation and not case 2, call transition_to_close_unclear NOW. Do not ask again.\n"
         "4. If the person asks for a human: the first time, ask whether you can help first. If they insist, call transfer_" + human_q + ".\n"
         "5. If the person says they do not want to talk: the first time, ask again politely. The second time, call transition_to_close_id_declined.\n"
-        + bullets(op.get("rules", []))
+        + bullets(op.get("rules", [])) + "\nALWAYS:\n" + bullets(spec.get("global_rules", []))
     )
     nodes["opening"] = conv("opening", opening_task, [human_tr] if human_tr else [], human_exit() + [
         tool_transition("identity", "The person clearly confirmed they are the customer."),
@@ -341,8 +358,9 @@ def compile_workflow(spec, openapi):
         "3. Otherwise ask when " + addr + " can be reached (a day and an exact time). The current time is {{now_time}} on {{today_say}}. The allowed callback window:\n{{callback_window}}\n"
         "   Weekday words: {{week_table}}\n"
         "   - If they give a day and an exact time inside the window, call schedule_callback with the date (YYYY-MM-DD) and the time (HH:MM, 24 hour). \"Around eleven\" or \"eleven-ish\" in the morning is 11:00.\n"
-        "   - If they give only a day or only a vague time (\"in the afternoon\"), ask for an exact time.\n"
-        "   - If what they give is outside the window, say when you can call back and ask ONCE for another time. If that is also outside the window, or they cannot give one, call transition_to_close_no_callback. Never book a time outside the window.\n"
+        "   - If they give only a day or only a vague time (\"in the afternoon\") and the day is inside the window, ask for an exact time.\n"
+        "   - If the day or the time they give is outside the window, do NOT ask for a time on that day: say when you can call back (the window) and ask ONCE for another day and time. "
+        "If the next answer is also outside the window, or they cannot give one, call transition_to_close_no_callback. Never book a time outside the window.\n"
     )
     nodes["third_party"] = code_node("third_party", policy_code(spec, "run_setup(vars)"), "third_party_call")
     nodes["third_party_call"] = conv("third_party_call", tp_task, [callback_tool], [
@@ -360,7 +378,7 @@ def compile_workflow(spec, openapi):
         "\nNever say why you are calling and never mention " + forbidden + " until every security answer is verified.\n" + decline_rule + "\n"
         "When the customer declines the second time, call transition_to_close_id_declined.\n"
         "If the customer asks for a human: the first time, ask whether you can help first. If they insist, call transfer_" + human_q + ".\n"
-        + bullets(spec.get("identity", {}).get("rules", [])) + "\nDo not call any other tool."
+        + bullets(spec.get("identity", {}).get("rules", [])) + "\nALWAYS (also while asking security questions):\n" + bullets(spec.get("global_rules", [])) + "\nDo not call any other tool."
     )
     hints = spec.get("identity", {}).get("hints", {})
     order = spec.get("identity", {}).get("date_numeric_order", "DMY")
@@ -368,8 +386,29 @@ def compile_workflow(spec, openapi):
     for i, q in enumerate(idq):
         tool_name = "verify_" + re.sub(r"\W", "_", q["field"])
         fail_conds.append({"variable": tool_name + "_response.data.wrong_answers_left", "operator": "equals", "operand": "0"})
+        fail_conds.append({"variable": tool_name + "_state", "operator": "equals", "operand": "failed"})
     failed_tr = {"target_node": "close_id_failed", "description": "no wrong answers left", "condition": {"logic": "or", "conditions": fail_conds}}
     declined_tr = tool_transition("close_id_declined", "The customer refused the security questions a second time, or asked a second time what the call is about instead of answering.")
+    vprops = api.props("verify_identity")
+    per_question = f_field in vprops and a_field in vprops
+    if not per_question and idq:
+        # The tool takes every answer in one call: one step collects them all.
+        body = {cid_field: CID}
+        for q in idq:
+            fld = q["field"] if q["field"] in vprops else api.field("verify_identity", q["field"])
+            body[fld] = leaf((vprops.get(fld) or {}).get("type", "string"), "{{ans_" + re.sub(r"\W", "_", fld) + "}}",
+                             ("The date as YYYY-MM-DD. " if q.get("kind") == "date" else "") + q.get("say_name", fld))
+        asks = " Then ".join(q.get("ask", "") for q in idq)
+        task = ("Security questions, one at a time, in this order: " + asks + "\nWhen you have every answer, call verify_identity with all of them. "
+                "Convert spoken dates to YYYY-MM-DD (a numbers-only date is " + ("day, month, year" if order == "DMY" else "month, day, year") + "). "
+                "If an answer is incomplete, ask for the missing part first. After the result, follow what_to_do_next exactly." + id_common)
+        tool = api_fn(api, "verify_identity", body, desc="Check the security answers. CALL it once you have every answer. Then follow what_to_do_next.",
+                      post=verify_post("the answers", hints, "verify_identity"))
+        failed_tr["condition"]["conditions"].append({"variable": "verify_identity_state", "operator": "equals", "operand": "failed"})
+        nodes["identity"] = conv("identity", task, [tool] + ([human_tr] if human_tr else []), [
+            eq_any("verify_identity_state", ["verified"], "load_account", "answers verified"), failed_tr] + human_exit() + [declined_tr],
+            on_enter={"type": "tts", "text": "Thank you, " + addr + ". " + idq[0].get("ask", "")})
+        idq = []
     for i, q in enumerate(idq):
         key = "identity" if i == 0 else "identity_" + str(i + 1)
         nxt = "identity_" + str(i + 2) if i + 1 < len(idq) else "load_account"
@@ -393,16 +432,21 @@ def compile_workflow(spec, openapi):
             adesc = q.get("format", "The answer.")
         thanks = "Thank you, " + addr + ". " if i == 0 else "Thank you. "
         task = ("Security question " + str(i + 1) + " of " + str(len(idq)) + ": you asked for the " + q.get("say_name", q["field"].replace("_", " ")) + ".\n" + how +
-                "\nAfter each result, follow what_to_do_next exactly. A wrong answer is asked again; the check counts wrong answers itself. "
+                "\nIf a message contains an answer together with a question or a complaint, FIRST call " + tool_name + " with the answer, then reply to the rest. Every answer given counts and must be checked.\n"
+                "After each result, follow what_to_do_next exactly. A wrong answer is asked again; the check counts wrong answers itself. "
                 "Never ask a question that was already verified again." + id_common)
         tool = api_fn(api, "verify_identity", {cid_field: CID, f_field: leaf("string", q["field"]), a_field: leaf("string", "{{answer}}", adesc)}, name=tool_name,
                       desc="Check the " + q.get("say_name", q["field"]) + ". CALL it every time the customer gives a complete answer. Then follow what_to_do_next.",
                       pre=verify_pre(kind, order, q.get("digits")).replace("ANSWER", a_field),
-                      post=verify_post("the " + q.get("say_name", q["field"]), hints))
+                      post=verify_post("the " + q.get("say_name", q["field"]), hints, tool_name))
         ok_var = tool_name + "_response.data."
         nodes[key] = conv(key, task, [tool] + ([human_tr] if human_tr else []), [
-            eq_any(ok_var + "verified", ["true", "True"], nxt, "answer verified"),
-            eq_any(ok_var + "all_verified", ["true", "True"], nxt if i + 1 == len(idq) else nxt, "all verified"),
+            {"target_node": nxt, "description": "answer verified", "condition": {"logic": "or", "conditions": [
+                {"variable": tool_name + "_state", "operator": "equals", "operand": "verified"},
+                {"variable": ok_var + "verified", "operator": "equals", "operand": "true"},
+                {"variable": ok_var + "verified", "operator": "equals", "operand": "True"},
+                {"variable": ok_var + "all_verified", "operator": "equals", "operand": "true"},
+                {"variable": ok_var + "all_verified", "operator": "equals", "operand": "True"}]}},
             failed_tr,
         ] + human_exit() + [declined_tr], on_enter={"type": "tts", "text": thanks + q.get("ask", "")})
 
@@ -423,47 +467,63 @@ def compile_workflow(spec, openapi):
         "propose": "they name a day and/or an amount themselves (pass what they said in date and amount)",
         "accept_offer": "they accept the offer you just made",
         "too_much": "they say the full amount is too much, without naming an amount",
-        "refuse": "a flat refusal or a non-answer to paying or to your offer, with no day and no amount",
+        "refuse": "a clear refusal (no) to paying or to your offer, with no day and no amount",
         "vague": "they give a vague period (next week, end of the month, when my salary comes) instead of a day",
+        "no_answer": "their message does not answer your question (it trails off, is cut off, or only talks about something else)",
         "situation": "one of the PRIORITY SITUATIONS below (give its name in situation)",
     }
     sit_ids = list(situations)
-    assess_props = {
-        "event": {"type": "string", "enum": list(events), "description": "; ".join(k + " = " + v for k, v in events.items())},
-        "product": {"type": "string", "description": "The product id the answer is about (p1, p2, ...), or all when the answer is about every product."},
-        "date": {"type": "string", "description": "The day the customer said, as YYYY-MM-DD if you are sure, otherwise their exact words (for example: next Friday, the 26th). Empty if none."},
-        "amount": {"type": "string", "description": "The amount the customer said, as a number. Empty if none."},
-        "code": {"type": "string", "default": policy_code(spec, "run_assess(vars, params)")},
+    # `assess` is a read-only bank call (get_account): its pre-hook runs the policy and rewrites the request to a plain
+    # account read, its post-hook puts the policy's next step into the tool result, where the model reliably reads it.
+    assess_body = {
+        cid_field: CID,
+        "a_event": {"type": "string", "enum": list(events), "default": "{{a_event}}", "description": "; ".join(k + " = " + v for k, v in events.items())},
+        "a_product": {"type": "string", "default": "{{a_product}}", "description": "The product id the answer is about (p1, p2, ...), or all when the answer is about every product."},
+        "a_date": {"type": "string", "default": "{{a_date}}", "description": "The day the customer said, as YYYY-MM-DD if you are sure, otherwise their exact words (for example: next Friday, the 26th). Empty if none."},
+        "a_amount": {"type": "string", "default": "{{a_amount}}", "description": "The amount the customer said, as a number. Empty if none."},
     }
     if sit_ids:
-        assess_props["situation"] = {"type": "string", "enum": sit_ids, "description": "Only with event situation: the name of the PRIORITY SITUATION."}
-    assess_tool = {"type": "function", "function": {
-        "name": "assess", "handler": "__function__:code_exec",
-        "description": "Report what the customer just said. CALL it after EVERY customer answer about paying, a day, an amount, your offer, the debt or a PRIORITY SITUATION, BEFORE you reply. Then say what NEXT STEP says.",
-        "parameters": {"type": "object", "properties": assess_props, "required": ["event", "product"]}}}
+        assess_body["a_situation"] = {"type": "string", "enum": sit_ids, "default": "{{a_situation}}", "description": "Only with event situation: the name of the PRIORITY SITUATION."}
+    assess_pre = policy_code(spec, (
+        "try:\n    b = config.get('body') or dict()\n    prm = dict()\n"
+        "    for k in ('event', 'product', 'date', 'amount', 'situation'):\n        v = b.get('a_' + k)\n"
+        "        if v is not None and str(v).strip().startswith('{'):\n            v = None\n        prm[k] = v\n"
+        "    run_assess(vars, prm)\n    config['body'] = dict([(" + repr(cid_field) + ", b.get(" + repr(cid_field) + "))])\n"
+        "except Exception as e:\n    vars['next_instruction'] = 'Continue carefully. (policy error ' + str(e)[:60] + ')'\n"))
+    assess_post = ("try:\n    if isinstance(result, dict):\n        result.pop('header', None)\n"
+                   "        result['data'] = dict(next_step=str(vars.get('next_instruction') or 'Continue.'), say_it='Say what next_step says, in your own short words. Do not add other offers.')\n"
+                   "except Exception:\n    pass\n")
+    assess_tool = api_fn(api, "get_account", assess_body, name="assess",
+                         desc="Report what the customer just said. CALL it after EVERY customer answer about paying, a day, an amount, your offer, the debt or a PRIORITY SITUATION, BEFORE you reply. The result tells you exactly what to say next (next_step).",
+                         pre=assess_pre, post=assess_post)
+    assess_tool["function"]["parameters"]["properties"]["body"]["required"] = [cid_field, "a_event", "a_product"]
     sit_lines = []
     for key, s in situations.items():
-        how = " -> call assess with event situation, situation " + key + (", product all" if s.get("scope") == "all" or s.get("effect") in ("call", "transfer") else ", and the product it is about (or all)") + ". NEXT STEP then tells you what to say."
+        how = " -> call assess with a_event situation, a_situation " + key + (", a_product all" if s.get("scope") == "all" or s.get("effect") in ("call", "transfer") else ", and a_product the product it is about (or all)") + ". The result's next_step tells you what to say."
         if s.get("offer_queue"):
-            how += " When they answer your offer, call assess with event accept_offer or refuse."
+            how += " When they answer your offer, call assess with a_event accept_offer or refuse."
         sit_lines.append(key.upper() + ": " + s.get("trigger", "") + how)
     tr_tools = []
     neg_task = (
         "The customer is verified. You already stated the debt: \"{{debt_statement}}\"\n\n"
-        "NEXT STEP (computed by the bank's rules; do exactly this now, in your own short words): {{next_instruction}}\n\n"
+        "LAST INSTRUCTION FROM THE BANK'S RULES: {{next_instruction}}\n\n"
         "FACTS (computed for you; trust them):\n- Today: {{today_say}}.\n{{facts}}\n- Weekday words:\n{{week_table}}\n\n"
         "HOW TO WORK\n"
-        "1. After EVERY customer answer about paying, a day, an amount, your offer or the debt, FIRST call assess (event, product, date, amount as they said it), then say what NEXT STEP says. "
-        "Never decide dates, amounts or offers yourself, and never skip assess.\n"
-        "2. A day or an amount the customer names is never a refusal: use event propose.\n"
-        "3. When NEXT STEP says to read back, read it back exactly and ask \"" + T.get("confirm_question", "Do you confirm?") + "\". "
-        "When the customer clearly says yes to the read-back, call transition_to_confirm_promises. If they change a day or an amount instead, call assess with event propose.\n"
+        "1. After EVERY customer message about paying, a day, an amount, your offer or the debt, FIRST call assess (a_event, a_product, a_date, a_amount as they said it). "
+        "The result's next_step is what you say next, in your own short words. Say only that: never decide dates, amounts or offers yourself, never add an offer of your own, and never skip assess.\n"
+        "   Call assess ONCE per customer message, never several at the same time. Products are handled one at a time: report the answer for the product the last instruction is about "
+        "(now: {{current_product}}), or a_product all when the answer covers every product. What they say about later products is taken up when their turn comes. "
+        "A PRIORITY SITUATION about any product may be reported at once.\n"
+        "2. A day or an amount the customer names is never a refusal: use a_event propose. A message that trails off, is cut off or talks about something else is not a refusal: use a_event no_answer.\n"
+        "3. When next_step says to read back, read it back exactly and ask \"" + T.get("confirm_question", "Do you confirm?") + "\". "
+        "When the customer clearly says yes to the read-back, call transition_to_confirm_promises. If they change a day or an amount instead, call assess with a_event propose.\n"
         "4. Never say a promise is recorded: that is said for you after it is recorded.\n"
         "5. People talk loosely. If a number or a date sounds unfinished (\"four hundred and...\", \"the twenty...\"), ask them to finish it before you call assess, and join the parts. "
         "If they correct themselves (\"the 21st, sorry, the 20th\"), use the corrected value. Amounts and dates said in words are normal: convert them. "
-        "Dates they mention that are not about paying (a wedding, a birthday) are not proposals. If they ask a question back, answer it briefly, then continue.\n\n"
+        "Dates they mention that are not about paying (a wedding, a birthday) are not proposals. If they ask a question back, answer it briefly, then continue.\n"
+        "6. Say a sentence of sympathy at most once in the whole call.\n\n"
         "PRIORITY SITUATIONS (check these first on every customer message):\n" + bullets(sit_lines) + "\n\n"
-        "RULES\n" + bullets(spec.get("negotiation_rules", []))
+        "RULES\n" + bullets(spec.get("negotiation_rules", [])) + "\n\nALWAYS:\n" + bullets(spec.get("global_rules", []))
     )
     neg_trans = [
         eq_any("policy_phase", ["transfer"], "transfer_exec", "the policy asks for a transfer"),

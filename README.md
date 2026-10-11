@@ -14,7 +14,12 @@ Two modes, chosen per case (logged in the trace; `BUILDER_MODE=design|collection
 
 - **collections**: outbound debt-collection calls with promises. A spec is extracted and compiled into a fixed, tested
   call graph with deterministic policy code (below).
-- **design**: any other call. A strong model designs the call flow from the documents (resolving conflicts between
+- **simple** (`BUILDER_MODE=simple`, used for the final case): any kind of call. A strong model writes the agent's
+  operating instructions from the documents (newest decision wins; resolved conflicts are logged), the start calls
+  and the exits with their exact sentences. The service tools are compiled from the API document; every service result
+  is kept in a variable the agent sees on each turn, so ids and figures are copied, never guessed; each exit speaks its
+  sentence and ends the call.
+- **design**: any other call (experimental). A strong model designs the call flow from the documents (resolving conflicts between
   documents by date), writes the workflow, which is validated and repaired, published, and then tested in simulated
   chats built from the documents' example conversations; failures are fed back for revision.
   `BUILDER_SELFTESTS` (default 2) and `BUILDER_TEST_TURNS` (default 6) size that test.

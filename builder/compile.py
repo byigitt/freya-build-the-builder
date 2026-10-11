@@ -109,7 +109,41 @@ def leaf(typ, default, desc="", enum=None):
     return d
 
 
+def fit_body(api, tool, body):
+    """Make an engine-built request match the tool API: drop fields it does not declare and fill each missing required
+    field from what was dropped (a date and a time become one date-time; a reason or text moves to the declared field)."""
+    props = api.props(tool)
+    if not props:
+        return body
+    body = dict(body)
+    dropped = [(k, body.pop(k)) for k in list(body) if k not in props and not k.startswith(("a_", "b_"))]
+    vals = [str((v or {}).get("default", "")) for _, v in dropped]
+    for req in api.required(tool):
+        if req in body:
+            continue
+        p = props.get(req) or {}
+        dt = [x for x in vals if "date" in x] and [x for x in vals if "time" in x]
+        if (p.get("format") == "date-time" or "time" in req.lower() or "zaman" in req.lower()) and dt:
+            d = next(x for x in vals if "date" in x)
+            t = next(x for x in vals if "time" in x)
+            vals = [x for x in vals if x not in (d, t)]
+            body[req] = leaf("string", d + "T" + t + ":00", p.get("description", ""))
+        elif p.get("enum"):
+            pick = next((x for x in vals if x in p["enum"] or "reason" in x), None)
+            if pick:
+                vals.remove(pick)
+            body[req] = leaf("string", pick or str(p["enum"][0]), p.get("description", ""), enum=None if pick and "{" in pick else p["enum"])
+        elif [x for x in vals if not ("date" in x or "time" in x)]:
+            x = next(x for x in vals if not ("date" in x or "time" in x))
+            vals.remove(x)
+            body[req] = leaf(p.get("type", "string") if p.get("type") in ("string", "number", "integer") else "string", x, p.get("description", ""))
+        else:
+            body[req] = leaf("string", str(p.get("example") or "-"), p.get("description", ""))
+    return body
+
+
 def api_fn(api, tool, body, name=None, desc="", pre="", post="", retries=0):
+    body = fit_body(api, tool, body)
     t = {
         "type": "function",
         "config": {"timeoutMs": 12000, "maxRetries": retries},
@@ -527,9 +561,17 @@ def compile_workflow(spec, openapi):
     ])
     nodes["third_party_ask"] = conv("third_party_ask", tp_task, [], cb_trans, on_enter={"type": "tts", "text": "{{cb_say}}"}, first_only=False)
     nodes["third_party_ask"]["extraction_schema"] = cb_extract + tp_kind
+    cb_body = {cid_field: CID, d_f: leaf("string", "{{cb_date}}"), t_f: leaf("string", "{{cb_time}}")}
+    cbp = api.props("schedule_callback")
+    if cbp and (d_f not in cbp or d_f == t_f) and t_f in cbp:
+        # one field holds the date and the time: write it in the form its example or description shows
+        hint = str((cbp[t_f] or {}).get("example", "")) + " " + str((cbp[t_f] or {}).get("description", ""))
+        m = re.search(r"T\d\d:\d\d(:\d\d)?([+-]\d\d:\d\d|Z)?", hint)
+        tail = (":00" if not m or m.group(1) else "") + ((m.group(2) or "") if m else "")
+        cb_body = {cid_field: CID, t_f: leaf("string", "{{cb_date}}T{{cb_time}}" + tail)}
     nodes["cb_book"] = {"name": "cb_book", "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "close_no_callback",
                         "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
-                        "pre_actions": [api_fn(api, "schedule_callback", {cid_field: CID, d_f: leaf("string", "{{cb_date}}"), t_f: leaf("string", "{{cb_time}}")}, desc="Book the callback.")],
+                        "pre_actions": [api_fn(api, "schedule_callback", cb_body, desc="Book the callback.")],
                         "response_mapping": [], "transitions": [
                             is_true("cb_book_response.data.ok", "close_callback", "the callback was booked"),
                             {"target_node": "close_callback", "description": "booked", "condition": {"logic": "or", "conditions": [{"variable": "cb_book_success_count", "operator": "greater_than", "operand": 0}]}},

@@ -31,10 +31,6 @@ Reply with JSON only:
  "conflicts": ["topic: what won and why"]
 }
 Every distinct ending sentence gets its own exit. Keep "instructions" under 6000 words.
-Write every documented branch as its own rule, in order, including multi-step disambiguation (what to ask when several
-items match, then what to ask when they still match). When the documents say to read some information and then ask a
-question, the agent reads that information and lists the documented options even if the caller already said what
-they want; it only skips a question the caller has already clearly answered.
 
 SERVICES (OpenAPI):
 """
@@ -147,14 +143,13 @@ def simple_workflow(case_text, openapi, base_url, trace):
         nm = "exit_" + re.sub(r"\W+", "_", str(e.get("name", "end"))).strip("_").lower()
         if nm in nodes:
             continue
-        # the sentence is spoken by a pass-through step, then a silent end step closes the call (an end step does not speak)
-        # (a request-type step speaks its entry sentence and moves on in the same turn; a code-type step does not)
-        nodes[nm] = {"name": nm, "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "end", "response_mapping": [],
-                     "on_enter": {"type": "tts", "text": str(e.get("say", ""))}, "disable_inactivity_monitor": True,
-                     "pre_actions": [{"type": "function", "config": {"timeoutMs": 10000, "maxRetries": 1},
-                                      "function": {"name": "code_exec", "handler": "__function__:code_exec",
-                                                   "parameters": {"type": "object", "properties": {"code": {"type": "string", "default": "vars['exit'] = " + repr(nm) + "\n"}}, "required": []}}}],
-                     "transitions": [always("end")]}
+        # the farewell comes from the end step's terminal (message_mode custom), which speaks it and hangs up;
+        # the terminal's function name becomes the call's ended reason
+        nodes[nm] = {"name": nm, "node_type": "end_call", "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True, "transitions": [],
+                     "terminal": {"type": "function", "function": {"name": nm[5:], "handler": "__function__:end_call",
+                                  "parameters": {"type": "object", "properties": {
+                                      "message_mode": {"type": "string", "default": "custom"},
+                                      "spoken_message": {"type": "string", "default": str(e.get("say", ""))}}}}}}
         exits.append(tool_transition(nm, str(e.get("when", ""))[:400]))
 
     nodes["end"] = {"name": "end", "node_type": "end_call", "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True, "transitions": [],

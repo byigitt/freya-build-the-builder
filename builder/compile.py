@@ -550,7 +550,7 @@ def compile_workflow(spec, openapi):
     assess_body = {
         cid_field: CID,
         "a_event": {"type": "string", "enum": list(events), "default": "{{a_event}}", "description": "; ".join(k + " = " + v for k, v in events.items())},
-        "a_product": {"type": "string", "default": "{{a_product}}", "description": "One product id (p1, p2, ...). Use all ONLY when the same answer explicitly applies to every remaining product. Never put a product the customer did not mention into all."},
+        "a_product": {"type": "string", "default": "{{a_product}}", "description": "The product id (p1, p2, ...), or several ids separated by commas (p1,p2) when the same answer applies to exactly those products, or all ONLY when it explicitly applies to every remaining product. Never include a product the customer did not mention."},
         "a_date": {"type": "string", "default": "{{a_date}}", "description": "The day the customer said, as YYYY-MM-DD if you are sure, otherwise their exact words (for example: next Friday, the 26th). Empty if none."},
         "a_amount": {"type": "string", "default": "{{a_amount}}", "description": "Only an explicit amount for this one product, as a number. Empty if none, if they say 'the full amount', or if they give one total for several products."},
     }
@@ -617,7 +617,7 @@ def compile_workflow(spec, openapi):
         "- They decline, or answer with anything else without accepting (for example they ask for a discount, or say they cannot pay): "
         "if they asked a question, answer it in one short sentence (never offer a discount, a plan or any other term), then call transition_to_offer_decline.\n"
         "- They name a day or an amount to pay themselves: call assess with a_event propose (a_date, a_amount as they said it), "
-        "one product at a time for the products they named (a_product all only if they clearly mean every product).\n"
+        "with a_product the products they named (for example p1,p2; all only if they clearly mean every product).\n"
         "- They ask for a different person or team instead (for example a human): call assess with a_event situation and that PRIORITY SITUATION's name.\n"
         "Never ask about a payment, a day or an amount yourself. Never repeat the offer.\n\nALWAYS:\n" + bullets(spec.get("global_rules", []))
     )

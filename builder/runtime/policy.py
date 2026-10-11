@@ -581,7 +581,7 @@ def parse_time(x):
         return None
     pm = "pm" in s or "p.m" in s or "afternoon" in s or "evening" in s
     am = "am" in s or "a.m" in s or "morning" in s
-    if "noon" in s or "midday" in s:
+    if re.search(r"\bnoon\b", s) or "midday" in s:
         return "12:00"
     h, mnt = None, 0
     m = re.search(r"(\d{1,2})[:.h](\d{2})", s)
@@ -622,9 +622,9 @@ def parse_time(x):
 TIME_RE = re.compile(
     r"(?:\b(?:at|around|about|by)\s+)?"
     r"(?:\d{1,2}[:.]\d{2}\s*(?:am|pm|a\.m\.|p\.m\.)?"
-    r"|\d{1,2}\s*(?:am|pm|a\.m\.|p\.m\.|o'clock)"
+    r"|\d{1,2}\s*(?:am|pm|a\.m\.|p\.m\.|o'clock|in the morning|in the afternoon|in the evening)"
     r"|(?<=at )\d{1,2}(?![\d/])|(?<=around )\d{1,2}(?![\d/])|(?<=about )\d{1,2}(?![\d/])"
-    r"|noon|midday|half past [a-z]+|quarter (?:past|to) [a-z]+"
+    r"|\bnoon\b|\bmidday\b|half past [a-z]+|quarter (?:past|to) [a-z]+"
     r"|\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b(?:[ -](?:thirty|fifteen|forty-five|o'clock))?"
     r"(?:\s*(?:am|pm|in the morning|in the afternoon|in the evening))?)")
 
@@ -911,6 +911,25 @@ def run_assess(vars, params):
             set_outputs(vars, st, instr + " " + next_step_instruction(st))
             return
         all_events = ("pay_today", "propose_date", "propose", "accept_offer")
+        listed = [x.strip() for x in re.split(r"[,;/ ]+(?:and )?", target) if x.strip() and x.strip() not in ("and",)]
+        if len(listed) > 1 and all(prod_by_id(st, x) is not None and re.match(r"^p?\d+$", x) for x in listed):
+            seen = []
+            for x in listed:
+                q = prod_by_id(st, x)
+                if q not in seen:
+                    seen.append(q)
+            msgs = []
+            for p in seen:
+                p["pending_q"] = False
+                m = assess_one(p, st, ev, None if len(seen) > 1 else amt, dt, today, multi=True, raw_date=params.get("date"))
+                if m:
+                    msgs.append(m)
+            waiting = any(p["status"] == "offered" or p.get("pending_q") for p in seen)
+            instr = " ".join(msgs)
+            if not waiting:
+                instr = (instr + " " + next_step_instruction(st)).strip()
+            set_outputs(vars, st, instr)
+            return
         if target in ("all", "every", "both", "everything", "") and len(st["products"]) > 1 and ev in all_events:
             if ev == "accept_offer":
                 targets = [p for p in st["products"] if p["status"] == "offered"]

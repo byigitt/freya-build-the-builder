@@ -1,0 +1,552 @@
+"""Compile a collections spec (JSON, see specs/) plus the bank's tool OpenAPI file into a Freya workflow.
+
+The graph is fixed and tested; everything brief-specific comes from the spec:
+
+  opening -> (third party: third_party code -> third_party_call) | identity questions identity, identity_2.. -> load_account -> prepare -> negotiate
+  negotiate --transition_to_confirm_promises--> confirm_promises -> commit_k (+ retry) -> finalize -> note_k -> close_final -> end
+  early exits: close_<situation> (fixed outcome and reason) -> end
+
+Arithmetic, dates, persuasion steps, outcomes and notes are computed by builder/runtime/policy.py, which is embedded in
+code steps. The phone agent's model only talks and reports what the customer said through the `assess` tool.
+"""
+import json, pathlib, re
+
+HERE = pathlib.Path(__file__).resolve().parent
+POLICY_SRC = (HERE / "runtime" / "policy.py").read_text()
+TOOLS = ["verify_identity", "get_account", "create_promise", "add_note", "schedule_callback", "transfer_to_agent", "close_call"]
+
+
+# ------------------------------------------------------------------ openapi
+class Api:
+    def __init__(self, openapi):
+        self.doc = openapi
+        self.base = (openapi.get("servers") or [{"url": ""}])[0]["url"].rstrip("/")
+        self.ops = {}
+        for path, item in openapi.get("paths", {}).items():
+            for method, op in item.items():
+                if not isinstance(op, dict):
+                    continue
+                name = op.get("operationId") or path.strip("/").split("/")[-1]
+                schema = self._resolve(((op.get("requestBody") or {}).get("content") or {}).get("application/json", {}).get("schema") or {})
+                resp = self._resolve((((op.get("responses") or {}).get("200") or {}).get("content") or {}).get("application/json", {}).get("schema") or {})
+                key = path.strip("/").split("/")[-1]
+                self.ops[key] = dict(path=path, method=method.upper(), schema=schema, response=resp, name=name, summary=op.get("summary", ""))
+
+    def _resolve(self, s):
+        if isinstance(s, dict) and "$ref" in s:
+            ref = s["$ref"].split("/")[-1]
+            return self._resolve(self.doc.get("components", {}).get("schemas", {}).get(ref, {}))
+        return s
+
+    def has(self, tool):
+        return tool in self.ops
+
+    def url(self, tool):
+        return self.base + self.ops[tool]["path"]
+
+    def method(self, tool):
+        return self.ops[tool]["method"]
+
+    def props(self, tool):
+        return (self.ops[tool]["schema"] or {}).get("properties", {}) if tool in self.ops else {}
+
+    def required(self, tool):
+        return (self.ops[tool]["schema"] or {}).get("required", []) if tool in self.ops else []
+
+    def enum(self, tool, field):
+        return self.props(tool).get(field, {}).get("enum") or []
+
+    def field(self, tool, role, fallbacks=()):
+        """Find the request field that plays `role` (exact name first, then fallbacks, then by keyword)."""
+        props = self.props(tool)
+        for cand in (role,) + tuple(fallbacks):
+            if cand in props:
+                return cand
+        for k in props:
+            if role.split("_")[-1] in k:
+                return k
+        return role
+
+    def resp_props(self, tool):
+        r = self.ops.get(tool, {}).get("response") or {}
+        return r.get("properties", {})
+
+
+# ------------------------------------------------------------------ small builders
+def leaf(typ, default, desc="", enum=None):
+    d = {"type": typ, "default": default}
+    if desc:
+        d["description"] = desc
+    if enum:
+        d["enum"] = enum
+    return d
+
+
+def api_fn(api, tool, body, name=None, desc="", pre="", post="", retries=0):
+    t = {
+        "type": "function",
+        "config": {"timeoutMs": 12000, "maxRetries": retries},
+        "function": {
+            "name": name or tool, "handler": "__function__:api_call", "description": desc or tool,
+            "parameters": {"type": "object", "properties": {
+                "url": leaf("string", api.url(tool)),
+                "method": leaf("string", api.method(tool)),
+                "headers": {"type": "object", "properties": {"Content-Type": leaf("string", "application/json")}},
+                "connect_retries": {"type": "number", "default": 2},
+                "body": {"type": "object", "properties": body, "required": [k for k in api.required(tool) if k in body]},
+            }},
+        },
+    }
+    if pre:
+        t["pre_process_code"] = check_code(pre)
+    if post:
+        t["post_process_code"] = check_code(post)
+    return t
+
+
+def check_code(code):
+    if "{{" in code or "}}" in code:
+        raise ValueError("generated code contains doubled braces")
+    return code
+
+
+def py_literal(text):
+    """A Python string literal for `text` that contains no curly braces at all."""
+    return repr(text).replace("{", "\\x7b").replace("}", "\\x7d")
+
+
+def strip_source(src):
+    out = []
+    in_doc = False
+    for line in src.split("\n"):
+        s = line.strip()
+        if s.startswith('"""') and (s.count('"""') == 1):
+            in_doc = not in_doc
+            continue
+        if in_doc or (s.startswith('"""') and s.endswith('"""') and len(s) > 5):
+            continue
+        if not s or s.startswith("#"):
+            continue
+        out.append(line)
+    return "\n".join(out)
+
+
+def policy_code(spec, entry):
+    cfg = json.dumps(spec, separators=(",", ":"))
+    src = strip_source(POLICY_SRC).replace("CFG = dict()  # replaced by the compiler", "CFG = json.loads(" + py_literal(cfg) + ")")
+    return check_code(src + "\n" + entry + "\n")
+
+
+def code_node(key, code, nxt, transitions=None):
+    return {"name": key, "node_type": "code", "passthrough": True, "passthrough_default_transition": nxt,
+            "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
+            "pre_actions": [{"type": "function", "function": {"name": "code_exec", "handler": "__function__:code_exec",
+                             "parameters": {"type": "object", "properties": {"code": {"type": "string", "default": code},
+                                                                             "timeout_ms": {"type": "number", "default": 15000}}}}}],
+            "transitions": (transitions or []) + [always(nxt)]}
+
+
+def always(target):
+    return {"target_node": target, "description": "always", "condition": {"operator": "always"}}
+
+
+def eq_any(var, values, target, desc):
+    return {"target_node": target, "description": desc, "condition": {"logic": "or", "conditions": [{"variable": var, "operator": "equals", "operand": v} for v in values]}}
+
+
+def is_true(var, target, desc):
+    return eq_any(var, ["true", "True"], target, desc)
+
+
+def tool_transition(target, desc):
+    return {"target_node": target, "description": desc, "is_tool_call": True, "condition": {"operator": "matches_intent", "description": desc}}
+
+
+def conv(name, task, tools, transitions, on_enter=None, first_only=True):
+    n = {"name": name, "node_type": "conversation", "task_message": task, "on_enter": on_enter or {"type": "llm"},
+         "tools": tools, "transitions": transitions, "max_node_turns": 60, "extraction_schema": []}
+    if first_only:
+        n["on_enter_first_entry_only"] = True
+    return n
+
+
+def bullets(items):
+    return "\n".join("- " + s for s in items if s)
+
+
+# ------------------------------------------------------------------ hooks
+POST_HEAD = "try:\n    if isinstance(result, dict):\n        result.pop('header', None)\n        d = result.get('data')\n        if not isinstance(d, dict):\n            d = dict()\n            result['data'] = d\n        ok = str(d.get('ok')).lower() == 'true' and str(result.get('status', 'success')) != 'error'\n"
+POST_TAIL = "except Exception:\n    pass\n"
+
+
+def post(body):
+    return POST_HEAD + "\n".join("        " + l for l in body.strip("\n").split("\n")) + "\n" + POST_TAIL
+
+
+def verify_post(what, hints):
+    hint_lines = ""
+    for h, txt in (hints or {}).items():
+        hint_lines += "if str(d.get('hint') or '') == " + repr(h) + ":\n    n = " + repr(txt) + "\nel"
+    return post(hint_lines + """if str(d.get('verified')).lower() == 'true' or str(d.get('all_verified')).lower() == 'true':
+    n = 'Correct. Move on now.'
+elif not ok:
+    n = 'The answer could not be checked (this does not count as wrong). Ask the customer to repeat WHAT.'
+else:
+    left = d.get('wrong_answers_left')
+    try:
+        left = int(left)
+    except Exception:
+        left = None
+    if left == 0:
+        n = 'The identity check has failed. Say nothing about any account or amount.'
+    else:
+        n = 'That answer does NOT match. Say it did not match and ask for WHAT again.'
+d['what_to_do_next'] = n
+""".replace("WHAT", what))
+
+
+def verify_pre(kind, order, digits):
+    if kind == "date":
+        return ("import re, datetime\ntry:\n    b = config.get('body') or dict()\n    raw = str(b.get('ANSWER') or '').strip()\n"
+                "    out = raw\n    m = re.match(r'^(\\d{4})-(\\d{1,2})-(\\d{1,2})$', raw)\n"
+                "    if m:\n        out = '%04d-%02d-%02d' % (int(m.group(1)), int(m.group(2)), int(m.group(3)))\n"
+                "    else:\n        m = re.match(r'^(\\d{1,2})[./ -](\\d{1,2})[./ -](\\d{2,4})$', raw)\n"
+                "        if m:\n            a, c, y = int(m.group(1)), int(m.group(2)), int(m.group(3))\n            if y < 100:\n                y = y + (1900 if y > 30 else 2000)\n"
+                "            day, mon = (a, c) if ORDER == 'DMY' else (c, a)\n            out = '%04d-%02d-%02d' % (y, mon, day)\n"
+                "    b['ANSWER'] = out\n    config['body'] = b\nexcept Exception:\n    pass\n").replace("ORDER", repr(order))
+    if kind == "digits":
+        return ("import re\ntry:\n    b = config.get('body') or dict()\n    raw = str(b.get('ANSWER') or '')\n    dg = re.sub(r'\\D', '', raw)\n"
+                "    if dg:\n        b['ANSWER'] = dg\n        config['body'] = b\nexcept Exception:\n    pass\n")
+    return ""
+
+
+# ------------------------------------------------------------------ compile
+def compile_workflow(spec, openapi):
+    api = Api(openapi)
+    T = spec.get("texts", {})
+    V = spec.get("variables", {})
+    cid_var = V.get("customer_id", "customer_id")
+    addr = spec.get("address", "{{title}} {{last_name}}")
+    full = spec.get("customer_full_name", "{{first_name}} {{last_name}}")
+    agent_id = spec.get("agent_identity", "the bank's digital assistant")
+    bye = T.get("goodbye", "Thank you for your time. Goodbye.")
+    cid_field = api.field("close_call", "customer_id")
+    CID = leaf("string", "{{" + cid_var + "}}")
+    outcomes = spec.get("outcomes", {})
+    closes_spec = spec.get("early_closes", {})
+    tr_reason = spec.get("transfer_reasons", {"restructuring": "restructuring", "general": "human", "support": "support"})
+    nodes = {}
+
+    # ---------------- close nodes with a fixed outcome
+    def close_node(key, outcome, reason, text):
+        f_out = api.field("close_call", "outcome")
+        f_rea = api.field("close_call", "reason")
+        body = {cid_field: CID, f_out: leaf("string", outcome)}
+        if reason:
+            body[f_rea] = leaf("string", reason)
+        nodes[key] = {"name": key, "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "end",
+                      "on_enter": {"type": "tts", "text": text}, "disable_inactivity_monitor": True,
+                      "pre_actions": [api_fn(api, "close_call", body, desc="End the call.")], "response_mapping": [], "transitions": [always("end")]}
+        return key
+
+    early_text = {
+        "unclear": "I am sorry, I could not confirm who I am speaking with. " + bye,
+        "callback": "Thank you, we will call back then. " + bye.replace(addr, "").replace(" ,", ","),
+        "no_callback": "Thank you, we will try again another time. Goodbye.",
+        "wrong_number": "I apologise for the disturbance. Goodbye.",
+        "deceased": T.get("condolence", "I am sorry for your loss.") + " Goodbye.",
+        "id_failed": T.get("identity_failed", "I could not verify your identity.") + " " + bye,
+        "id_declined": "I understand. Without the security check I cannot continue this call. " + bye,
+    }
+    for key, (oc, rs) in closes_spec.items():
+        close_node("close_" + key, oc, rs, spec.get("close_texts", {}).get(key) or early_text.get(key, bye))
+    if "close_id_declined" not in nodes:
+        close_node("close_id_declined", outcomes.get("not_verified", "not_verified"), "declined", early_text["id_declined"])
+    nodes["close_transfer_human_early"] = None  # placeholder, replaced below
+
+    # ---------------- tools shared by several steps
+    q_field = api.field("transfer_to_agent", "queue")
+    queues = api.enum("transfer_to_agent", q_field) or list(tr_reason)
+
+    def transfer_tool(queue, when):
+        return api_fn(api, "transfer_to_agent", {cid_field: CID, q_field: leaf("string", queue)}, name="transfer_" + queue,
+                      desc="Transfer the call to the " + queue + " team. CALL it " + when,
+                      post=post("if ok:\n    vars['transfer_queue_done'] = " + repr(queue) + "\n    d['what_to_do_next'] = 'Transferred. Say one short sentence that you are transferring them now.'\nelse:\n    d['what_to_do_next'] = 'The transfer did NOT work. Do not say you transferred. Say the transfer is not possible right now and continue.'"))
+
+    situations = spec.get("situations", {})
+    human_q = (situations.get("human") or {}).get("queue", "general")
+    human_tr = transfer_tool(human_q, "only when the person insists on a human after you asked once whether you can help first.") if human_q in queues else None
+    oc_tr = outcomes.get("transferred", "transferred")
+    close_node("close_transfer_early", oc_tr, tr_reason.get(human_q, "human"), "I am transferring you to a colleague now. " + bye)
+    del nodes["close_transfer_human_early"]
+
+    def human_exit():
+        return [is_true("transfer_" + human_q + "_response.data.ok", "close_transfer_early", "the transfer to a human worked")] if human_tr else []
+
+    # ---------------- system prompt
+    forbidden = ", ".join(spec.get("forbidden_before_verification", []))
+    system = (
+        "You are " + agent_id + " on an outbound phone call from " + spec.get("bank_name", "the bank") + " to " + addr + " (" + full + "). "
+        "Speak " + spec.get("language", "English") + ". Keep every turn to one or two short sentences. Address the customer as " + addr + ".\n"
+        "The current date and time is {{" + V.get("now", "now") + "}}. Never use any other clock. Never compute dates or amounts yourself: use the facts in your current task.\n\n"
+        "Rules at every step:\n" + bullets(spec.get("global_rules", [])) + "\n"
+        "- Until both security answers are verified, never say why you are calling and never mention: " + forbidden + ".\n"
+        "- Tools: when a rule says to call a tool, CALL it. Saying you did something is not doing it. Call at most one tool per message. "
+        "After every tool result, speak to the customer or call the next tool. Never end a turn with nothing. If a tool result has what_to_do_next, follow it.\n"
+        "- Never say that something is recorded, booked or transferred unless a tool result says so. If a tool call fails with an error, never invent its result: say you could not check it and ask again.\n"
+        "- When you call a transition_to_... tool, the closing words are spoken automatically right after. Do not say goodbye yourself."
+    )
+
+    # ---------------- opening
+    op = spec.get("opening", {})
+    first_line = T.get("opening", "Hello, this is " + agent_id + ".") + " " + T.get("identity_question", "Am I speaking with " + addr + "?")
+    opening_task = (
+        "If you have not said anything yet in this call, say exactly: \"" + first_line + "\" and stop.\n"
+        "Otherwise: the opening line was said (that was ask number 1 of \"" + T.get("identity_question", "") + "\").\n\n"
+        "Your only job in this step: find out whether " + addr + " is the person on the line. Never say why you are calling. "
+        "If asked what it is about, say you can only discuss it with " + addr + " personally.\n"
+        + op.get("confirmation", "Only a clear yes or their own name counts as confirmation.") + "\n"
+        "Decide on the person's latest message:\n"
+        "1. CONFIRMED (a clear yes, \"that's me\", \"speaking\", or their own name): call transition_to_identity. Say nothing else.\n"
+        "2. Someone else is on the line (a relative or colleague, the customer is not there or not available, the number is not the customer's, "
+        "they do not know the customer, or the customer has died): call transition_to_third_party. Say nothing else.\n"
+        "3. Anything else is NOT a confirmation (\"hello\", \"go ahead\", \"who is this?\", a question, silence). Answer a question first if there was one, "
+        "then ask once more: \"" + T.get("identity_question", "") + "\". You never ask it more than " + str(op.get("max_asks", 2)) + " times in total: "
+        "if after the last ask it is still not a confirmation and not case 2, call transition_to_close_unclear.\n"
+        "4. If the person asks for a human: the first time, ask whether you can help first. If they insist, call transfer_" + human_q + ".\n"
+        "5. If the person says they do not want to talk: the first time, ask again politely. The second time, call transition_to_close_id_declined.\n"
+        + bullets(op.get("rules", []))
+    )
+    nodes["opening"] = conv("opening", opening_task, [human_tr] if human_tr else [], human_exit() + [
+        tool_transition("identity", "The person clearly confirmed they are the customer."),
+        tool_transition("third_party", "Someone other than the customer is on the line, the customer is not available, the number is not the customer's, or the customer died."),
+        tool_transition("close_unclear", "After the last allowed ask it is still unclear who is on the line."),
+        tool_transition("close_id_declined", "The person said twice that they do not want to talk."),
+    ], on_enter={"type": "tts", "text": first_line})
+
+    # ---------------- third party
+    cb = spec.get("callback", {})
+    d_f, t_f = api.field("schedule_callback", "date"), api.field("schedule_callback", "time")
+    callback_tool = api_fn(api, "schedule_callback", {cid_field: CID, d_f: leaf("string", "{{cb_date}}", "Callback date as YYYY-MM-DD."),
+                                                      t_f: leaf("string", "{{cb_time}}", "Callback time as HH:MM, 24 hour.")},
+                           desc="Book a callback. CALL it as soon as the person names a day and an exact time inside the allowed callback window.",
+                           post=post("if ok:\n    d['what_to_do_next'] = 'Callback booked.'\nelse:\n    d['what_to_do_next'] = 'The callback was NOT booked. Do not say it is booked. Ask for another time inside the window.'"))
+    tp_task = (
+        "Someone other than " + addr + " is on the line.\nStrict rules: say nothing beyond the opening sentence about who you are. Never say why you are calling. "
+        "Never mention " + forbidden + ". Never ask for or accept security answers. Never tell anything about the customer or an account, even if they say they are family or offer to pay; "
+        "then say you can only speak with " + addr + ".\n" + bullets(spec.get("third_party", {}).get("rules", []) + (spec.get("callback", {}).get("rules") or [])) + "\n\n"
+        "Decide on the person's messages:\n"
+        "1. They say this number does not belong to " + full + " or they do not know this person: call transition_to_close_wrong_number.\n"
+        "2. They say " + full + " has died: call transition_to_close_deceased immediately, with no words of your own (the condolence is spoken automatically). Ask nothing.\n"
+        "3. Otherwise ask when " + addr + " can be reached (a day and an exact time). The current time is {{now_time}} on {{today_say}}. The allowed callback window:\n{{callback_window}}\n"
+        "   Weekday words: {{week_table}}\n"
+        "   - If they give a day and an exact time inside the window, call schedule_callback with the date (YYYY-MM-DD) and the time (HH:MM, 24 hour). \"Around eleven\" or \"eleven-ish\" in the morning is 11:00.\n"
+        "   - If they give only a day or only a vague time (\"in the afternoon\"), ask for an exact time.\n"
+        "   - If what they give is outside the window, say when you can call back and ask ONCE for another time. If that is also outside the window, or they cannot give one, call transition_to_close_no_callback. Never book a time outside the window.\n"
+    )
+    nodes["third_party"] = code_node("third_party", policy_code(spec, "run_setup(vars)"), "third_party_call")
+    nodes["third_party_call"] = conv("third_party_call", tp_task, [callback_tool], [
+        is_true("schedule_callback_response.data.ok", "close_callback", "the callback was booked"),
+        tool_transition("close_wrong_number", "The number does not belong to the customer."),
+        tool_transition("close_deceased", "The customer has died."),
+        tool_transition("close_no_callback", "No callback time inside the allowed window could be agreed after asking once more."),
+    ])
+
+    # ---------------- identity
+    idq = spec.get("identity", {}).get("questions", [])
+    f_field, a_field = api.field("verify_identity", "field"), api.field("verify_identity", "answer")
+    decline_rule = spec.get("identity", {}).get("decline_rule", "")
+    id_common = (
+        "\nNever say why you are calling and never mention " + forbidden + " until every security answer is verified.\n" + decline_rule + "\n"
+        "When the customer declines the second time, call transition_to_close_id_declined.\n"
+        "If the customer asks for a human: the first time, ask whether you can help first. If they insist, call transfer_" + human_q + ".\n"
+        + bullets(spec.get("identity", {}).get("rules", [])) + "\nDo not call any other tool."
+    )
+    hints = spec.get("identity", {}).get("hints", {})
+    order = spec.get("identity", {}).get("date_numeric_order", "DMY")
+    fail_conds = []
+    for i, q in enumerate(idq):
+        tool_name = "verify_" + re.sub(r"\W", "_", q["field"])
+        fail_conds.append({"variable": tool_name + "_response.data.wrong_answers_left", "operator": "equals", "operand": "0"})
+    failed_tr = {"target_node": "close_id_failed", "description": "no wrong answers left", "condition": {"logic": "or", "conditions": fail_conds}}
+    declined_tr = tool_transition("close_id_declined", "The customer refused the security questions a second time, or asked a second time what the call is about instead of answering.")
+    for i, q in enumerate(idq):
+        key = "identity" if i == 0 else "identity_" + str(i + 1)
+        nxt = "identity_" + str(i + 2) if i + 1 < len(idq) else "load_account"
+        tool_name = "verify_" + re.sub(r"\W", "_", q["field"])
+        kind = q.get("kind", "text")
+        if kind == "year":
+            kind, q = "digits", dict(q, digits=q.get("digits") or 4)
+        if kind == "date":
+            how = ("As soon as the customer has said a day, a month and a year, call " + tool_name + " with the date as YYYY-MM-DD. Do this even if the sentence trails off: "
+                   "a day, a month and a year is a complete answer. Convert spoken dates (\"twelfth of July nineteen ninety\" -> 1990-07-12). "
+                   + ("A date said only in numbers is day, then month, then year (\"05/03/1980\" -> 1980-03-05). " if order == "DMY" else "A date said only in numbers is month, then day, then year. ")
+                   + "If the day, the month or the year is missing, ask for the missing part first.")
+            adesc = "The date as YYYY-MM-DD."
+        elif kind == "digits":
+            n = q.get("digits")
+            how = ("As soon as the customer has said all " + (str(n) + " " if n else "") + "digits, call " + tool_name + " with the digits only. "
+                   "If they gave only part of it (for example two digits, then a pause), ask for the rest first and join the parts.")
+            adesc = "Digits only" + (", exactly " + str(n) if n else "") + "."
+        else:
+            how = "As soon as the customer has given the complete answer, call " + tool_name + " with the answer exactly as given (normalized: no extra words)."
+            adesc = q.get("format", "The answer.")
+        thanks = "Thank you, " + addr + ". " if i == 0 else "Thank you. "
+        task = ("Security question " + str(i + 1) + " of " + str(len(idq)) + ": you asked for the " + q.get("say_name", q["field"].replace("_", " ")) + ".\n" + how +
+                "\nAfter each result, follow what_to_do_next exactly. A wrong answer is asked again; the check counts wrong answers itself. "
+                "Never ask a question that was already verified again." + id_common)
+        tool = api_fn(api, "verify_identity", {cid_field: CID, f_field: leaf("string", q["field"]), a_field: leaf("string", "{{answer}}", adesc)}, name=tool_name,
+                      desc="Check the " + q.get("say_name", q["field"]) + ". CALL it every time the customer gives a complete answer. Then follow what_to_do_next.",
+                      pre=verify_pre(kind, order, q.get("digits")).replace("ANSWER", a_field),
+                      post=verify_post("the " + q.get("say_name", q["field"]), hints))
+        ok_var = tool_name + "_response.data."
+        nodes[key] = conv(key, task, [tool] + ([human_tr] if human_tr else []), [
+            eq_any(ok_var + "verified", ["true", "True"], nxt, "answer verified"),
+            eq_any(ok_var + "all_verified", ["true", "True"], nxt if i + 1 == len(idq) else nxt, "all verified"),
+            failed_tr,
+        ] + human_exit() + [declined_tr], on_enter={"type": "tts", "text": thanks + q.get("ask", "")})
+
+    # ---------------- account
+    products_field = spec.get("account", {}).get("products_field", "products")
+    nodes["load_account"] = {
+        "name": "load_account", "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "prepare",
+        "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
+        "pre_actions": [api_fn(api, "get_account", {cid_field: CID}, desc="Get the late products.", retries=2)],
+        "response_mapping": [{"path": "data." + products_field, "variable": "account_products"}],
+        "transitions": [always("prepare")],
+    }
+    nodes["prepare"] = code_node("prepare", policy_code(spec, "run_prepare(vars)"), "negotiate")
+
+    # ---------------- negotiation
+    events = {
+        "pay_today": "they agree to pay today (the full amount unless another amount was agreed)",
+        "propose": "they name a day and/or an amount themselves (pass what they said in date and amount)",
+        "accept_offer": "they accept the offer you just made",
+        "too_much": "they say the full amount is too much, without naming an amount",
+        "refuse": "a flat refusal or a non-answer to paying or to your offer, with no day and no amount",
+        "vague": "they give a vague period (next week, end of the month, when my salary comes) instead of a day",
+        "situation": "one of the PRIORITY SITUATIONS below (give its name in situation)",
+    }
+    sit_ids = list(situations)
+    assess_props = {
+        "event": {"type": "string", "enum": list(events), "description": "; ".join(k + " = " + v for k, v in events.items())},
+        "product": {"type": "string", "description": "The product id the answer is about (p1, p2, ...), or all when the answer is about every product."},
+        "date": {"type": "string", "description": "The day the customer said, as YYYY-MM-DD if you are sure, otherwise their exact words (for example: next Friday, the 26th). Empty if none."},
+        "amount": {"type": "string", "description": "The amount the customer said, as a number. Empty if none."},
+        "code": {"type": "string", "default": policy_code(spec, "run_assess(vars, params)")},
+    }
+    if sit_ids:
+        assess_props["situation"] = {"type": "string", "enum": sit_ids, "description": "Only with event situation: the name of the PRIORITY SITUATION."}
+    assess_tool = {"type": "function", "function": {
+        "name": "assess", "handler": "__function__:code_exec",
+        "description": "Report what the customer just said. CALL it after EVERY customer answer about paying, a day, an amount, your offer, the debt or a PRIORITY SITUATION, BEFORE you reply. Then say what NEXT STEP says.",
+        "parameters": {"type": "object", "properties": assess_props, "required": ["event", "product"]}}}
+    sit_lines = []
+    for key, s in situations.items():
+        how = " -> call assess with event situation, situation " + key + (", product all" if s.get("scope") == "all" or s.get("effect") in ("call", "transfer") else ", and the product it is about (or all)") + ". NEXT STEP then tells you what to say."
+        if s.get("offer_queue"):
+            how += " When they answer your offer, call assess with event accept_offer or refuse."
+        sit_lines.append(key.upper() + ": " + s.get("trigger", "") + how)
+    tr_tools = []
+    neg_task = (
+        "The customer is verified. You already stated the debt: \"{{debt_statement}}\"\n\n"
+        "NEXT STEP (computed by the bank's rules; do exactly this now, in your own short words): {{next_instruction}}\n\n"
+        "FACTS (computed for you; trust them):\n- Today: {{today_say}}.\n{{facts}}\n- Weekday words:\n{{week_table}}\n\n"
+        "HOW TO WORK\n"
+        "1. After EVERY customer answer about paying, a day, an amount, your offer or the debt, FIRST call assess (event, product, date, amount as they said it), then say what NEXT STEP says. "
+        "Never decide dates, amounts or offers yourself, and never skip assess.\n"
+        "2. A day or an amount the customer names is never a refusal: use event propose.\n"
+        "3. When NEXT STEP says to read back, read it back exactly and ask \"" + T.get("confirm_question", "Do you confirm?") + "\". "
+        "When the customer clearly says yes to the read-back, call transition_to_confirm_promises. If they change a day or an amount instead, call assess with event propose.\n"
+        "4. Never say a promise is recorded: that is said for you after it is recorded.\n"
+        "5. People talk loosely. If a number or a date sounds unfinished (\"four hundred and...\", \"the twenty...\"), ask them to finish it before you call assess, and join the parts. "
+        "If they correct themselves (\"the 21st, sorry, the 20th\"), use the corrected value. Amounts and dates said in words are normal: convert them. "
+        "Dates they mention that are not about paying (a wedding, a birthday) are not proposals. If they ask a question back, answer it briefly, then continue.\n\n"
+        "PRIORITY SITUATIONS (check these first on every customer message):\n" + bullets(sit_lines) + "\n\n"
+        "RULES\n" + bullets(spec.get("negotiation_rules", []))
+    )
+    neg_trans = [
+        eq_any("policy_phase", ["transfer"], "transfer_exec", "the policy asks for a transfer"),
+        eq_any("policy_phase", ["done"], "finalize", "nothing left to agree"),
+        tool_transition("confirm_promises", "The customer clearly said yes to the read-back of every agreed promise."),
+    ]
+    nodes["negotiate"] = conv("negotiate", neg_task, [assess_tool], neg_trans,
+                              on_enter={"type": "tts", "text": "Thank you, " + addr + ". {{debt_statement}}"})
+    transfer_post = post("if ok:\n    vars['transfer_queue_done'] = str(vars.get('transfer_now') or '')")
+    nodes["transfer_exec"] = {"name": "transfer_exec", "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "finalize",
+                              "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
+                              "pre_actions": [api_fn(api, "transfer_to_agent", {cid_field: CID, q_field: leaf("string", "{{transfer_now}}")}, desc="Transfer the call.", post=transfer_post)],
+                              "response_mapping": [], "transitions": [always("finalize")]}
+
+    # ---------------- commit pipeline
+    pid_f, amt_f, date_f = api.field("create_promise", "product_id"), api.field("create_promise", "amount"), api.field("create_promise", "date")
+    amount_pre = ("try:\n    b = config.get('body') or dict()\n    v = str(b.get(" + repr(amt_f) + ") or '').replace(',', '')\n    b[" + repr(amt_f) + "] = round(float(v), 2)\n    config['body'] = b\nexcept Exception:\n    pass\n")
+
+    def commit_node(k, retry):
+        key = "commit_" + str(k) + ("_retry" if retry else "")
+        nxt_go = "commit_" + str(k + 1) if k < 3 else "finalize"
+        body = {cid_field: CID, pid_f: leaf("string", "{{c" + str(k) + "_product}}"), amt_f: leaf("number", "{{c" + str(k) + "_amount}}"), date_f: leaf("string", "{{c" + str(k) + "_date}}")}
+        trans = []
+        if not retry:
+            trans.append({"target_node": key + "_retry", "description": "the promise call failed", "condition": {"logic": "or", "conditions": [
+                {"variable": key + "_failure_count", "operator": "greater_than", "operand": 0},
+                {"variable": key + "_response.data.ok", "operator": "equals", "operand": "false"},
+                {"variable": key + "_response.data.ok", "operator": "equals", "operand": "False"},
+                {"variable": key + "_response.status", "operator": "equals", "operand": "error"}]}})
+        if k < 3:
+            trans.append(eq_any("c" + str(k + 1) + "_go", ["yes"], nxt_go, "next promise"))
+        trans.append(always("finalize"))
+        nodes[key] = {"name": key, "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "finalize",
+                      "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
+                      "pre_actions": [api_fn(api, "create_promise", body, desc="Record a promise.", pre=amount_pre)],
+                      "response_mapping": [], "transitions": trans}
+    for k in (1, 2, 3):
+        commit_node(k, False)
+        commit_node(k, True)
+    nodes["confirm_promises"] = code_node("confirm_promises", policy_code(spec, "run_commit_check(vars)"), "negotiate",
+                                      [eq_any("commit_ready", ["yes"], "commit_1", "ready to record")])
+
+    # ---------------- finalize, notes, close
+    nodes["finalize"] = code_node("finalize", policy_code(spec, "run_finalize(vars)"), "close_final",
+                                  [eq_any("n1_go", ["yes"], "note_1", "notes to add")] if api.has("add_note") and spec.get("multi", {}).get("notes") else [])
+    if api.has("add_note") and spec.get("multi", {}).get("notes"):
+        npid, nrea = api.field("add_note", "product_id"), api.field("add_note", "reason")
+        ntext = api.field("add_note", "text") if "text" in api.props("add_note") else None
+        for k in (1, 2, 3):
+            body = {cid_field: CID, npid: leaf("string", "{{n" + str(k) + "_product}}"), nrea: leaf("string", "{{n" + str(k) + "_reason}}")}
+            if ntext:
+                body[ntext] = leaf("string", "{{n" + str(k) + "_reason}}")
+            trans = [eq_any("n" + str(k + 1) + "_go", ["yes"], "note_" + str(k + 1), "next note")] if k < 3 else []
+            nodes["note_" + str(k)] = {"name": "note_" + str(k), "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "close_final",
+                                       "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
+                                       "pre_actions": [api_fn(api, "add_note", body, desc="Add a note.")], "response_mapping": [], "transitions": trans + [always("close_final")]}
+    f_out, f_rea = api.field("close_call", "outcome"), api.field("close_call", "reason")
+    reason_pre = ("try:\n    b = config.get('body') or dict()\n    if not str(b.get(" + repr(f_rea) + ") or '').strip() or '{' in str(b.get(" + repr(f_rea) + ")):\n        b.pop(" + repr(f_rea) + ", None)\n    config['body'] = b\nexcept Exception:\n    pass\n")
+    nodes["close_final"] = {"name": "close_final", "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "end",
+                            "on_enter": {"type": "tts", "text": "{{final_say}} " + bye}, "disable_inactivity_monitor": True,
+                            "pre_actions": [api_fn(api, "close_call", {cid_field: CID, f_out: leaf("string", "{{final_outcome}}"), f_rea: leaf("string", "{{final_reason}}")},
+                                                   desc="End the call.", pre=reason_pre)],
+                            "response_mapping": [], "transitions": [always("end")]}
+    nodes["end"] = {"name": "end", "node_type": "end_call", "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True, "transitions": [],
+                    "terminal": {"type": "function", "function": {"name": "call_closed", "handler": "__function__:end_call",
+                                 "parameters": {"type": "object", "properties": {"message_mode": {"type": "string", "default": "none"}}}}}}
+
+    # every early close the graph references must exist
+    for need in ("close_unclear", "close_callback", "close_no_callback", "close_wrong_number", "close_deceased", "close_id_failed"):
+        if need not in nodes:
+            close_node(need, outcomes.get("not_reached", "not_reached"), need[len("close_"):], bye)
+
+    # No test_variables: in a chat they override the call's own variables (customer_id included).
+    wf = {"initial_node": "opening", "system_prompt": system, "nodes": nodes, "global_nodes": {}}
+    return wf
+
+
+if __name__ == "__main__":
+    import sys
+    spec = json.load(open(sys.argv[1]))
+    oa = json.load(open(sys.argv[2]))
+    wf = compile_workflow(spec, oa)
+    out = sys.argv[3] if len(sys.argv) > 3 else "out/workflow.json"
+    pathlib.Path(out).parent.mkdir(parents=True, exist_ok=True)
+    pathlib.Path(out).write_text(json.dumps(wf, indent=1))
+    print("wrote", out, len(wf["nodes"]), "nodes", len(json.dumps(wf)), "bytes")

@@ -1,0 +1,13 @@
+env.sh
+**/env.sh
+.venv/
+**/.venv/
+__pycache__/
+*.zip
+kit/
+.freya-agents.json
+.personas.json
+.llm-spend.jsonl
+results/
+out/
+traces/*.jsonl

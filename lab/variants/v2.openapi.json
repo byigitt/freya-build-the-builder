@@ -1,0 +1,554 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Rowan Commercial Bank synthetic collections tools",
+    "version": "1.0.0",
+    "description": "Synthetic benchmark contract only; not a claim that the public mock implements this variant. Seven tool names and paths match the public interface. customer_id identifies the call. The agent must enforce the brief; the tools do not enforce payment dates, amounts or outcome precedence."
+  },
+  "servers": [
+    {
+      "url": "https://freya-bank-mock.freyavoice.workers.dev/v1"
+    }
+  ],
+  "components": {},
+  "paths": {
+    "/verify_identity": {
+      "post": {
+        "summary": "Check one security answer. 4 wrong answers in total end the check.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer_id": {
+                    "type": "string"
+                  },
+                  "field": {
+                    "type": "string",
+                    "enum": [
+                      "company_number",
+                      "founded_year"
+                    ]
+                  },
+                  "answer": {
+                    "type": "string",
+                    "description": "company_number: exactly eight digits including leading zeroes. founded_year: exactly four digits. Malformed answers return ok=false and do not consume a wrong answer. No hint values are returned."
+                  }
+                },
+                "required": [
+                  "customer_id",
+                  "field",
+                  "answer"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "`ok` is false when the action was not carried out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "verified": {
+                      "type": "boolean"
+                    },
+                    "wrong_answers_left": {
+                      "type": "integer",
+                      "description": "Remaining incorrect answers across both questions. A hint or malformed input does not reduce this count."
+                    },
+                    "all_verified": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The service failed. Nothing was recorded. The call may be repeated."
+          }
+        },
+        "operationId": "verify_identity"
+      }
+    },
+    "/get_account": {
+      "post": {
+        "summary": "The late products. Refused until both questions are passed.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "customer_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "`ok` is false when the action was not carried out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "products": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "product_id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "business_card",
+                              "working_capital",
+                              "equipment_finance"
+                            ]
+                          },
+                          "arrears_balance": {
+                            "type": "number",
+                            "exclusiveMinimum": true,
+                            "minimum": 0,
+                            "description": "Overdue balance in euros."
+                          },
+                          "days_overdue": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 60
+                          },
+                          "card_last4": {
+                            "type": "string",
+                            "pattern": "^[0-9]{4}$",
+                            "description": "Present for card products; preserve leading zeroes."
+                          },
+                          "card_due": {
+                            "type": "number",
+                            "minimum": 0,
+                            "exclusiveMinimum": true,
+                            "description": "Required for business_card; its card minimum in euros. Never greater than arrears_balance."
+                          },
+                          "capital_due": {
+                            "type": "number",
+                            "minimum": 0,
+                            "exclusiveMinimum": true,
+                            "description": "Required for working_capital; its capital repayment in euros. Never greater than arrears_balance."
+                          },
+                          "lease_due": {
+                            "type": "number",
+                            "minimum": 0,
+                            "exclusiveMinimum": true,
+                            "description": "Required for equipment_finance; its lease payment in euros. Never greater than arrears_balance."
+                          }
+                        },
+                        "required": [
+                          "product_id",
+                          "type",
+                          "arrears_balance",
+                          "days_overdue"
+                        ],
+                        "oneOf": [
+                          {
+                            "properties": {
+                              "type": {
+                                "enum": [
+                                  "business_card"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "card_due",
+                              "card_last4"
+                            ]
+                          },
+                          {
+                            "properties": {
+                              "type": {
+                                "enum": [
+                                  "working_capital"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "capital_due"
+                            ]
+                          },
+                          {
+                            "properties": {
+                              "type": {
+                                "enum": [
+                                  "equipment_finance"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "lease_due"
+                            ]
+                          }
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 3,
+                      "description": "Account order is negotiation and closing-priority order."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The service failed. Nothing was recorded. The call may be repeated."
+          }
+        },
+        "operationId": "get_account"
+      }
+    },
+    "/create_promise": {
+      "post": {
+        "summary": "Record a payment promise. One per product.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer_id": {
+                    "type": "string"
+                  },
+                  "product_id": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                },
+                "required": [
+                  "customer_id",
+                  "product_id",
+                  "amount",
+                  "date"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "`ok` is false when the action was not carried out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "promise_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The service failed. Nothing was recorded. The call may be repeated."
+          }
+        },
+        "operationId": "create_promise"
+      }
+    },
+    "/add_note": {
+      "post": {
+        "summary": "Record why a product ended without a promise; only at final non-transfer closure.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer_id": {
+                    "type": "string"
+                  },
+                  "product_id": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "enum": [
+                      "R10",
+                      "R20",
+                      "R30",
+                      "R40",
+                      "R50"
+                    ]
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "customer_id",
+                  "product_id",
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "`ok` is false when the action was not carried out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The service failed. Nothing was recorded. The call may be repeated."
+          }
+        },
+        "operationId": "add_note"
+      }
+    },
+    "/schedule_callback": {
+      "post": {
+        "summary": "Book a callback.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer_id": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "time": {
+                    "type": "string",
+                    "description": "HH:MM"
+                  }
+                },
+                "required": [
+                  "customer_id",
+                  "date",
+                  "time"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "`ok` is false when the action was not carried out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The service failed. Nothing was recorded. The call may be repeated."
+          }
+        },
+        "operationId": "schedule_callback"
+      }
+    },
+    "/transfer_to_agent": {
+      "post": {
+        "summary": "Hand the call to a person.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer_id": {
+                    "type": "string"
+                  },
+                  "queue": {
+                    "type": "string",
+                    "enum": [
+                      "business_arrangements",
+                      "business_service",
+                      "business_care"
+                    ]
+                  }
+                },
+                "required": [
+                  "customer_id",
+                  "queue"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "`ok` is false when the action was not carried out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The service failed. Nothing was recorded. The call may be repeated."
+          }
+        },
+        "operationId": "transfer_to_agent"
+      }
+    },
+    "/close_call": {
+      "post": {
+        "summary": "End the call. Always the last tool call. Nothing is accepted after it.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer_id": {
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "C10",
+                      "C20",
+                      "C30",
+                      "C40",
+                      "C50",
+                      "C60"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Omit for C10 and C20; required otherwise. The brief's code table defines valid outcome/reason pairs.",
+                    "enum": [
+                      "R10",
+                      "R20",
+                      "R30",
+                      "R50",
+                      "T11",
+                      "T12",
+                      "T13",
+                      "N11",
+                      "N12",
+                      "N13",
+                      "N14",
+                      "N15",
+                      "I11",
+                      "I12"
+                    ]
+                  }
+                },
+                "required": [
+                  "customer_id",
+                  "outcome"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "`ok` is false when the action was not carried out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The service failed. Nothing was recorded. The call may be repeated."
+          }
+        },
+        "operationId": "close_call"
+      }
+    }
+  }
+}

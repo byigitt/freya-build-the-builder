@@ -40,7 +40,9 @@
   "goodbye": "Thank you for your time, {{title}} {{last_name}}. Goodbye.",
   "currency_word": "dollars",
   "floor_name": "minimum amount",
-  "transfer_say": "I am transferring you now."
+  "transfer_say": "I am transferring you now.",
+  "robot_reply": "I am Freya Bank's digital assistant.",
+  "scam_reply": "You can verify this call by phoning Freya Bank's customer service number."
  },
  "forbidden_before_verification": [
   "collections",
@@ -90,7 +92,9 @@
    "day_month_swapped": "The day and the month look swapped. This does NOT count as a wrong answer. Ask the customer to say the date of birth again with the month as a word."
   },
   "decline_rule": "If the customer does not want to answer, explain once that the questions protect their account. If they still decline, the call ends. Asking what the call is about instead of answering counts as declining. A second refusal or a second such question closes the call.",
-  "rules": []
+  "rules": [],
+  "max_declines": 2,
+  "call_purpose_counts_as_decline": true
  },
  "account": {
   "products_field": "products",

@@ -38,6 +38,7 @@ Use only variables the brief lists. Texts are spoken on the phone: plain words, 
   - `ask_today`, `ask_today_all`: the brief's exact FIRST payment question for one product / for several products. If a promise for today is not allowed, this question asks about the earliest allowed day, not today.
   - `rest_overdue`: instruction when a floor amount is offered (e.g. "Say that the rest stays overdue."). Empty string if the brief says nothing.
   - `readback_prefix` (e.g. "So that is"), `confirm_question` (e.g. "Do you confirm?").
+  - `robot_reply`, `scam_reply`: the exact sentence to say when asked whether this is a robot/AI, or whether the call is a scam.
   - `recorded`: sentence after a successful recording (e.g. "Your promise is recorded."), `after_promise`: any sentence the brief requires after a recorded promise.
   - `service_error`: what to say when recording failed for good.
   - `transfer_say`: what to say when transferring.
@@ -54,6 +55,8 @@ Use only variables the brief lists. Texts are spoken on the phone: plain words, 
   - `max_wrong_total`: wrong answers allowed in total.
   - `hints`: map of a `hint` value the tool may return -> the instruction for the agent (e.g. "day_month_swapped": "...ask for the month as a word. This does not count as a wrong answer.").
   - `decline_rule`: what to do when the customer refuses to answer (in full).
+  - `max_declines`: refusals to answer that end the call (for example 2 when the second refusal closes it).
+  - `call_purpose_counts_as_decline`: true if asking what the call is about instead of answering counts as a refusal.
   - `rules`: other identity rules.
 - `account`: how to read `get_account`'s response (field names from the tool API response schema): `products_field` (the array), `id_field`, `type_field`, `amount_field` (the past-due amount), `days_late_field`, and `types`: map of each product type value -> `words` (how to name it on the phone; `<field>` inserts a product field, e.g. "credit card ending <card_last4>"), `floor_field` (the field holding the lowest acceptable amount for this type, or null), `floor_percent` (percentage points, e.g. 22.5 for 22.5%, of the past-due amount, when the floor is a percentage instead of a field), `floor_rounding` (`round`, `ceil` or `floor` to the cent; only if the brief says), `floor_min` (a minimum floor amount, if any), `floor_name` (spoken name, e.g. "minimum payment").
 - `tool_fields`: only when a tool's request field names differ from the usual ones: map of tool name -> {role: exact request field name}. Roles: `customer_id`, `product_id`, `amount`, `date`, `time`, `reason`, `outcome`, `queue`, `field`, `answer`, `text`. Example: `{"create_promise": {"amount": "promised_sum", "date": "settlement_day"}}`.

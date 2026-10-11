@@ -525,9 +525,8 @@ def compile_workflow(spec, openapi):
     decline_rule = spec.get("identity", {}).get("decline_rule", "")
     id_common = (
         "\nNever say why you are calling and never mention " + forbidden + " until every security answer is verified.\n" + decline_rule + "\n"
-        "When the customer clearly refuses to answer, asks to skip a question, or asks what the call is about instead of answering, call record_decline first. "
-        "A question about the security question itself ('why do you need that?') on its own is not a refusal: answer it briefly and wait, without record_decline. If the same message also refuses, call record_decline. "
-        "The bank's rules count these refusals for the whole call and end the call on the second one; after the first, explain once that the questions protect their account and ask again.\n"
+        "Refusals to answer are counted by the bank's rules, which explain the purpose and end the call when needed: never end the call yourself. "
+        "A question that only asks why you need the information is not a refusal: answer it every time it is asked, with the reason given below, and wait for the answer.\n"
         "If the customer asks for a human: the first time, ask whether you can help first. If they insist, call transfer_" + human_q + ".\n"
         + bullets(spec.get("identity", {}).get("rules", [])) + "\nIf the customer asked a question earlier in the call that has not been answered yet (for example whether this is a scam or whether you are a robot), answer it in one sentence before your next question.\nALWAYS (also while asking security questions):\n" + bullets(spec.get("global_rules", [])) + "\nDo not call any other tool."
     )
@@ -539,6 +538,34 @@ def compile_workflow(spec, openapi):
         fail_conds.append({"variable": tool_name + "_response.data.wrong_answers_left", "operator": "equals", "operand": "0"})
         fail_conds.append({"variable": tool_name + "_state", "operator": "equals", "operand": "failed"})
     failed_tr = {"target_node": "close_id_failed", "description": "no wrong answers left", "condition": {"logic": "or", "conditions": fail_conds}}
+    refusal_x = [{"name": "id_reply", "type": "string", "min_confidence": 0.5,
+                  "enum_values": ["answer", "refuses", "why_needed", "call_purpose", "wants_human", "other"],
+                  "description": "What the person's LATEST message does with the security question. "
+                                 "answer: it gives the answer (or part of it). "
+                                 "refuses: it says they will not give it, are not comfortable giving it, or want to skip it (even if it also asks a question). "
+                                 "why_needed: it ONLY asks why you need this information, without refusing (for example 'Why do you need that?'). "
+                                 "call_purpose: it asks what the call is about instead of answering. "
+                                 "wants_human: it asks for a human or a real person. "
+                                 "other: anything else."}]
+    max_decl = int(spec.get("identity", {}).get("max_declines", 2) or 2)
+    decline_kinds = ["refuses"] + (["call_purpose"] if spec.get("identity", {}).get("call_purpose_counts_as_decline", True) else [])
+
+    def add_refusal(key):
+        """Refusals are counted in code; the first one gets the purpose explained once, the last one closes the call."""
+        nodes[key]["extraction_schema"] = nodes[key].get("extraction_schema", []) + refusal_x
+        nodes[key]["transitions"].insert(0, eq_any("id_reply", decline_kinds, key + "_decl", "the customer refused to answer"))
+        nodes[key + "_decl"] = code_node(key + "_decl", check_code(
+            "try:\n    n = int(float(vars.get('identity_declines') or 0)) + 1\nexcept Exception:\n    n = 1\n"
+            "vars['identity_declines'] = str(n)\nvars['id_reply'] = ''\n"
+            "vars['identity_decline_state'] = 'close' if n >= " + str(max_decl) + " else 'explain'\n"), key + "_re",
+            [eq_any("identity_decline_state", ["close"], "close_id_declined", "refused too often")])
+        twin = json.loads(json.dumps(nodes[key]))
+        twin["name"] = key + "_re"
+        twin["on_enter"] = {"type": "tts", "text": T.get("identity_why", "These questions protect your account.") + " " + reask[key]}
+        twin["on_enter_first_entry_only"] = False
+        nodes[key + "_re"] = twin
+
+    reask = dict()
     declined_tr = eq_any("identity_decline_state", ["close"], "close_id_declined", "second refusal of the security questions")
     decline_tool = {"type": "function", "function": {
         "name": "record_decline", "handler": "__function__:code_exec",
@@ -563,9 +590,12 @@ def compile_workflow(spec, openapi):
         tool = api_fn(api, "verify_identity", body, desc="Check the security answers. CALL it once you have every answer. Then follow what_to_do_next.",
                       post=verify_post("the answers", hints, "verify_identity", side_snippet(spec)))
         failed_tr["condition"]["conditions"].append({"variable": "verify_identity_state", "operator": "equals", "operand": "failed"})
-        nodes["identity"] = conv("identity", task, [tool, decline_tool] + ([human_tr] if human_tr else []), [
+        nodes["identity"] = conv("identity", task, [tool] + ([human_tr] if human_tr else []), [
             eq_any("verify_identity_state", ["verified"], "load_account", "answers verified"), failed_tr] + human_exit() + [declined_tr],
             on_enter={"type": "tts", "text": "{{qa_prefix}}Thank you, " + addr + ". " + idq[0].get("ask", "")})
+        nodes["identity"]["extraction_schema"] = list(side_q)
+        reask["identity"] = idq[0].get("ask", "")
+        add_refusal("identity")
         idq = []
     for i, q in enumerate(idq):
         key = "identity" if i == 0 else "identity_" + str(i + 1)
@@ -590,7 +620,11 @@ def compile_workflow(spec, openapi):
             adesc = q.get("format", "The answer.")
         thanks = "Thank you, " + addr + ". " if i == 0 else "Thank you. "
         why = T.get("identity_why", "These questions protect your account.")
+        robot = T.get("robot_reply") or ("I am " + agent_id + ".")
+        scam = T.get("scam_reply") or ("You can verify this call by phoning " + spec.get("bank_name", "the bank") + "'s customer service number.")
         task = ("Security question " + str(i + 1) + " of " + str(len(idq)) + ": you asked for the " + q.get("say_name", q["field"].replace("_", " ")) + ".\n"
+                "If the latest message asks whether you are a robot, an AI or a real person, your reply MUST begin with: \"" + robot + "\" "
+                "If it asks whether this is a scam or a real call, your reply MUST begin with: \"" + scam + "\" Then continue.\n"
                 "If the customer asks why you need it (instead of answering), reply with exactly this and nothing more: \"" + why + "\" Do not ask the question again in that reply.\n" + how +
                 "\nIf the customer's message is cut off or has no answer in it, say something short like 'Go on, I am listening.' If you already said that and their next message is cut off again, briefly repeat the question.\nIf a message contains an answer together with a question or a complaint, FIRST call " + tool_name + " with the answer, then reply to the rest. Every answer given counts and must be checked.\n"
                 "After each result, follow what_to_do_next exactly. A wrong answer is asked again; the check counts wrong answers itself. "
@@ -600,7 +634,7 @@ def compile_workflow(spec, openapi):
                       pre=verify_pre(kind, order, q.get("digits")).replace("ANSWER", a_field),
                       post=verify_post("the " + q.get("say_name", q["field"]), hints, tool_name, side_snippet(spec)))
         ok_var = tool_name + "_response.data."
-        nodes[key] = conv(key, task, [tool, decline_tool] + ([human_tr] if human_tr else []), [
+        nodes[key] = conv(key, task, [tool] + ([human_tr] if human_tr else []), [
             {"target_node": nxt, "description": "answer verified", "condition": {"logic": "or", "conditions": [
                 {"variable": tool_name + "_state", "operator": "equals", "operand": "verified"},
                 {"variable": ok_var + "verified", "operator": "equals", "operand": "true"},
@@ -610,6 +644,8 @@ def compile_workflow(spec, openapi):
             failed_tr,
         ] + human_exit() + [declined_tr], on_enter={"type": "tts", "text": "{{qa_prefix}}" + thanks + q.get("ask", "")})
         nodes[key]["extraction_schema"] = list(side_q)
+        reask[key] = q.get("ask", "")
+        add_refusal(key)
 
     # ---------------- account
     products_field = spec.get("account", {}).get("products_field", "products")

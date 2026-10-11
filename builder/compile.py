@@ -574,12 +574,35 @@ def compile_workflow(spec, openapi):
         "RULES\n" + bullets(spec.get("negotiation_rules", [])) + "\n\nALWAYS:\n" + bullets(spec.get("global_rules", []))
     )
     neg_trans = [
+        eq_any("policy_phase", ["offer"], "offer_decision", "an offer to connect the customer was made"),
         eq_any("policy_phase", ["transfer"], "transfer_exec", "the policy asks for a transfer"),
         eq_any("policy_phase", ["done"], "finalize", "nothing left to agree"),
         tool_transition("confirm_promises", "The customer clearly said yes to the read-back of every agreed promise."),
     ]
     nodes["negotiate"] = conv("negotiate", neg_task, [assess_tool], neg_trans,
                               on_enter={"type": "tts", "text": "Thank you, " + addr + ". {{debt_statement}}"})
+    # An offer (for example to connect a customer in hardship with a support team) gets its own step: the model only decides yes or no.
+    offer_task = (
+        "The customer is verified and told you about their situation. Do this now, in one or two short sentences: {{next_instruction}}\n"
+        "Then wait for their answer and decide:\n"
+        "- They accept being connected or transferred: call transition_to_offer_accept.\n"
+        "- They decline, or answer with anything else without accepting (for example they ask for a discount, or say they cannot pay): "
+        "if they asked a question, answer it in one short sentence (never offer a discount, a plan or any other term), then call transition_to_offer_decline.\n"
+        "- They name a day or an amount to pay themselves: call assess with a_event propose (a_date, a_amount as they said it).\n"
+        "Never ask about a payment, a day or an amount yourself. Never repeat the offer.\n\nALWAYS:\n" + bullets(spec.get("global_rules", []))
+    )
+    nodes["offer_decision"] = conv("offer_decision", offer_task, [assess_tool], [
+        eq_any("policy_phase", ["transfer"], "transfer_exec", "transfer requested"),
+        eq_any("policy_phase", ["done"], "finalize", "nothing left to agree"),
+        eq_any("policy_phase", ["negotiating", "readback"], "negotiate", "the customer proposed a payment"),
+        tool_transition("offer_accept", "The customer accepts the offer to be connected."),
+        tool_transition("offer_decline", "The customer declines the offer or answers without accepting it."),
+    ], first_only=False)
+    nodes["offer_decision"]["max_node_turns"] = 3
+    nodes["offer_decision"]["max_turn_transition"] = "offer_decline"
+    route_after = [eq_any("policy_phase", ["transfer"], "transfer_exec", "transfer"), eq_any("policy_phase", ["negotiating", "readback"], "negotiate", "more to agree")]
+    nodes["offer_accept"] = code_node("offer_accept", policy_code(spec, "run_assess(vars, dict(event='accept_offer', product='all'))"), "finalize", route_after)
+    nodes["offer_decline"] = code_node("offer_decline", policy_code(spec, "run_assess(vars, dict(event='refuse', product='all'))"), "finalize", route_after)
     transfer_post = post("if ok:\n    vars['transfer_queue_done'] = str(vars.get('transfer_now') or '')")
     nodes["transfer_exec"] = {"name": "transfer_exec", "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "finalize",
                               "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,

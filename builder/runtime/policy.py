@@ -496,6 +496,8 @@ def set_outputs(vars, st, instruction):
     vars["current_product"] = (cur["id"] + " (" + cur["words"] + ")") if cur else "none"
     if st.get("transfer_queue"):
         vars["policy_phase"] = "transfer"
+    elif st.get("pending_offer"):
+        vars["policy_phase"] = "offer"
     elif open_products(st):
         vars["policy_phase"] = "negotiating"
     elif any(p["status"] == "agreed" for p in st["products"]):

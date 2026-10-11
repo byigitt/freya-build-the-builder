@@ -122,6 +122,7 @@ def run_case(workflow_id, case, style=None, max_turns=40):
                 time.sleep(3)
                 led = http("/v1/practice/ledger/" + sess["customer_id"])
                 if led.get("calls") and led["calls"][-1]["tool"] == "close_call":
+                    ended = True                       # the agent already closed the call: the customer cannot talk any more
                     break
         slowest = max(slowest, time.time() - t1)
         call_id = r.get("callId") or call_id
@@ -132,6 +133,16 @@ def run_case(workflow_id, case, style=None, max_turns=40):
         if led.get("calls") and led["calls"][-1]["tool"] == "close_call":
             ended = True
             break
+        if call_id and "goodbye" in agent.lower():
+            # the bank call that closes the call can land in the ledger after the reply: the call's own events say it ended
+            try:
+                evs = freya.get_call(call_id).get("messages", [])
+                if any(m.get("nodeId") == "end" or '"end_call"' in str(m.get("message", "")) for m in evs):
+                    time.sleep(3)
+                    ended = True
+                    break
+            except Exception:
+                pass
         msgs = [{"role": "system", "content": system}] + [{"role": "user" if h["role"] == "user" else "assistant", "content": h["content"]} for h in history]
         customer_says = llm.call(msgs, model=SIM_MODEL, purpose=f"customer {case['id']}").strip() or "..."
     led = http("/v1/practice/ledger/" + sess["customer_id"])

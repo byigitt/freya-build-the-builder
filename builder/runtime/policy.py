@@ -731,7 +731,7 @@ def run_callback(vars, params):
 def side_answer(vars):
     """A question asked together with an answer (robot? scam? why?) is answered at the start of the next fixed line."""
     kind = str(vars.get("side_question") or "").strip().lower()
-    vars["side_question"] = ""
+    vars["side_question"] = "none"
     reply = ""
     if kind == "robot":
         reply = cfg("texts.robot_reply", "") or ("I am " + str(cfg("agent_identity", "the bank's digital assistant")) + ".")

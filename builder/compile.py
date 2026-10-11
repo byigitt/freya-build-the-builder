@@ -262,7 +262,7 @@ def side_snippet(spec):
     scam = T.get("scam_reply") or ("You can verify this call by phoning " + spec.get("bank_name", "the bank") + "'s customer service number.")
     why = T.get("identity_why") or ""
     return check_code(
-        "k = str(vars.get('side_question') or '').strip().lower()\nvars['side_question'] = ''\n"
+        "k = str(vars.get('side_question') or '').strip().lower()\nvars['side_question'] = 'none'\n"
         "r = dict(robot=" + py_literal(robot) + ", scam=" + py_literal(scam) + ", purpose=" + py_literal(why) + ").get(k, '')\n"
         "vars['qa_prefix'] = (r + ' ') if r else ''\n")
 
@@ -539,12 +539,13 @@ def compile_workflow(spec, openapi):
         fail_conds.append({"variable": tool_name + "_state", "operator": "equals", "operand": "failed"})
     failed_tr = {"target_node": "close_id_failed", "description": "no wrong answers left", "condition": {"logic": "or", "conditions": fail_conds}}
     refusal_x = [{"name": "id_reply", "type": "string", "min_confidence": 0.5,
-                  "enum_values": ["answer", "refuses", "why_needed", "call_purpose", "wants_human", "other"],
+                  "enum_values": ["answer", "refuses", "why_needed", "call_purpose", "asks_if_genuine", "wants_human", "other"],
                   "description": "What the person's LATEST message does with the security question. "
                                  "answer: it gives the answer (or part of it). "
                                  "refuses: it says they will not give it, are not comfortable giving it, or want to skip it (even if it also asks a question). "
                                  "why_needed: it ONLY asks why you need this information, without refusing (for example 'Why do you need that?'). "
                                  "call_purpose: it asks what the call is about instead of answering. "
+                                 "asks_if_genuine: it asks whether this is a scam, a real call from the bank, or whether you are a robot or an AI. "
                                  "wants_human: it asks for a human or a real person. "
                                  "other: anything else."}]
     max_decl = int(spec.get("identity", {}).get("max_declines", 2) or 2)
@@ -553,10 +554,13 @@ def compile_workflow(spec, openapi):
     def add_refusal(key):
         """Refusals are counted in code; the first one gets the purpose explained once, the last one closes the call."""
         nodes[key]["extraction_schema"] = nodes[key].get("extraction_schema", []) + refusal_x
-        nodes[key]["transitions"].insert(0, eq_any("id_reply", decline_kinds, key + "_decl", "the customer refused to answer"))
+        nodes[key]["transitions"].insert(0, {"target_node": key + "_decl", "description": "the customer refused to answer", "condition": {"logic": "or", "conditions": [
+            {"logic": "and", "conditions": [{"variable": "id_reply", "operator": "equals", "operand": k},
+                                            {"variable": "side_question", "operator": "not_equals", "operand": "scam"},
+                                            {"variable": "side_question", "operator": "not_equals", "operand": "robot"}]} for k in decline_kinds]}})
         nodes[key + "_decl"] = code_node(key + "_decl", check_code(
             "try:\n    n = int(float(vars.get('identity_declines') or 0)) + 1\nexcept Exception:\n    n = 1\n"
-            "vars['identity_declines'] = str(n)\nvars['id_reply'] = ''\n"
+            "vars['identity_declines'] = str(n)\nvars['id_reply'] = 'other'\n"
             "vars['identity_decline_state'] = 'close' if n >= " + str(max_decl) + " else 'explain'\n"), key + "_re",
             [eq_any("identity_decline_state", ["close"], "close_id_declined", "refused too often")])
         twin = json.loads(json.dumps(nodes[key]))
@@ -683,11 +687,20 @@ def compile_workflow(spec, openapi):
     }
     if sit_ids:
         assess_body["a_situation"] = {"type": "string", "enum": sit_ids, "default": "{{a_situation}}", "description": "Only with event situation: the name of the PRIORITY SITUATION."}
+        assess_body["b_situation"] = {"type": "string", "enum": sit_ids + ["none"], "default": "{{b_situation}}",
+                                      "description": "Only when the SAME message ALSO describes a PRIORITY SITUATION for OTHER products than a_product "
+                                                     "(for example: 'I can pay the card on Friday, but I lost my job and cannot pay the loan'): its name. Otherwise none."}
+        assess_body["b_product"] = {"type": "string", "default": "{{b_product}}", "description": "Only with b_situation: the product id(s) that situation is about. Empty otherwise."}
     assess_pre = policy_code(spec, (
         "try:\n    b = config.get('body') or dict()\n    prm = dict()\n"
         "    for k in ('event', 'product', 'date', 'amount', 'situation'):\n        v = b.get('a_' + k)\n"
         "        if v is not None and str(v).strip().startswith('{'):\n            v = None\n        prm[k] = v\n"
-        "    vars['assess_last_args'] = json.dumps(prm)\n    run_assess(vars, prm)\n    config['body'] = dict([(" + repr(cid_field) + ", b.get(" + repr(cid_field) + "))])\n"
+        "    vars['assess_last_args'] = json.dumps(prm)\n    run_assess(vars, prm)\n"
+        "    bs = str(b.get('b_situation') or '').strip().lower()\n    bp = str(b.get('b_product') or '').strip().lower()\n"
+        "    first = [x.strip() for x in str(prm.get('product') or '').lower().split(',')]\n"
+        "    if bs and bs != 'none' and not bs.startswith('{') and bp and not bp.startswith('{') and bp != 'all' and str(prm.get('event') or '') != 'situation' and not any(x in first for x in bp.split(',')):\n"
+        "        run_assess(vars, dict(event='situation', situation=bs, product=bp))\n"
+        "    config['body'] = dict([(" + repr(cid_field) + ", b.get(" + repr(cid_field) + "))])\n"
         "except Exception as e:\n    vars['next_instruction'] = 'Continue carefully. (policy error ' + str(e)[:60] + ')'\n"))
     assess_post = ("try:\n    if isinstance(result, dict):\n        result.pop('header', None)\n"
                    "        result['data'] = dict(next_step=str(vars.get('next_instruction') or 'Continue.'), say_it='Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said it in this turn, say something short like Take your time. Never reply with nothing, and do not add other offers.')\n"
@@ -714,7 +727,7 @@ def compile_workflow(spec, openapi):
         "   A PRIORITY SITUATION is reported every time it comes up, also when the customer repeats it (for example a second request for a human). "
         "Call assess ONCE per customer message, never several at the same time. Products are handled one at a time: report the answer for the product the last instruction is about "
         "(now: {{current_product}}), or a_product all when the answer covers every product. What they say about later products is taken up when their turn comes. "
-        "A PRIORITY SITUATION about any product may be reported at once. When one message says different things about different products "
+        "A PRIORITY SITUATION about any product may be reported at once: if the same message also answers about other products, put the situation in b_situation and its product in b_product of the same assess call. When one message says different things about different products "
         "(for example 'I paid the card this morning, and the loan was closed years ago'), report each product separately, one assess call after the other "
         "(wait for each result), each with its own event or situation. A recent payment of the past-due amount is paid; a claim that a product was closed or paid off in the past is a dispute.\n"
         "2. A day or an amount the customer names is never a refusal: use a_event propose. A message that breaks off mid-sentence: use a_event cut_off. "

@@ -37,8 +37,8 @@ def _cost(usage):
     return float((usage.get("cost_details") or {}).get("upstream_inference_cost") or 0)
 
 
-def call(messages, model="google/gemini-3-flash", purpose="", temperature=None, max_tokens=None, json_mode=False, timeout=300, retries=3, trace=None):
-    """Return the assistant text. `trace` is an optional callable that receives one line per call."""
+def call(messages, model="google/gemini-3-flash", purpose="", temperature=None, max_tokens=None, json_mode=False, timeout=300, retries=3, trace=None, stream=False, reasoning_effort=None):
+    """Return assistant text; stream=True avoids idle gateway limits on long generations. Trace and spend include streamed usage."""
     if spent() >= BUDGET_USD:
         raise BudgetExceeded(f"LLM budget of ${BUDGET_USD:.0f} reached ({SPEND_FILE})")
     body = {"model": model, "messages": messages}
@@ -48,6 +48,10 @@ def call(messages, model="google/gemini-3-flash", purpose="", temperature=None, 
         body["max_tokens"] = max_tokens
     if json_mode:
         body["response_format"] = {"type": "json_object"}
+    if stream:
+        body.update(stream=True, stream_options={"include_usage": True})
+    if reasoning_effort:
+        body["reasoning_effort"] = reasoning_effort
     key = os.environ.get("AI_GATEWAY_API_KEY") or os.environ.get("LLM_API_KEY", "")
     req = urllib.request.Request(BASE_URL + "/chat/completions", data=json.dumps(body).encode(),
                                  headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"}, method="POST")
@@ -56,7 +60,31 @@ def call(messages, model="google/gemini-3-flash", purpose="", temperature=None, 
         t0 = time.time()
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                out = json.load(r)
+                if not stream:
+                    out = json.load(r)
+                else:
+                    parts, usage = [], {}
+                    finished = False
+                    for line in r:
+                        if not line.startswith(b"data:"):
+                            continue
+                        data = line[5:].strip()
+                        if data == b"[DONE]":
+                            finished = True
+                            break
+                        event = json.loads(data)
+                        if event.get("error"):
+                            raise RuntimeError(str(event["error"]))
+                        if event.get("usage"):
+                            usage = event["usage"]
+                        for choice in event.get("choices", []):
+                            if choice.get("index", 0) == 0:
+                                text = choice.get("delta", {}).get("content")
+                                if text:
+                                    parts.append(text)
+                    if not finished:
+                        raise RuntimeError("completion stream ended before [DONE]")
+                    out = {"choices": [{"message": {"content": "".join(parts)}}], "usage": usage}
             break
         except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
             detail = e.read().decode()[:500] if isinstance(e, urllib.error.HTTPError) else str(e)

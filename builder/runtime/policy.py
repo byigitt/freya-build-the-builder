@@ -811,7 +811,10 @@ def run_assess(vars, params):
             ev = "situation"
             sid = pend
             st["offer_done_" + sid] = True
-        elif pend and ev not in ("situation", "no_answer"):
+        elif pend and ev == "no_answer":
+            set_outputs(vars, st, "Their answer was cut off or did not answer your offer. Do not repeat the offer: just say something short like 'Go on, I am listening.'")
+            return
+        elif pend and ev not in ("situation",):
             st["pending_offer"] = ""
         if ev == "situation":
             s = sits.get(sid) or dict()

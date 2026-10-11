@@ -62,13 +62,33 @@ def system_prompt():
     return GUIDE.replace("EXAMPLE_SPEC", EXAMPLE)
 
 
+FALLBACK_MODELS = [m for m in os.environ.get("BUILDER_FALLBACK_MODELS", "anthropic/claude-opus-5,anthropic/claude-sonnet-5.5").split(",") if m]
+
+
+def ask_json(messages, purpose, trace):
+    """Call the builder model (then the fallbacks) until a reply parses as a JSON object."""
+    last = None
+    for model in [MODEL] + [m for m in FALLBACK_MODELS if m != MODEL]:
+        for attempt in range(2):
+            try:
+                raw = llm.call(messages, model=model, purpose=purpose + ("" if attempt == 0 else " (retry)"), max_tokens=16000, trace=trace)
+                out = llm.parse_json(raw)
+                if isinstance(out, dict):
+                    return out
+                last = "reply is not a JSON object"
+            except llm.BudgetExceeded:
+                raise
+            except Exception as e:
+                last = str(e)[:300]
+                trace("model call failed (" + model + "): " + last)
+    raise RuntimeError("no model produced a spec: " + str(last))
+
+
 def extract(brief_text, openapi, trace=print):
     tools = tool_summary(openapi)
     user = ("THE BRIEF (read all of it):\n<<<\n" + brief_text + "\n>>>\n\nTHE TOOL API:\n<<<\n" + tools + "\n>>>\n\n"
             "Write the spec JSON for this brief. Reply with the JSON object only.")
-    raw = llm.call([{"role": "system", "content": system_prompt()}, {"role": "user", "content": user}], model=MODEL,
-                   purpose="extract the spec from the brief", max_tokens=16000, trace=trace)
-    spec = llm.parse_json(raw)
+    spec = ask_json([{"role": "system", "content": system_prompt()}, {"role": "user", "content": user}], "extract the spec from the brief", trace)
     problems = validate(spec, openapi)
     trace("spec check after extraction: " + (("; ".join(problems)) if problems else "no problems"))
     review = ("THE BRIEF:\n<<<\n" + brief_text + "\n>>>\n\nTHE TOOL API:\n<<<\n" + tools + "\n>>>\n\nA DRAFT SPEC:\n" + json.dumps(spec, indent=1) +
@@ -77,14 +97,13 @@ def extract(brief_text, openapi, trace=print):
               "(numbers, dates, holidays, codes, sentences, order of questions, bands, attempts, persuasion steps, callback window, what counts as confirmation). "
               "Check that no value was copied from the guide's example when the brief says something else. Fix every problem the check found. "
               "Reply with the complete corrected spec JSON only (include the coverage list).")
-    raw2 = llm.call([{"role": "system", "content": system_prompt()}, {"role": "user", "content": review}], model=MODEL,
-                    purpose="review the spec rule by rule against the brief and fix it", max_tokens=16000, trace=trace)
     try:
-        spec2 = llm.parse_json(raw2)
-        if isinstance(spec2, dict) and spec2.get("identity") and spec2.get("bands"):
+        spec2 = ask_json([{"role": "system", "content": system_prompt()}, {"role": "user", "content": review}],
+                         "review the spec rule by rule against the brief and fix it", trace)
+        if spec2.get("identity") and spec2.get("bands"):
             spec = spec2
     except Exception as e:
-        trace("review reply was not valid JSON, keeping the first spec: " + str(e)[:200])
+        trace("review pass failed, keeping the first spec: " + str(e)[:200])
     problems = validate(spec, openapi)
     spec = repair(spec, openapi, problems, trace)
     return spec

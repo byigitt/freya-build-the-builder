@@ -9,7 +9,9 @@ python3 builder/build.py <brief.md> <tool_api.json> 2>&1 | tee traces/<brief>.lo
 ```
 
 Python 3.10+, standard library only. The builder's own model calls go through an OpenAI-compatible chat endpoint
-(`AI_GATEWAY_API_KEY` for the Vercel AI Gateway, or `LLM_BASE_URL` + `LLM_API_KEY`). The phone agent runs on the event model set in `freya.py`.
+(`AI_GATEWAY_API_KEY` for the Vercel AI Gateway, or `LLM_BASE_URL` + `LLM_API_KEY`). The model is `BUILDER_MODEL`
+(default `anthropic/claude-opus-5.5`), with `BUILDER_FALLBACK_MODELS` tried if it fails. `LLM_BUDGET_USD` caps the builder's spend.
+The phone agent runs on the event model set in `freya.py`.
 
 ## How it works
 

@@ -1936,4 +1936,352 @@
       "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
     ]
   }
+,
+  {
+    "id": "EDGE-39",
+    "session_case": "PUB-04",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Refused then volunteers date on final offer",
+    "variables": {
+      "first_name": "Lena",
+      "last_name": "Hoffmann",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1984-01-30",
+      "phone_last4": "2219"
+    },
+    "products": [
+      {
+        "type": "car_loan",
+        "past_due": 1250.0,
+        "days_late": 14,
+        "instalment_amount": 400.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Refuse paying today: say only \"No, I cannot pay today\". Refuse the full amount on October 16 with only \"No, I cannot do that\". When offered 400 on October 23, change your mind and say \"Actually I can pay the full 1250 on Monday October 19\". Confirm the corrected read-back.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 1250,
+          "date": "2026-10-19"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "An earlier refusal does not block a later voluntary date and amount.",
+      "Record 1250 on October 19, not the floor or the deadline.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-40",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Closed refused card reopens during next product",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Refuse the initial all-today request and every credit-card offer without naming any date or amount. After the card attempts are exhausted, when the agent first asks about the personal loan, say \"I changed my mind about the credit card: I can pay its full 220 on Monday October 19\". Repeat that voluntary card promise if needed. Accept the personal loan full 640 on Friday October 16, and car loan full 75 on Friday October 16 when separately discussed. Confirm all three together.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 220,
+          "date": "2026-10-19"
+        },
+        {
+          "product_id": "p2",
+          "amount": 640,
+          "date": "2026-10-16"
+        },
+        {
+          "product_id": "p3",
+          "amount": 75,
+          "date": "2026-10-16"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "The card receives only its allowed two persuasion attempts before discussion moves to the personal loan.",
+      "A customer-initiated promise for the previously refused card is accepted and included in read-back; no refused note remains for that card.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-41",
+    "session_case": "PUB-05",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Declines hardship transfer and volunteers date",
+    "variables": {
+      "first_name": "Tomas",
+      "last_name": "Novak",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1990-09-09",
+      "phone_last4": "8846"
+    },
+    "products": [
+      {
+        "type": "personal_loan",
+        "past_due": 780.0,
+        "days_late": 21,
+        "instalment_amount": 260.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. After the debt is stated say \"I lost my job last month\" without offering a payment yet. When offered support say exactly \"No support team, thank you. But I can still pay the full 780 on Friday October 16\". You are declining the support transfer, not the payment. Repeat your voluntary offer if asked, and confirm its read-back.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 780,
+          "date": "2026-10-16"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "One short sentence of sympathy and no persuasion after hardship.",
+      "Declining support does not discard a voluntary payment date and amount in the same answer.",
+      "Record 780 on October 16; do not transfer.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-42",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Mixed recent payment and old payoff with third promise",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. When all products are stated say exactly \"The card arrears were paid this morning, but that personal loan was fully paid off and closed years ago\". If the loan is mentioned again repeat that it was paid off and closed years ago, so you dispute these arrears. When asked about the car loan offer full 75 on Monday October 19. Confirm the car-loan promise.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p3",
+          "amount": 75,
+          "date": "2026-10-19"
+        }
+      ],
+      "notes": [
+        {
+          "product_id": "p1",
+          "reason": "paid"
+        },
+        {
+          "product_id": "p2",
+          "reason": "dispute"
+        }
+      ],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Do not collapse different product claims: card paid, personal loan dispute, car loan still open.",
+      "Record the car-loan promise and keep paid/dispute notes for the first two products; outcome promise wins.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-43",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Cannot pay all today starts full amount attempt",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. To the first all-today payment question say exactly \"I cannot pay all of that today\". When offered full 220 for the card on Friday October 16 accept. Accept full personal-loan 640 and car-loan 75 on October 16 when each is discussed. Do not say any amount is too high, and do not ask for a lower payment. Confirm all three.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 220,
+          "date": "2026-10-16"
+        },
+        {
+          "product_id": "p2",
+          "amount": 640,
+          "date": "2026-10-16"
+        },
+        {
+          "product_id": "p3",
+          "amount": 75,
+          "date": "2026-10-16"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "The initial temporal refusal is not too_much: no initial floor offer.",
+      "Attempt 1 on the first product is full 220 on October 16, not 66.",
+      "Do not ask today again for each product.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-44",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Confirmation plus question about changing later",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Agree to pay 420 today. At read-back say exactly \"Yes, I confirm the 420 today. If I need to change that after it is recorded, do I use the mobile app?\". This is a question about future changes, not a request to change the current promise. If the agent asks for confirmation again, confirm.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 420,
+          "date": "2026-10-14"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Answer the confirmation-turn question with mobile-app guidance before ending the call.",
+      "Do not treat a hypothetical future change as a correction of the confirmed promise; record exactly one 420 promise today.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  }
 ]

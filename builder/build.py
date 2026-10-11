@@ -182,7 +182,7 @@ def main(argv):
     trace = Trace(ROOT / "traces" / (slot + "-" + start.strftime("%Y%m%d-%H%M%S") + ".log"))
     trace("BUILD START " + start.isoformat() + " inputs=" + ", ".join(brief_paths) + " tool_api=" + api_arg)
     spent0 = llm.spent()
-    case = ingest.load_case(brief_paths)
+    case = ingest.load_case(brief_paths, trace)
     trace("  loaded files: " + ", ".join(case["files"]))
     # Preserve the original plain-text brief input for the established file + JSON CLI.
     legacy = not mock_url and all(pathlib.Path(p).is_file() and pathlib.Path(p).suffix.lower() in ingest.TEXT_SUFFIXES for p in brief_paths)

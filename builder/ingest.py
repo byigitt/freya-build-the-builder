@@ -10,7 +10,59 @@ import xml.etree.ElementTree as ET
 WORD = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 SHEET = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 REL = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
-TEXT_SUFFIXES = {".md", ".txt", ".csv", ".json", ".yaml", ".yml"}
+TEXT_SUFFIXES = {".md", ".txt", ".csv", ".tsv", ".json", ".yaml", ".yml", ".eml", ".xml", ".log"}
+IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp"}
+VISION_MODEL = "anthropic/claude-opus-5.5"
+DESCRIBE = ("This image is part of a bank's documents for building a phone agent (for example a call flow drawing, a table, "
+            "a screenshot or a scanned page). Transcribe ALL text in it exactly, in its original language. If it is a diagram or "
+            "flowchart, then describe every box and every arrow as a list: 'from step -> to step [condition on the arrow]', "
+            "so that the whole flow can be rebuilt from your text. Do not summarise or leave anything out.")
+
+
+def _describe(data, mime, name, trace=None):
+    """Turn an image into text with a vision model (flow drawings and scans carry rules too)."""
+    import base64
+    import llm
+    url = "data:" + mime + ";base64," + base64.b64encode(data).decode()
+    try:
+        return llm.call([{"role": "user", "content": [{"type": "text", "text": DESCRIBE},
+                                                      {"type": "image_url", "image_url": {"url": url}}]}],
+                        model=VISION_MODEL, purpose="read image " + name, max_tokens=6000, trace=trace)
+    except Exception as exc:
+        warnings.warn("Could not read image %s: %s" % (name, exc), stacklevel=2)
+        return ""
+
+
+def _html(text):
+    import html, re
+    text = re.sub(r"(?is)<(script|style).*?</\1>", " ", text)
+    text = re.sub(r"(?i)<br\s*/?>|</(p|div|tr|li|h\d)>", "\n", text)
+    return html.unescape(re.sub(r"<[^>]+>", " ", text))
+
+
+def _office_media(path, trace):
+    """Images embedded in a Word/PowerPoint file (a flow drawing pasted into a document)."""
+    out = []
+    with zipfile.ZipFile(path) as z:
+        for n in sorted(z.namelist()):
+            ext = posixpath.splitext(n)[1].lower()
+            if "/media/" in n and ext in IMAGE_TYPES and z.getinfo(n).file_size > 2000:
+                d = _describe(z.read(n), IMAGE_TYPES[ext], path.name + ":" + posixpath.basename(n), trace)
+                if d:
+                    out.append("[image " + posixpath.basename(n) + "]\n" + d)
+    return out
+
+
+def _pptx(path):
+    import re
+    out = []
+    with zipfile.ZipFile(path) as z:
+        slides = sorted((n for n in z.namelist() if re.match(r"ppt/slides/slide\d+\.xml$", n)), key=lambda n: int(re.findall(r"\d+", n)[-1]))
+        for i, n in enumerate(slides, 1):
+            root = ET.fromstring(z.read(n))
+            words = [t.text for t in root.iter("{http://schemas.openxmlformats.org/drawingml/2006/main}t") if t.text]
+            out.append("## Slide %d\n%s" % (i, " ".join(words)))
+    return "\n".join(out)
 
 
 def _word_text(node):
@@ -92,7 +144,7 @@ def _openapi(text, suffix):
     return None
 
 
-def load_case(paths):
+def load_case(paths, trace=None):
     """Return text, relative file names, an optional API document, and all contract context."""
     if isinstance(paths, (str, pathlib.Path)):
         paths = [paths]
@@ -109,21 +161,46 @@ def load_case(paths):
             seen.add(path.resolve())
             suffix = path.suffix.lower()
             if suffix in TEXT_SUFFIXES:
-                text = path.read_text(encoding="utf-8-sig")
+                text = path.read_text(encoding="utf-8-sig", errors="replace")
+            elif suffix in (".html", ".htm"):
+                text = _html(path.read_text(encoding="utf-8-sig", errors="replace"))
+            elif suffix == ".svg":
+                text = _html(path.read_text(encoding="utf-8-sig", errors="replace"))
+            elif suffix in IMAGE_TYPES:
+                text = _describe(path.read_bytes(), IMAGE_TYPES[suffix], path.name, trace)
+                if not text:
+                    continue
             elif suffix == ".docx":
-                text = _docx(path)
+                text = "\n\n".join([_docx(path)] + _office_media(path, trace))
+            elif suffix == ".pptx":
+                text = "\n\n".join([_pptx(path)] + _office_media(path, trace))
             elif suffix == ".xlsx":
                 text = _xlsx(path)
             elif suffix == ".pdf":
                 try:
                     import pymupdf
+                    pages = []
                     with pymupdf.open(path) as doc:
-                        text = "\n".join(page.get_text() for page in doc)
+                        for i, page in enumerate(doc, 1):
+                            t = page.get_text()
+                            # a page that is mostly a drawing (flowchart, scan) is read by a vision model
+                            if len(t.strip()) < 200 and (page.get_images() or page.get_drawings()):
+                                d = _describe(page.get_pixmap(dpi=110).tobytes("png"), "image/png", "%s page %d" % (path.name, i), trace)
+                                t = (t + "\n[page drawing]\n" + d) if d else t
+                            pages.append(t)
+                    text = "\n".join(pages)
                 except Exception as exc:
                     warnings.warn("Skipping PDF %s: %s" % (path, exc), stacklevel=2)
                     continue
             else:
-                continue
+                raw = path.read_bytes()[:200000]
+                try:                                     # unknown extension: keep it if it is text
+                    text = raw.decode("utf-8")
+                    if sum(ch.isprintable() or ch in "\n\r\t" for ch in text) < 0.95 * max(1, len(text)):
+                        raise ValueError
+                except ValueError:
+                    warnings.warn("Skipping unreadable file %s" % path, stacklevel=2)
+                    continue
             name = path.relative_to(root).as_posix()
             files.append(name)
             chunks.append("=== FILE: " + name + " ===\n" + text)

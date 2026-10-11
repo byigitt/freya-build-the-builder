@@ -953,7 +953,7 @@
               }
             ],
             "instruction": "Say one short sentence of sympathy. Make no persuasion attempt. Offer a connection to the care team once. If accepted, transfer. If declined, mark all unresolved products as hardship. Still handle a date or amount the customer volunteers as a proposal; a valid promise replaces that product's hardship status. This takes precedence over flat-refusal persuasion and requests for new payment arrangements. It never cancels a recorded promise. Offer it once and wait for the answer. Make no persuasion attempt.",
-            "phase": "negotiating"
+            "phase": "offer"
           },
           {
             "event": {
@@ -4697,7 +4697,7 @@
               }
             ],
             "instruction": "Say one short sentence of sympathy and make no persuasion attempt. Offer a connection to the care team once. If accepted, transfer. If declined, mark all unresolved products as hardship. Still handle a date or amount the customer volunteers as a proposal; any valid promise replaces that product's hardship status. This takes precedence over flat-refusal persuasion and requests for new payment arrangements. It never cancels a recorded promise. Offer it once and wait for the answer. Make no persuasion attempt.",
-            "phase": "negotiating"
+            "phase": "offer"
           },
           {
             "event": {
@@ -6804,7 +6804,7 @@
               }
             ],
             "instruction": "Say one sympathetic sentence. Make no persuasion attempt. Offer once to connect them with the vulnerability team. Offer it once and wait for the answer. Make no persuasion attempt.",
-            "phase": "negotiating"
+            "phase": "offer"
           },
           {
             "event": {
@@ -8569,7 +8569,7 @@
               }
             ],
             "instruction": "Say one sympathetic sentence. Make no persuasion attempt. Offer the support team once. If accepted, transfer. If declined, mark all remaining products hardship. Offer it once and wait for the answer. Make no persuasion attempt.",
-            "phase": "negotiating"
+            "phase": "offer"
           },
           {
             "event": {

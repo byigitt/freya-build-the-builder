@@ -420,7 +420,8 @@ def compile_workflow(spec, openapi):
     decline_rule = spec.get("identity", {}).get("decline_rule", "")
     id_common = (
         "\nNever say why you are calling and never mention " + forbidden + " until every security answer is verified.\n" + decline_rule + "\n"
-        "When the customer declines the second time, call transition_to_close_id_declined.\n"
+        "Count declines across ALL security questions in this call: a correct answer in between does not reset the count. "
+        "The second decline anywhere in the security check (for example: refuses the date of birth, then gives it, then refuses the phone digits) closes the call: call transition_to_close_id_declined at once, without explaining again.\n"
         "If the customer asks for a human: the first time, ask whether you can help first. If they insist, call transfer_" + human_q + ".\n"
         + bullets(spec.get("identity", {}).get("rules", [])) + "\nIf the customer asked a question earlier in the call that has not been answered yet (for example whether this is a scam or whether you are a robot), answer it in one sentence before your next question.\nALWAYS (also while asking security questions):\n" + bullets(spec.get("global_rules", [])) + "\nDo not call any other tool."
     )
@@ -524,7 +525,7 @@ def compile_workflow(spec, openapi):
         "a_event": {"type": "string", "enum": list(events), "default": "{{a_event}}", "description": "; ".join(k + " = " + v for k, v in events.items())},
         "a_product": {"type": "string", "default": "{{a_product}}", "description": "One product id (p1, p2, ...). Use all ONLY when the same answer explicitly applies to every remaining product. Never put a product the customer did not mention into all."},
         "a_date": {"type": "string", "default": "{{a_date}}", "description": "The day the customer said, as YYYY-MM-DD if you are sure, otherwise their exact words (for example: next Friday, the 26th). Empty if none."},
-        "a_amount": {"type": "string", "default": "{{a_amount}}", "description": "The amount the customer said, as a number. Empty if none."},
+        "a_amount": {"type": "string", "default": "{{a_amount}}", "description": "Only an explicit amount for this one product, as a number. Empty if none, if they say 'the full amount', or if they give one total for several products."},
     }
     if sit_ids:
         assess_body["a_situation"] = {"type": "string", "enum": sit_ids, "default": "{{a_situation}}", "description": "Only with event situation: the name of the PRIORITY SITUATION."}

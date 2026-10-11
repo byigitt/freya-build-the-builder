@@ -2284,4 +2284,325 @@
       "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
     ]
   }
+,
+  {
+    "id": "EDGE-45",
+    "session_case": "PUB-05",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Support offer clarification then acceptance",
+    "variables": {
+      "first_name": "Tomas",
+      "last_name": "Novak",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1990-09-09",
+      "phone_last4": "8846"
+    },
+    "products": [
+      {
+        "type": "personal_loan",
+        "past_due": 780.0,
+        "days_late": 21,
+        "instalment_amount": 260.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. After debt is stated say \"I lost my job and cannot pay\". When offered support, do not accept or decline yet; ask \"Is that a human support team?\". After the agent answers, say \"Yes, please connect me to the support team\".",
+    "expected": {
+      "outcome": "transferred",
+      "reason": "support",
+      "promises": [],
+      "notes": [],
+      "callbacks": [],
+      "transfers": [
+        {
+          "queue": "support"
+        }
+      ]
+    },
+    "checks": [
+      "Offer support with brief sympathy and no persuasion.",
+      "A question about the support offer is not a refusal: answer it and allow the subsequent acceptance.",
+      "Transfer to support only after acceptance.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-46",
+    "session_case": "PUB-05",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Declines support but requests another human",
+    "variables": {
+      "first_name": "Tomas",
+      "last_name": "Novak",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1990-09-09",
+      "phone_last4": "8846"
+    },
+    "products": [
+      {
+        "type": "personal_loan",
+        "past_due": 780.0,
+        "days_late": 21,
+        "instalment_amount": 260.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. After debt statement say \"I lost my job and cannot pay\". When offered support say \"No, not support. I want a general customer-service person instead\". If asked whether the assistant can help first, say \"No, I insist on a human in general customer service\". You do not consent to support transfer.",
+    "expected": {
+      "outcome": "transferred",
+      "reason": "human",
+      "promises": [],
+      "notes": [],
+      "callbacks": [],
+      "transfers": [
+        {
+          "queue": "general"
+        }
+      ]
+    },
+    "checks": [
+      "Declining support while requesting a different human must not be interpreted as support acceptance.",
+      "Ask once whether the assistant can help, then transfer to general when the customer insists.",
+      "No payment persuasion.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-47",
+    "session_case": "PUB-11",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Hardship only on final product with prior agreements",
+    "variables": {
+      "first_name": "Sofia",
+      "last_name": "Almeida",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1987-06-03",
+      "phone_last4": "2288"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "2288",
+        "past_due": 220.0,
+        "days_late": 9,
+        "minimum_payment": 66.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 640.0,
+        "days_late": 9,
+        "instalment_amount": 213.0
+      },
+      {
+        "type": "car_loan",
+        "past_due": 75.0,
+        "days_late": 3,
+        "instalment_amount": 25.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Offer to pay the card 220 and personal loan 640 this Friday. Agree separately when each is discussed. Only when the car loan is discussed say \"I have medical expenses from being ill and cannot pay the car loan\". Decline support if offered, but state that your already agreed card and personal-loan payments still stand. Confirm a combined read-back for just those two.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 220,
+          "date": "2026-10-16"
+        },
+        {
+          "product_id": "p2",
+          "amount": 640,
+          "date": "2026-10-16"
+        }
+      ],
+      "notes": [
+        {
+          "product_id": "p3",
+          "reason": "hardship"
+        }
+      ],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Brief sympathy, support offer, and no persuasion for the hardship car loan.",
+      "Preserve already agreed card and personal-loan promises; note hardship only for car loan.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-48",
+    "session_case": "PUB-13",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "One total amount for two full balances",
+    "variables": {
+      "first_name": "Elena",
+      "last_name": "Rossi",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1991-01-08",
+      "phone_last4": "6604"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "6604",
+        "past_due": 300.0,
+        "days_late": 4,
+        "minimum_payment": 90.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 900.0,
+        "days_late": 20,
+        "instalment_amount": 300.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. When asked about payment say \"I can pay twelve hundred dollars total for both accounts this Friday\". That is 300 for the card and 900 for the personal loan, never 1200 per account. If asked allocation, give 300 card and 900 loan. Confirm only that split on October 16.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 300,
+          "date": "2026-10-16"
+        },
+        {
+          "product_id": "p2",
+          "amount": 900,
+          "date": "2026-10-16"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "A total of 1200 for both products must not become 1200 on either individual product.",
+      "Read back card 300 and personal loan 900 on October 16, then record one promise per product.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-49",
+    "session_case": "PUB-13",
+    "brief": "B",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Change only one date during combined read-back",
+    "variables": {
+      "first_name": "Elena",
+      "last_name": "Rossi",
+      "title": "Ms",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1991-01-08",
+      "phone_last4": "6604"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "6604",
+        "past_due": 300.0,
+        "days_late": 4,
+        "minimum_payment": 90.0
+      },
+      {
+        "type": "personal_loan",
+        "past_due": 900.0,
+        "days_late": 20,
+        "instalment_amount": 300.0
+      }
+    ],
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Offer full balances for both products this Friday October 16. At the first combined read-back say \"Change just the credit card to Monday October 19; keep the personal loan on Friday October 16\". Confirm the corrected read-back.",
+    "expected": {
+      "outcome": "promise",
+      "reason": null,
+      "promises": [
+        {
+          "product_id": "p1",
+          "amount": 300,
+          "date": "2026-10-19"
+        },
+        {
+          "product_id": "p2",
+          "amount": 900,
+          "date": "2026-10-16"
+        }
+      ],
+      "notes": [],
+      "callbacks": [],
+      "transfers": []
+    },
+    "checks": [
+      "Change card date only; preserve personal loan amount and October 16 date.",
+      "Read both corrected promises again before any recording.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  },
+  {
+    "id": "EDGE-50",
+    "session_case": "PUB-01",
+    "brief": "A",
+    "family": "Edge rules",
+    "level": "hard",
+    "title": "Security refusal followed by human request",
+    "variables": {
+      "first_name": "Daniel",
+      "last_name": "Reyes",
+      "title": "Mr",
+      "now": "2026-10-14T11:00"
+    },
+    "identity": {
+      "date_of_birth": "1988-03-14",
+      "phone_last4": "4471"
+    },
+    "products": [
+      {
+        "type": "credit_card",
+        "card_last4": "4821",
+        "past_due": 420.0,
+        "days_late": 6,
+        "minimum_payment": 126.0
+      }
+    ],
+    "script": "Confirm you are Daniel Reyes. When first asked birth date say \"I do not want to give that over the phone\". After the account-protection explanation say \"I want a human instead\". If the assistant asks whether it can help first say \"No, I insist on a human\". Do not give any security answers.",
+    "expected": {
+      "outcome": "transferred",
+      "reason": "human",
+      "promises": [],
+      "notes": [],
+      "callbacks": [],
+      "transfers": [
+        {
+          "queue": "general"
+        }
+      ]
+    },
+    "checks": [
+      "A first security refusal followed by a human request is handled under the human rule, not counted as a second security decline.",
+      "Ask once whether the assistant can help, then transfer to general before verification without disclosing account details.",
+      "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+    ]
+  }
 ]

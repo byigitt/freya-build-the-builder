@@ -1,0 +1,61 @@
+{
+ "workflow_id": "723bc1ba-f766-4c11-badd-a618779a80c4",
+ "rows": [
+  {
+   "id": "EDGE-05",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": true,
+   "failed": [],
+   "tools": [
+    "verify_identity",
+    "close_call"
+   ],
+   "call_id": "fead10fb-3226-432f-870c-042120567c33",
+   "customer_id": "c_0da61aeb-05a",
+   "turns": 4,
+   "seconds": 23,
+   "slowest_turn_s": 5.2,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Mr Reyes?\nUSER: Yes, this is Daniel Reyes.\nAGENT: Thank you, Mr Reyes. For security, please tell me your date of birth.\nUSER: I'm not comfortable giving my date of birth over the phone.\nAGENT: I understand, Mr Reyes, but these questions are necessary to protect your account. Could you please provide your date of birth?\nUSER: 14 March 1988.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1988-03-14\", \"customer_id\": \"c_0da61aeb-05a\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: I'm not willing to provide the digits of my phone number.\nAGENT: I understand. Without the security check I cannot continue this call. Thank you for your time, Mr Reyes. Goodbye.\nSYSTEM: call api_call {\"reason\": \"declined\", \"outcome\": \"not_verified\", \"customer_id\": \"c_0da61aeb-05a\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  },
+  {
+   "id": "EDGE-05",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": true,
+   "failed": [],
+   "tools": [
+    "verify_identity",
+    "close_call"
+   ],
+   "call_id": "1e3bdca9-2781-45aa-95d6-71fa45c2873b",
+   "customer_id": "c_a9f3ffc0-8a5",
+   "turns": 4,
+   "seconds": 27,
+   "slowest_turn_s": 5.4,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Mr Reyes?\nUSER: Yes, I am Daniel Reyes.\nAGENT: Thank you, Mr Reyes. For security, please tell me your date of birth.\nUSER: I don't want to provide my birth date over the phone.\nAGENT: I understand, Mr Reyes, but these questions are necessary to protect your account. Could you please provide your date of birth?\nUSER: It is 14 March 1988.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1988-03-14\", \"customer_id\": \"c_a9f3ffc0-8a5\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: I'm not comfortable giving my phone digits to an automated caller.\nAGENT: I understand. Without the security check I cannot continue this call. Thank you for your time, Mr Reyes. Goodbye.\nSYSTEM: call api_call {\"reason\": \"declined\", \"outcome\": \"not_verified\", \"customer_id\": \"c_a9f3ffc0-8a5\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  },
+  {
+   "id": "EDGE-05",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": false,
+   "failed": [
+    "conversation: The agent failed to close the call on the second security refusal (the phone digits) and instead attempted to persuade the customer again."
+   ],
+   "tools": [
+    "verify_identity",
+    "close_call"
+   ],
+   "call_id": "c2366702-d138-4a35-82dd-42012a282bb9",
+   "customer_id": "c_8868554e-524",
+   "turns": 5,
+   "seconds": 38,
+   "slowest_turn_s": 7.9,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Mr Reyes?\nUSER: Yes, this is Daniel Reyes.\nAGENT: Thank you, Mr Reyes. For security, please tell me your date of birth.\nUSER: I am not comfortable giving that information over the phone right now. why do you need it?\nAGENT: These questions are used to protect your account, Mr Reyes. Could you please provide your date of birth?\nUSER: It is 14 March 1988.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1988-03-14\", \"customer_id\": \"c_8868554e-524\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: I don't think I should be giving out the last digits of my phone number either. Can we proceed without that?\nAGENT: I'm sorry, Mr Reyes, but for your protection, I must verify these details before we can proceed. Please provide the last four digits of your phone number.\nUSER: I'm not willing to provide those digits. Is there another way to verify my identity?\nAGENT: I understand. Without the security check I cannot continue this call. Thank you for your time, Mr Reyes. Goodbye.\nSYSTEM: call api_call {\"reason\": \"declined\", \"outcome\": \"not_verified\", \"customer_id\": \"c_8868554e-524\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  }
+ ]
+}

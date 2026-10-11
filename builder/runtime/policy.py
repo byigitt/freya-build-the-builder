@@ -874,6 +874,8 @@ def run_assess(vars, params):
         if not targets:
             set_outputs(vars, st, next_step_instruction(st))
             return
+        if len(targets) > 1:
+            amt = None                       # one amount said for several products is a total, never one product's amount
         msgs = []
         for p in targets:
             p["pending_q"] = False
@@ -928,7 +930,7 @@ def assess_one(p, st, ev, amt, dt, today, multi=False, raw_date=None):
     p["noans"] = 0
     if ev in ("accept_offer", "accept", "yes"):
         if p["status"] == "offered":
-            return agree(p, p["offer_amount"], datetime.date.fromisoformat(p["offer_date"]))
+            return handle_amount_then_agree(p, p["offer_amount"], datetime.date.fromisoformat(p["offer_date"]), st, today)
         ev = "propose" if (dt is not None or amt is not None) else "pay_today"
     if ev == "pay_today":
         # "Yes" to the first ask: the first ask is about today, or about the earliest allowed day when today is not allowed.
@@ -1041,6 +1043,7 @@ def handle_amount_then_agree(p, amt, d, st, today):
 
 
 def make_offer(p, amount, d, reason, latest=False):
+    amount = min(float(amount), p["full"])
     p["status"] = "offered"
     p["offer_amount"] = amount
     p["offer_date"] = d.isoformat()

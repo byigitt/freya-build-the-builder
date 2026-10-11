@@ -1,0 +1,433 @@
+{
+  "cases": 44,
+  "case_file": "lab/edge/edge-cases.json",
+  "new_cases": {
+    "EDGE-39": "A: refusal then voluntary proposal before final offer ends",
+    "EDGE-40": "B: previously closed refused product reopens",
+    "EDGE-41": "A: declines support then volunteers date in same answer",
+    "EDGE-42": "B: mixed paid + dispute, third-product promise",
+    "EDGE-43": "B: cannot pay all of that today",
+    "EDGE-44": "A: confirmation with mobile-app question"
+  },
+  "execution": "Full A suite --reps 2 --workers 4, then full B suite --reps 2 --workers 3. No additional retries.",
+  "A": {
+    "cases": 30,
+    "cases_passing_both": 29,
+    "runs_passed": 58,
+    "runs_total": 60
+  },
+  "B": {
+    "cases": 14,
+    "cases_passing_both": 13,
+    "runs_passed": 27,
+    "runs_total": 28
+  },
+  "per_case": {
+    "EDGE-01": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "5cc64c2a-ba71-44b1-b2eb-61b18047f31d",
+        "a92ea2bf-6aa4-462d-9183-c57c84eaba32"
+      ]
+    },
+    "EDGE-02": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "9631a96b-c8f2-497d-8ceb-3b46a3e2ccc1",
+        "46532500-c366-4488-addc-b9aed6a5ba64"
+      ]
+    },
+    "EDGE-03": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "a8a9ee70-1ee0-4fcd-b105-7463d0c9912d",
+        "6daa1301-03c1-438c-842e-89c88ddfdbb3"
+      ]
+    },
+    "EDGE-04": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "5ee15a4e-6b10-4695-b94e-b3944d9851ef",
+        "f5134b50-46c0-4841-b10e-e08bec958910"
+      ]
+    },
+    "EDGE-05": {
+      "passes": 0,
+      "runs": 2,
+      "call_ids": [
+        "131144d0-5228-4e38-8a08-c18ff7ac98d6",
+        "e090a27b-8a94-4952-99b7-4c04178a9d50"
+      ]
+    },
+    "EDGE-06": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "34395e71-2ae2-4a13-8eb0-29722b8234a8",
+        "935b918e-395c-41cb-a2e1-68ff24aabf3b"
+      ]
+    },
+    "EDGE-07": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "82a12d5d-a7dc-4663-964c-a937830d5756",
+        "85983ccc-0501-4eee-830a-db6ba4755356"
+      ]
+    },
+    "EDGE-08": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "74be4142-200e-4f97-ae16-47c3c80b5527",
+        "2c5e5887-0ddf-4e1e-aebc-bf5cce55764f"
+      ]
+    },
+    "EDGE-09": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "3eff733a-04d7-4ca8-9a41-54fd55b777f4",
+        "b2a3e829-cea1-42f6-9a32-ec53d450080b"
+      ]
+    },
+    "EDGE-10": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "91212c28-c87b-41ff-9c98-bd8164e4e57b",
+        "60bc1150-d131-4c92-9b61-2bed9dff8f6d"
+      ]
+    },
+    "EDGE-11": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "5cf22cf2-7b78-49b2-8b6d-35e7f2a81d02",
+        "e89fdfb9-dbf9-4aef-8022-20c8d8b85d84"
+      ]
+    },
+    "EDGE-12": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "86d16f38-d918-4745-9cc3-214be93442c0",
+        "6bc4a393-362a-4c05-a7ac-43c0b222e4fe"
+      ]
+    },
+    "EDGE-13": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "fa484b6b-aa14-4959-a5e1-182e91d99585",
+        "3fa19828-edb5-4f82-99c5-d6088dc29b90"
+      ]
+    },
+    "EDGE-14": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "3ae73fbc-107d-4e24-97ae-16cdb97c4c59",
+        "3e517cbd-19c0-42cb-97b3-aa7924343e25"
+      ]
+    },
+    "EDGE-15": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "0264b624-4127-4d30-a595-963401ece33d",
+        "dab5caec-a585-400a-9181-ef361d1eb4ef"
+      ]
+    },
+    "EDGE-16": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "140fd19a-0481-4309-a895-e147645976b9",
+        "701b84c1-e7da-45e2-913b-7e893a33e186"
+      ]
+    },
+    "EDGE-17": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "b9db7b47-8cd6-477f-ba3e-af505ab606aa",
+        "82b7c8ad-ae15-4967-9621-95586b535fa0"
+      ]
+    },
+    "EDGE-18": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "1445abf8-1d10-440b-93e9-226257413a82",
+        "1ded2028-cf24-4448-af27-c632126dd365"
+      ]
+    },
+    "EDGE-19": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "cd1ca326-8e3d-4959-a7d3-e95525696927",
+        "1c057cb6-7ce1-485f-afa5-007fe5417123"
+      ]
+    },
+    "EDGE-20": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "43633703-ef60-4611-bf10-495030962c7b",
+        "1defcf0e-aa4a-443b-9c52-706bad7a38ea"
+      ]
+    },
+    "EDGE-21": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "c9279e69-2f92-4b4c-905d-f40cff4276a5",
+        "742dfcb1-fb31-465e-835c-f6497b5bcdca"
+      ]
+    },
+    "EDGE-22": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "bb752e29-3348-4dae-87f4-3cc01da36db1",
+        "41628261-fd02-4395-9b98-8a4ec0769a4c"
+      ]
+    },
+    "EDGE-23": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "a1a24157-01e8-4dc2-893a-685847ce508d",
+        "9c62abf1-12e7-4610-aca9-ba4f1b195e05"
+      ]
+    },
+    "EDGE-24": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "bcb9ca0b-f27a-432e-a1a2-6270ae5b7777",
+        "432fe863-ce03-4be7-aa75-0377c58207bf"
+      ]
+    },
+    "EDGE-25": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "842640c2-b5f5-4116-9c92-8f26ed80b4b6",
+        "f703a47d-be77-4627-8e40-7f0a7210a2ab"
+      ]
+    },
+    "EDGE-26": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "b68022e7-ccb9-4406-87bb-da0022aa532e",
+        "ceff858f-476b-427c-b38b-2bb57f57ecd6"
+      ]
+    },
+    "EDGE-27": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "f9fb4ccf-0ea1-4aaf-af44-b453a4ad9bbe",
+        "194f5baa-18dd-4475-8482-1ce693e429f9"
+      ]
+    },
+    "EDGE-39": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "ff51ba54-fbd6-44b8-a6a7-e90dcabe30b4",
+        "0129b442-e2bc-463d-8e8d-dc0865457371"
+      ]
+    },
+    "EDGE-41": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "30c54b1a-c117-47bc-977c-4ca252da12f1",
+        "b230fef4-537f-46b3-bf36-efd612bf6c66"
+      ]
+    },
+    "EDGE-44": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "c474cccb-163a-4ea0-86a3-4b3e7dcd0d88",
+        "3ccc8668-04dd-4e97-96f8-9c86be1125d5"
+      ]
+    },
+    "EDGE-28": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "f2bf271b-71bc-4142-bfff-502be265f316",
+        "f3ed482e-6793-4529-aafd-fa293f4753bc"
+      ]
+    },
+    "EDGE-29": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "8c583fd9-090d-433e-b261-a38142ae7b1f",
+        "78dbf114-0b81-4a6e-8999-da59d28d71d5"
+      ]
+    },
+    "EDGE-30": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "f7507593-d085-485c-a39a-fc6079d72749",
+        "681fad2a-aac0-4cdc-984c-e9bac44bd5a8"
+      ]
+    },
+    "EDGE-31": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "6ca02304-63dc-4cd2-abdf-16d6c870b2ed",
+        "fce27598-30f6-4a85-a7d5-a6be145acb8a"
+      ]
+    },
+    "EDGE-32": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "e4eb23e6-1491-41ae-85fe-e1866020206f",
+        "396def53-ef01-4cd2-9db2-bde0eeb9622c"
+      ]
+    },
+    "EDGE-33": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "af70a33e-0368-42f0-9929-d591b7d4d2a3",
+        "f6f71a31-68da-440f-a806-f317cfe30e3e"
+      ]
+    },
+    "EDGE-34": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "23034b68-da18-4594-86bd-de046b3477a8",
+        "57d6d2a1-5e8b-4bdd-bbc7-170b75709e8c"
+      ]
+    },
+    "EDGE-35": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "b06a250c-211a-40d9-b989-cee93c29fe4a",
+        "c559787a-0919-445f-8e87-c4b00a65a8b9"
+      ]
+    },
+    "EDGE-36": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "92336cc3-b072-45e4-9295-911f7e9e6345",
+        "f270a3b4-cffa-4270-a5e6-3df5c0afd99c"
+      ]
+    },
+    "EDGE-37": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "b2222ca1-301f-4089-b239-9c0ba6398d98",
+        "3e7d11cc-533f-44eb-a98d-db67d7d41eed"
+      ]
+    },
+    "EDGE-38": {
+      "passes": 1,
+      "runs": 2,
+      "call_ids": [
+        "95799f7a-1745-4b46-b86c-996b0b95a1f4",
+        "42e9cef2-fd72-40cd-8cfc-dd6fd3332dca"
+      ]
+    },
+    "EDGE-40": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "be0bb3d0-0525-4537-994f-d2ed240e2545",
+        "60615644-cd13-45e0-95b2-311c64902d9b"
+      ]
+    },
+    "EDGE-42": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "bb2cf63a-7792-4966-93be-78618660e294",
+        "5da6c3d5-a8e8-4bf1-b867-282c4d7f43d9"
+      ]
+    },
+    "EDGE-43": {
+      "passes": 2,
+      "runs": 2,
+      "call_ids": [
+        "864435d8-09bf-465c-8f38-18dbd9f5bb5b",
+        "7c224e52-f7ae-45b4-b498-3420f0fd6e29"
+      ]
+    }
+  },
+  "failures": [
+    {
+      "id": "EDGE-05",
+      "class": "c",
+      "pass_count": "0/2",
+      "calls": [
+        "131144d0-5228-4e38-8a08-c18ff7ac98d6",
+        "e090a27b-8a94-4952-99b7-4c04178a9d50"
+      ],
+      "reason": "Counts refusals per security-question node instead of cumulatively: after a birth-date refusal and eventual verification, a phone refusal gets another explanation and only a third overall refusal closes. Ledger is right; transcript violates the second-refusal rule.",
+      "root": "builder/compile.py:421-425,435; model-only decline counting is not explicitly cross-question and no persistent decline counter exists.",
+      "proposed_patch": "Replace line 423 with:\n\"Count security declines cumulatively across ALL security questions and earlier identity nodes in this call. A later correct answer never resets that count. \"\n\"After the first decline explain account protection once. On the second decline anywhere in the security check, call transition_to_close_id_declined immediately; do not explain or ask again. \"\n\"For example: refusal of birth date, then a correct birth date, then refusal of phone digits is the SECOND refusal and must close.\\n\"\nChange declined_tr description to: \"The customer has declined twice in total across any security questions, even with a verified answer between them; purpose questions instead of security answers count as declines.\""
+    },
+    {
+      "id": "EDGE-38",
+      "class": "c",
+      "pass_count": "1/2",
+      "calls": [
+        "95799f7a-1745-4b46-b86c-996b0b95a1f4"
+      ],
+      "reason": "Model invents aggregate amount 1200 for “both full balances”; holiday correction stores 1200 as card offer, accepts it without amount normalization, records card 1200 instead of 300. Personal loan remains 900.",
+      "root": "builder/compile.py:527 a_amount description; builder/runtime/policy.py:995-1003 correction path bypasses handle_amount_then_agree cap; make_offer:1043-1045 stores raw amount and accept_offer:929-931 directly agrees it.",
+      "exact_events": [
+        [
+          "propose",
+          "all",
+          "1200",
+          "2026-10-26",
+          ""
+        ],
+        [
+          "accept_offer",
+          "p1",
+          "1200",
+          "2026-10-27",
+          ""
+        ]
+      ],
+      "proposed_patch": "In make_offer, before setting p[\"offer_amount\"]:\n    amount = min(amount, p[\"full\"])\n\nFor defense at agreement, replace the offered acceptance return with:\n    return handle_amount_then_agree(p, p[\"offer_amount\"], datetime.date.fromisoformat(p[\"offer_date\"]), st, today)\n\nReplace a_amount description with: \"Only the explicit amount for this product. If they say full amount/full balances, leave empty: the policy uses each product’s own full balance. Never calculate or pass a sum of multiple products as one product’s amount; an aggregate budget needs per-product clarification.\""
+    }
+  ],
+  "evidence": [
+    "lab/edge/full-A-reps2.json",
+    "lab/edge/full-B-reps2.json",
+    "lab/edge/events-EDGE-05-full-131144d0-5228-4e38-8a08-c18ff7ac98d6.txt",
+    "lab/edge/events-EDGE-05-full-e090a27b-8a94-4952-99b7-4c04178a9d50.txt",
+    "lab/edge/events-EDGE-38-full-95799f7a-1745-4b46-b86c-996b0b95a1f4.txt",
+    "lab/edge/assess-events-EDGE-38-full.txt"
+  ],
+  "notes": [
+    "All six new cases passed 2/2. Prior EDGE-20, EDGE-31, EDGE-35 each passed 2/2.",
+    "No expected values or personas altered during these full runs. No class a or b failures in this round.",
+    "Only scratch files changed; no workflow deployed by this worker."
+  ]
+}

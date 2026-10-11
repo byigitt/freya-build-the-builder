@@ -378,14 +378,20 @@ def compile_workflow(spec, openapi):
     # ---------------- third party
     cb = spec.get("callback", {})
     d_f, t_f = api.field("schedule_callback", "date"), api.field("schedule_callback", "time")
-    check_cb = {"type": "function", "function": {
-        "name": "check_callback", "handler": "__function__:code_exec",
-        "description": "CALL it every time the person names a day and/or a time when the customer can be reached. Pass their words.",
-        "parameters": {"type": "object", "properties": {
-            "day": {"type": "string", "description": "The day they said, in their words or as YYYY-MM-DD (today, tomorrow, Thursday, the 15th...). Empty if none."},
-            "time": {"type": "string", "description": "The time they said, in their words or as HH:MM (around eleven, 2pm, 14:30...). Empty if none."},
-            "code": {"type": "string", "default": policy_code(spec, "run_callback(vars, params)")},
-        }, "required": ["day", "time"]}}}
+    # The day and time the person gives are extracted before the reply and checked in code in the same turn, so the
+    # agent never answers before the bank's rules decided (a model tool's result is only seen one turn later).
+    cb_extract = [{"name": "cb_offer", "type": "string", "min_confidence": 0.3,
+                   "description": "If the person's LATEST message says a day and/or a time when the customer can be reached or called back, "
+                                  "copy those words exactly (for example: 'tomorrow around eleven', 'today at 11:30 am', 'next Tuesday', 'Saturday'). "
+                                  "Empty if the latest message gives no day and no time."}]
+    cb_check_code = policy_code(spec, (
+        "offer = str(vars.get('cb_offer') or '').strip()\n"
+        "vars['cb_offer'] = ''\n"
+        "if offer:\n"
+        "    d, t = split_day_time(offer)\n"
+        "    run_callback(vars, dict(day=d, time=t))\n"
+        "else:\n"
+        "    vars['cb_state'] = 'none'\n"))
     tp_task = (
         "Someone other than " + addr + " is on the line.\nStrict rules: say nothing beyond the opening sentence about who you are. Never say why you are calling. "
         "Never mention " + forbidden + ". Never ask for or accept security answers. Never tell anything about the customer or an account, even if they say they are family or offer to pay; "
@@ -393,23 +399,30 @@ def compile_workflow(spec, openapi):
         "Decide on the person's messages:\n"
         "1. They say this number does not belong to " + full + " or they do not know this person: call transition_to_close_wrong_number.\n"
         "2. They say " + full + " has died: call transition_to_close_deceased immediately, with no words of your own (the condolence is spoken automatically). Ask nothing.\n"
-        "3. Otherwise ask when " + addr + " can be reached (a day and an exact time). Every time they name a day or a time (or both), call check_callback with their words. "
-        "The bank's rules then decide: the callback is booked, or you are told what to ask. Never promise or book a time yourself.\n"
+        "3. Otherwise ask when " + addr + " can be reached: which day and at what time. The bank's rules check every day and time they give. Never promise or book a time yourself.\n"
         "4. If they say they cannot say when, or refuse to give a time, call transition_to_close_no_callback.\n"
     )
     cb_trans = [
-        eq_any("cb_state", ["book"], "cb_book", "a callback time inside the window was given"),
-        eq_any("cb_state", ["give_up"], "cb_give_up", "no callback inside the window"),
-        eq_any("cb_state", ["ask"], "cb_clear", "ask again"),
+        {"target_node": "cb_check", "description": "the person gave a day or a time", "condition": {"logic": "or", "conditions": [{"logic": "and", "conditions": [
+            {"variable": "cb_offer", "operator": "is_set"}, {"variable": "cb_offer", "operator": "not_equals", "operand": ""}]}]}},
         tool_transition("close_wrong_number", "The number does not belong to the customer."),
         tool_transition("close_deceased", "The customer has died."),
         tool_transition("close_no_callback", "The person cannot or will not say when the customer can be reached."),
     ]
-    nodes["cb_give_up"] = code_node("cb_give_up", "vars['cb_state'] = 'closed'\n", "close_no_callback")
-    nodes["third_party"] = code_node("third_party", policy_code(spec, "run_setup(vars)"), "third_party_call")
-    nodes["third_party_call"] = conv("third_party_call", tp_task, [check_cb], cb_trans)
-    nodes["cb_clear"] = code_node("cb_clear", "vars['cb_state'] = 'waiting'\n", "third_party_ask")
-    nodes["third_party_ask"] = conv("third_party_ask", tp_task, [check_cb], cb_trans, on_enter={"type": "tts", "text": "{{cb_say}}"}, first_only=False)
+    nodes["third_party"] = code_node("third_party", policy_code(spec, "run_setup(vars)\nvars['cb_state'] = 'none'\n"), "third_party_call", [
+        {"target_node": "cb_check", "description": "a day or time was already given", "condition": {"logic": "or", "conditions": [{"logic": "and", "conditions": [
+            {"variable": "cb_offer", "operator": "is_set"}, {"variable": "cb_offer", "operator": "not_equals", "operand": ""}]}]}}])
+    nodes["third_party_call"] = conv("third_party_call", tp_task, [], cb_trans)
+    nodes["third_party_call"]["extraction_schema"] = cb_extract
+    for k in list(nodes):
+        if k == "opening" or k.startswith("opening_"):
+            nodes[k]["extraction_schema"] = cb_extract      # a day or time said in the first answer is not lost
+    nodes["cb_check"] = code_node("cb_check", cb_check_code, "third_party_ask", [
+        eq_any("cb_state", ["book"], "cb_book", "a callback time inside the window was given"),
+        eq_any("cb_state", ["give_up"], "close_no_callback", "no callback inside the window"),
+    ])
+    nodes["third_party_ask"] = conv("third_party_ask", tp_task, [], cb_trans, on_enter={"type": "tts", "text": "{{cb_say}}"}, first_only=False)
+    nodes["third_party_ask"]["extraction_schema"] = cb_extract
     nodes["cb_book"] = {"name": "cb_book", "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "close_no_callback",
                         "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
                         "pre_actions": [api_fn(api, "schedule_callback", {cid_field: CID, d_f: leaf("string", "{{cb_date}}"), t_f: leaf("string", "{{cb_time}}")}, desc="Book the callback.")],

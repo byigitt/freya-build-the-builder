@@ -38,8 +38,7 @@ def chat(workflow_id, message, variables=None, call_id=None):
         return freya.api("POST", "/api/v2/chat/message", body)
     except RuntimeError as e:
         if call_id is None:
-            time.sleep(3)
-            return freya.api("POST", "/api/v2/chat/message", body)
+            raise                       # never resend a first turn: it would open a second call for the same customer
         return {"callId": call_id, "response": "", "error": str(e)[:200]}
 
 def opening_line(workflow_id, variables):

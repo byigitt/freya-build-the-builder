@@ -192,6 +192,8 @@ def parse_date(x, today):
             return datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
         except Exception:
             return None
+    if re.search(r"next (business|working|bank) day", s):
+        return nth_bd_after(today, 1)
     if "day after tomorrow" in s:
         return today + datetime.timedelta(days=2)
     if "tomorrow" in s:
@@ -617,6 +619,31 @@ def parse_time(x):
     return "%02d:%02d" % (h, mnt)
 
 
+TIME_RE = re.compile(
+    r"(?:\b(?:at|around|about|by)\s+)?"
+    r"(?:\d{1,2}[:.]\d{2}\s*(?:am|pm|a\.m\.|p\.m\.)?"
+    r"|\d{1,2}\s*(?:am|pm|a\.m\.|p\.m\.|o'clock)"
+    r"|(?<=at )\d{1,2}(?![\d/])|(?<=around )\d{1,2}(?![\d/])|(?<=about )\d{1,2}(?![\d/])"
+    r"|noon|midday|half past [a-z]+|quarter (?:past|to) [a-z]+"
+    r"|\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b(?:[ -](?:thirty|fifteen|forty-five|o'clock))?"
+    r"(?:\s*(?:am|pm|in the morning|in the afternoon|in the evening))?)")
+
+
+def split_day_time(text):
+    """'Thursday at 11:30 am' -> ('thursday', 'at 11:30 am'). Day numbers ('the 15th') are never taken as times."""
+    low = " " + str(text or "").lower() + " "
+    m = TIME_RE.search(low)
+    if not m:
+        return low.strip(), None
+    t = m.group(0).strip()
+    rest = (low[:m.start()] + " " + low[m.end():]).strip()
+    for w in ("in the morning", "in the afternoon", "in the evening", "morning", "afternoon", "evening"):
+        if w in rest and w not in t:
+            t = t + " " + w
+            break
+    return rest, t
+
+
 def callback_days(vars):
     now = today_of(vars)
     today = now.date()
@@ -648,6 +675,8 @@ def run_callback(vars, params):
                 d = datetime.date.fromisoformat(str(prev_d))
             except Exception:
                 d = None
+        asks = int(to_float(vars.get("cb_asks"), 0) or 0) + 1
+        vars["cb_asks"] = str(asks)
         window = " or ".join(("today until " + end) if x == today else (say_date(x) + " between " + start + " and " + end) for x in days)
         outside = int(to_float(vars.get("cb_outside"), 0) or 0)
 
@@ -671,6 +700,12 @@ def run_callback(vars, params):
             vars["cb_state"] = "ask"
             vars["cb_say"] = "I am sorry, I can only call back " + window + ". Is there another day and time that works?"
             return
+        if asks > 4 and not (d is not None and t is not None):
+            vars["cb_state"] = "give_up"     # no usable day and time after several tries
+            vars["cb_say"] = ""
+            return
+        if d is None and t is not None and len(days) == 1:
+            d = days[0]                       # only one day is possible: a time alone is enough
         if d is not None and t is not None:
             vars["cb_state"] = "book"
             vars["cb_date"] = d.isoformat()

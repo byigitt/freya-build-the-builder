@@ -949,7 +949,8 @@
                 "offer_date": null,
                 "reason": null,
                 "clamped": false,
-                "asked": true
+                "asked": true,
+                "no_persuasion": true
               }
             ],
             "instruction": "Say one short sentence of sympathy. Make no persuasion attempt. Offer a connection to the care team once. If accepted, transfer. If declined, mark all unresolved products as hardship. Still handle a date or amount the customer volunteers as a proposal; a valid promise replaces that product's hardship status. This takes precedence over flat-refusal persuasion and requests for new payment arrangements. It never cancels a recorded promise. Offer it once and wait for the answer. Make no persuasion attempt.",
@@ -985,7 +986,8 @@
                 "offer_date": null,
                 "reason": "financial_distress",
                 "clamped": false,
-                "asked": true
+                "asked": true,
+                "no_persuasion": true
               }
             ],
             "instruction": "Take no promise for the credit card ending 1234. Every product is settled and no promise was agreed. Say one short polite sentence. Do not offer anything else.",
@@ -1022,8 +1024,8 @@
                 "reason": null,
                 "clamped": false,
                 "asked": true,
-                "pending_q": false,
                 "no_persuasion": true,
+                "pending_q": false,
                 "noans": 0,
                 "pending_floor": false
               }
@@ -4693,7 +4695,8 @@
                 "offer_date": null,
                 "reason": null,
                 "clamped": false,
-                "asked": true
+                "asked": true,
+                "no_persuasion": true
               }
             ],
             "instruction": "Say one short sentence of sympathy and make no persuasion attempt. Offer a connection to the care team once. If accepted, transfer. If declined, mark all unresolved products as hardship. Still handle a date or amount the customer volunteers as a proposal; any valid promise replaces that product's hardship status. This takes precedence over flat-refusal persuasion and requests for new payment arrangements. It never cancels a recorded promise. Offer it once and wait for the answer. Make no persuasion attempt.",
@@ -4729,7 +4732,8 @@
                 "offer_date": null,
                 "reason": "needs_care",
                 "clamped": false,
-                "asked": true
+                "asked": true,
+                "no_persuasion": true
               }
             ],
             "instruction": "Take no promise for the personal loan. Every product is settled and no promise was agreed. Say one short polite sentence. Do not offer anything else.",
@@ -4766,8 +4770,8 @@
                 "reason": null,
                 "clamped": false,
                 "asked": true,
-                "pending_q": false,
                 "no_persuasion": true,
+                "pending_q": false,
                 "noans": 0,
                 "pending_floor": false
               }
@@ -6800,7 +6804,8 @@
                 "offer_date": null,
                 "reason": null,
                 "clamped": false,
-                "asked": true
+                "asked": true,
+                "no_persuasion": true
               }
             ],
             "instruction": "Say one sympathetic sentence. Make no persuasion attempt. Offer once to connect them with the vulnerability team. Offer it once and wait for the answer. Make no persuasion attempt.",
@@ -6836,7 +6841,8 @@
                 "offer_date": null,
                 "reason": null,
                 "clamped": false,
-                "asked": true
+                "asked": true,
+                "no_persuasion": true
               }
             ],
             "instruction": "I am transferring you now.",
@@ -8542,7 +8548,8 @@
                 "offer_date": null,
                 "reason": null,
                 "clamped": false,
-                "asked": true
+                "asked": true,
+                "no_persuasion": true
               },
               {
                 "id": "p2",
@@ -8565,7 +8572,8 @@
                 "offer_date": null,
                 "reason": null,
                 "clamped": false,
-                "asked": false
+                "asked": false,
+                "no_persuasion": true
               }
             ],
             "instruction": "Say one sympathetic sentence. Make no persuasion attempt. Offer the support team once. If accepted, transfer. If declined, mark all remaining products hardship. Offer it once and wait for the answer. Make no persuasion attempt.",
@@ -8601,7 +8609,8 @@
                 "offer_date": null,
                 "reason": "hardship",
                 "clamped": false,
-                "asked": true
+                "asked": true,
+                "no_persuasion": true
               },
               {
                 "id": "p2",
@@ -8624,7 +8633,8 @@
                 "offer_date": null,
                 "reason": "hardship",
                 "clamped": false,
-                "asked": false
+                "asked": false,
+                "no_persuasion": true
               }
             ],
             "instruction": "Take no promise for the credit card ending 1234, the buy now pay later purchase desk. Every product is settled and no promise was agreed. Say one short polite sentence. Do not offer anything else.",

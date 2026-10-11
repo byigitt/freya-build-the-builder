@@ -541,7 +541,8 @@ def compile_workflow(spec, openapi):
         "too_much": "they explicitly say the AMOUNT itself is too high for them or ask to pay a smaller part, without naming an amount. Not 'I cannot pay today' and not 'I cannot pay all of that today'",
         "refuse": "a clear no with no day and no amount: 'no', 'I can't pay', 'not today', 'I cannot pay all of that today', 'not that day'. These are refusals, not too_much",
         "vague": "they give a vague period (next week, end of the month, when my salary comes) instead of a day",
-        "no_answer": "their message does not answer your question (it trails off, is cut off, or only talks about something else)",
+        "cut_off": "their message breaks off in the middle of a sentence (it is clearly unfinished, for example 'I can pay the')",
+        "no_answer": "a complete message that does not answer your question at all ('hmm', 'I don't know', or only talk about something else). Not for unfinished messages",
         "situation": "one of the PRIORITY SITUATIONS below (give its name in situation)",
     }
     sit_ids = list(situations)
@@ -589,7 +590,8 @@ def compile_workflow(spec, openapi):
         "A PRIORITY SITUATION about any product may be reported at once. When one message says different things about different products "
         "(for example 'I paid the card this morning, and the loan was closed years ago'), report each product separately, one assess call after the other "
         "(wait for each result), each with its own event or situation. A recent payment of the past-due amount is paid; a claim that a product was closed or paid off in the past is a dispute.\n"
-        "2. A day or an amount the customer names is never a refusal: use a_event propose. A message that trails off, is cut off or talks about something else is not a refusal: use a_event no_answer.\n"
+        "2. A day or an amount the customer names is never a refusal: use a_event propose. A message that breaks off mid-sentence: use a_event cut_off. "
+        "A complete message that does not answer the question: use a_event no_answer.\n"
         "3. When next_step says to read back, read it back exactly and ask \"" + T.get("confirm_question", "Do you confirm?") + "\". "
         "When the customer clearly says yes to the read-back, call transition_to_confirm_promises. If the yes comes with a question, first answer it in one sentence "
         "(for example: a recorded promise can be changed later in the mobile app), then call transition_to_confirm_promises. If they change a day or an amount instead, call assess with a_event propose.\n"

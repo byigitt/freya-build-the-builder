@@ -700,6 +700,10 @@ def run_callback(vars, params):
             vars["cb_state"] = "ask"
             vars["cb_say"] = "I am sorry, I can only call back " + window + ". Is there another day and time that works?"
             return
+        if outside >= 1 and cb.get("incomplete_second_offer") == "give_up" and not (d is not None and t is not None):
+            vars["cb_state"] = "give_up"     # the brief closes when the second offer is still incomplete
+            vars["cb_say"] = ""
+            return
         if asks > 4 and not (d is not None and t is not None):
             vars["cb_state"] = "give_up"     # no usable day and time after several tries
             vars["cb_say"] = ""
@@ -849,9 +853,11 @@ def run_assess(vars, params):
             st["pending_offer"] = ""
             st["offer_done_" + pend] = True
             named = [x.strip().lower() for x in str(target).split(",") if x.strip()]
+            s0 = sits.get(st.get("offer_sid") or "") or dict()
             for p in st["products"]:
                 if p["status"] in ("open", "offered") and named and "all" not in named and p["id"].lower() not in named:
-                    p["no_persuasion"] = True
+                    p["status"] = "closed"           # declined the offer and names no payment for this product
+                    p["reason"] = s0.get("reason") or cfg("reasons.hardship", "hardship")
             pend = None
         if pend and accepting and pend in sits:
             st["pending_offer"] = ""
@@ -862,10 +868,10 @@ def run_assess(vars, params):
             ev = "situation"
             sid = pend
             st["offer_done_" + sid] = True
-        elif pend and ev == "no_answer":
+        elif pend and ev in ("cut_off", "no_answer"):
             set_outputs(vars, st, "Their answer was cut off or did not answer your offer. Do not repeat the offer: just say something short like 'Go on, I am listening.'")
             return
-        elif pend and ev not in ("situation",):
+        elif pend and ev not in ("situation", "no_answer", "cut_off"):
             st["pending_offer"] = ""
         if ev == "situation":
             s = sits.get(sid) or dict()
@@ -877,9 +883,14 @@ def run_assess(vars, params):
             if s.get("offer_queue") and not st.get("offer_done_" + sid):
                 st["offer_done_" + sid] = True
                 st["pending_offer"] = sid
+                st["offer_sid"] = sid
                 for p in st["products"]:
                     if p["status"] in ("open", "offered"):
                         p["no_persuasion"] = True
+                        if p["status"] == "offered" and p.get("offer_kind") == "persuasion":
+                            p["status"] = "open"      # the persuasion offer is withdrawn: no persuasion in a hardship
+                            p["offer_amount"] = None
+                            p["offer_date"] = None
                 set_outputs(vars, st, (s.get("action") or "") + " Offer it once and wait for the answer. Make no persuasion attempt.")
                 return
             if effect == "transfer":
@@ -995,8 +1006,11 @@ def assess_one(p, st, ev, amt, dt, today, multi=False, raw_date=None):
         p["status"] = "closed"
         p["reason"] = cfg("reasons.hardship", "hardship")
         return "Acknowledge kindly. Take no promise for the " + p["words"] + "."
-    if ev == "no_answer":
-        # A cut-off or off-topic message is never a refusal: alternate a short prompt to go on with a brief repeat of the question.
+    if ev == "no_answer" and cfg("negotiation.non_answer_is_refusal", True):
+        p["noans"] = 0
+        return refused_or_next(p, st, today)      # the brief counts a non-answer like a flat refusal
+    if ev in ("cut_off", "no_answer"):
+        # A message that breaks off is not an answer yet: alternate a short prompt to go on with a brief repeat of the question.
         p["noans"] = int(p.get("noans") or 0) + 1
         if p["noans"] % 2 == 1:
             return ask(p, "Their answer was cut off or did not answer. Do not repeat your question: just say something short like 'Go on, I am listening.'")
@@ -1114,8 +1128,8 @@ def handle_amount_then_agree(p, amt, d, st, today):
     res = check_amount(p, a, st, today, d)
     if res is not None:
         return res
-    if a > p["full"]:
-        a = p["full"]
+    if a > p["full"] + 0.005:
+        return make_offer(p, p["full"], d, "only the full past-due amount of " + money(p["full"]) + " can be recorded")
     return agree(p, a, d)
 
 

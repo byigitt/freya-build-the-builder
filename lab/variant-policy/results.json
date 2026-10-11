@@ -1137,23 +1137,24 @@
                 "band": "gentle",
                 "deadline": "2026-10-26",
                 "attempts_allowed": 1,
-                "attempts_used": 0,
+                "attempts_used": 1,
                 "floor_offered": false,
                 "too_much": false,
                 "vague_asked": false,
-                "status": "open",
+                "status": "offered",
                 "agreed_amount": null,
                 "agreed_date": null,
-                "offer_amount": null,
-                "offer_date": null,
+                "offer_amount": 100.0,
+                "offer_date": "2026-10-13",
                 "reason": null,
                 "clamped": false,
                 "asked": true,
-                "pending_q": true,
-                "noans": 1
+                "pending_q": false,
+                "noans": 0,
+                "offer_kind": "persuasion"
               }
             ],
-            "instruction": "Their answer was cut off or did not answer. Do not repeat your question: just say something short like 'Go on, I am listening.'",
+            "instruction": "Persuasion attempt 1 of 1: propose exactly 100 pounds for your credit card ending 1234 on Tuesday 13 October (2026-10-13). Ask if they can do that.",
             "phase": "negotiating"
           },
           {
@@ -1179,12 +1180,12 @@
                 "floor_offered": false,
                 "too_much": false,
                 "vague_asked": false,
-                "status": "offered",
+                "status": "closed",
                 "agreed_amount": null,
                 "agreed_date": null,
                 "offer_amount": 100.0,
                 "offer_date": "2026-10-13",
-                "reason": null,
+                "reason": "offer_declined",
                 "clamped": false,
                 "asked": true,
                 "pending_q": false,
@@ -1192,8 +1193,8 @@
                 "offer_kind": "persuasion"
               }
             ],
-            "instruction": "Persuasion attempt 1 of 1: propose exactly 100 pounds for your credit card ending 1234 on Tuesday 13 October (2026-10-13). Ask if they can do that.",
-            "phase": "negotiating"
+            "instruction": "The persuasion attempts for the credit card ending 1234 are used up. Do not make another offer for it. Every product is settled and no promise was agreed. Say one short polite sentence. Do not offer anything else.",
+            "phase": "done"
           }
         ],
         "final": {
@@ -1211,28 +1212,7 @@
           "final_say": ""
         }
       },
-      "mismatches": [
-        {
-          "path": "events.0.products.0.status",
-          "expected": "offered",
-          "got": "open"
-        },
-        {
-          "path": "events.0.products.0.offer_date",
-          "expected": "2026-10-13",
-          "got": null
-        },
-        {
-          "path": "events.0.products.0.offer_amount",
-          "expected": 100,
-          "got": null
-        },
-        {
-          "path": "events.0.products.0.attempts_used",
-          "expected": 1,
-          "got": 0
-        }
-      ]
+      "mismatches": []
     },
     {
       "id": "v1-sunday-callback",
@@ -1535,21 +1515,21 @@
                 "floor_offered": false,
                 "too_much": false,
                 "vague_asked": false,
-                "status": "agreed",
-                "agreed_amount": 100.0,
-                "agreed_date": "2026-10-13",
-                "offer_amount": null,
-                "offer_date": null,
+                "status": "offered",
+                "agreed_amount": null,
+                "agreed_date": null,
+                "offer_amount": 100.0,
+                "offer_date": "2026-10-13",
                 "reason": null,
                 "clamped": false,
                 "asked": true,
                 "pending_q": false,
                 "noans": 0,
-                "pending_floor": false
+                "offer_kind": "correction"
               }
             ],
-            "instruction": "Agreed (not recorded yet: never say it is recorded) for the credit card ending 1234: 100 pounds on Tuesday 13 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your credit card ending 1234 on Tuesday 13 October. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
-            "phase": "readback"
+            "instruction": "Say only the full past-due amount of 100 pounds can be recorded, and offer 100 pounds for your credit card ending 1234 on Tuesday 13 October (2026-10-13). Ask if they can do that.",
+            "phase": "negotiating"
           },
           {
             "event": {
@@ -1577,17 +1557,18 @@
                 "status": "agreed",
                 "agreed_amount": 100.0,
                 "agreed_date": "2026-10-13",
-                "offer_amount": null,
-                "offer_date": null,
+                "offer_amount": 100.0,
+                "offer_date": "2026-10-13",
                 "reason": null,
                 "clamped": false,
                 "asked": true,
                 "pending_q": false,
                 "noans": 0,
+                "offer_kind": "correction",
                 "pending_floor": false
               }
             ],
-            "instruction": "Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your credit card ending 1234 on Tuesday 13 October. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the credit card ending 1234: 100 pounds on Tuesday 13 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your credit card ending 1234 on Tuesday 13 October. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -1607,23 +1588,7 @@
           "final_say": "I have recorded your payment promise. Northwind Bank will send a text confirming the payment promise."
         }
       },
-      "mismatches": [
-        {
-          "path": "events.0.products.0.status",
-          "expected": "offered",
-          "got": "agreed"
-        },
-        {
-          "path": "events.0.products.0.offer_date",
-          "expected": "2026-10-13",
-          "got": null
-        },
-        {
-          "path": "events.0.products.0.offer_amount",
-          "expected": 100,
-          "got": null
-        }
-      ]
+      "mismatches": []
     },
     {
       "id": "v2-monday-current-floor",

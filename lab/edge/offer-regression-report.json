@@ -1,0 +1,224 @@
+{
+  "suite_cases": 50,
+  "new_cases": [
+    45,
+    46,
+    47,
+    48,
+    49,
+    50
+  ],
+  "per_case": {
+    "EDGE-05": {
+      "passes": 2,
+      "runs": 3,
+      "failed_call_ids": [
+        "c2366702-d138-4a35-82dd-42012a282bb9"
+      ]
+    },
+    "EDGE-38": {
+      "passes": 3,
+      "runs": 3,
+      "failed_call_ids": []
+    },
+    "EDGE-15": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-16": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-18": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-20": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-22": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-23": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-24": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-25": {
+      "passes": 1,
+      "runs": 2,
+      "failed_call_ids": [
+        "6c37535f-e4f8-4697-bf84-ec1c096cafed"
+      ]
+    },
+    "EDGE-39": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-41": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-44": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-45": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-46": {
+      "passes": 0,
+      "runs": 2,
+      "failed_call_ids": [
+        "49563f95-a12f-47e0-b044-4cd8625ac214",
+        "a5a54039-eb7d-435f-a4df-59844e6d811d"
+      ]
+    },
+    "EDGE-50": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-28": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-29": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-30": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-31": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-32": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-36": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-40": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-42": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-43": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-47": {
+      "passes": 0,
+      "runs": 2,
+      "failed_call_ids": [
+        "839925b6-d0e6-47d3-9688-d79df8f606c5",
+        "9ed16e4d-8d1b-41ab-9ace-f0cbc448f409"
+      ]
+    },
+    "EDGE-48": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    },
+    "EDGE-49": {
+      "passes": 2,
+      "runs": 2,
+      "failed_call_ids": []
+    }
+  },
+  "groups": {
+    "fix-05-reps3": {
+      "passed": 2,
+      "runs": 3
+    },
+    "fix-38-reps3": {
+      "passed": 3,
+      "runs": 3
+    },
+    "offers-A-reps2": {
+      "passed": 25,
+      "runs": 28
+    },
+    "offers-B-reps2": {
+      "passed": 22,
+      "runs": 24
+    }
+  },
+  "failures": [
+    {
+      "id": "EDGE-05",
+      "class": "c",
+      "reason": "Soft security refusals phrased as questions still reset/evade the cross-node prompt-only count; third refusal required in 1/3 runs.",
+      "root": "builder/compile.py:425-430: counting remains entirely in model instructions, with no state updated when a refusal occurs.",
+      "patch": "Add a shared identity-refusal code tool used in every identity node; first refusal records a persistent count, second routes close_id_declined. Tool code:\nn = int(vars.get(\"identity_declines\") or 0) + 1\nvars[\"identity_declines\"] = str(n)\nvars[\"identity_decline_state\"] = \"close\" if n >= 2 else \"explain\"\n\nUse eq_any(identity_decline_state,[close],close_id_declined,...) before other identity routes; explain only on state explain. Prompt MUST call the tool for refusal and avoidance questions such as “Can we proceed without that?”, except independent robot/scam/human questions. Never reset count after verified answers."
+    },
+    {
+      "id": "EDGE-25",
+      "class": "c",
+      "reason": "Explicitly refuses offered deadline while repeating November 6; classified propose each time and loops 40 turns offering the already-refused deadline.",
+      "root": "builder/runtime/policy.py:993-1005 re-offers deadline on every after-deadline proposal; builder/compile.py propose precedence lacks rule-23 refusal exception.",
+      "patch": "Before decide_date in the propose branch:\nif (p[\"status\"] == \"offered\" and p.get(\"offer_kind\") == \"correction\"\n        and p.get(\"offer_date\") == p[\"deadline\"]\n        and dt is not None and dt > datetime.date.fromisoformat(p[\"deadline\"])):\n    return refused_or_next(p, st, today)\n\nIn event guidance: explicitly refusing the currently offered deadline while reiterating an unacceptable late date is refusal under rule 23, not a fresh date proposal. Preserve genuinely new in-window proposals.",
+      "persona_note": "Persona repeated its initial late date rather than a bare no, but explicitly refused the deadline; still a legitimate agent bug, not grounds to suppress the case."
+    },
+    {
+      "id": "EDGE-46",
+      "class": "c",
+      "reason": "Support declined with request for general human is routed straight to hardship close, ignoring human-request rule.",
+      "root": "builder/compile.py:590-604 offer_decision only supports accept/decline/proposal. policy.py:805-809 also aliases a different requested transfer to acceptance of the pending support queue.",
+      "patch": "Add priority-situation handling before offer yes/no: a request for a DIFFERENT human/queue calls assess(event=situation,situation=human), not offer_decline or offer_accept. In run_assess replace the “different transfer means accepting” block with:\nif pend and ev == \"situation\" and sid != pend:\n    st[\"pending_offer\"] = \"\"\n    pend = None\nThen normal human ask_first/insistence behavior can run without silently selecting support."
+    },
+    {
+      "id": "EDGE-47",
+      "class": "c",
+      "reason": "Subset card+loan proposal at support answer becomes propose/all, invents car agreement; subsequent car refusal/hardship cannot remove that agreement and loops 40 turns.",
+      "root": "builder/compile.py:590-597 offer_task omits main negotiation subset targeting rule. policy.py:828-843 remembers only pending situation (not product); hardship scope=all overrides explicit product targets and open_products excludes agreed products, so later hardship on p3 targets nothing.",
+      "patch": "Copy the main a_product targeting constraints into offer_task: all only if EVERY unresolved product receives the same proposal; for p1+p2 with excluded p3, report p1 then p2 sequentially, never all. Preserve hardship target:\n# When creating the support offer:\nst[\"pending_offer_product\"] = target\n# When resolving decline:\ntarget = st.pop(\"pending_offer_product\", target)\n\nIn product-effect situation selection, prioritize a valid explicit product over the default scope before scope=all:\nelif effect == \"product\" and target not in (\"\", \"all\", \"every\", \"both\", \"everything\"):\n    p0 = prod_by_id(st, target)\n    targets = [p0] if p0 is not None else []\n\nAllow that explicit selection to include agreed-but-unrecorded products (the existing closing loop already accepts status agreed). For a voluntary proposal answering support, settle the pending hardship decision for its saved target before applying proposals only to the explicitly volunteered products; do not clear pending hardship and implicitly agree every product. Remove forced a_product all from generated hardship guidance when customer identifies one product.",
+      "persona_note": "Both personas mentioned car hardship in the initial multi-product answer rather than waiting until later, but this is still a valid mixed-product utterance and cannot justify inventing a car promise."
+    }
+  ],
+  "files": [
+    "lab/edge/fix-05-reps3.json",
+    "lab/edge/fix-38-reps3.json",
+    "lab/edge/offers-A-reps2.json",
+    "lab/edge/offers-B-reps2.json"
+  ],
+  "notes": [
+    "No case expected values changed. No additional retries beyond 3x targeted and 2x offer cases.",
+    "All failing transcripts and show_call events inspected; per-call engine and exact assess-events files saved under lab/edge.",
+    "50-case reusable suite includes six requested new cases. Only scratch directory modified."
+  ]
+}

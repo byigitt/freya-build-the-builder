@@ -803,7 +803,11 @@ def run_assess(vars, params):
         pend = st.get("pending_offer")
         accepting = ev in ("accept_offer", "accept", "yes")
         if pend and ev == "situation" and sid != pend and (sits.get(sid) or dict()).get("effect") == "transfer":
-            accepting = True            # "yes, connect me" reported as a transfer request while the offer is open
+            if (sits.get(sid) or dict()).get("queue") == (sits.get(pend) or dict()).get("offer_queue"):
+                accepting = True        # "yes, connect me" reported as a transfer request to the offered team
+            else:
+                st["pending_offer"] = ""  # they want a different team: handle that situation on its own
+                pend = None
         if pend and accepting and pend in sits:
             st["pending_offer"] = ""
             set_outputs(vars, st, start_transfer(vars, st, sits[pend].get("offer_queue")))
@@ -972,6 +976,9 @@ def assess_one(p, st, ev, amt, dt, today, multi=False, raw_date=None):
         d = datetime.date.fromisoformat(p["deadline"])
         return make_offer(p, target_amount(p) if amt is None else amt, d, "no exact day")
     if ev in ("propose", "propose_date", "propose_amount"):
+        if (p["status"] == "offered" and p.get("offer_date") == p["deadline"] and dt is not None
+                and dt > datetime.date.fromisoformat(p["deadline"])):
+            return refused_or_next(p, st, today)     # they refuse the latest possible date and insist on a later one
         if amt is not None and dt is None and p.get("pending_floor") and abs(amt - (p["floor"] or -1)) < 0.01:
             dt = today
         if dt is None and amt is not None:

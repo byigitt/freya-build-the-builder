@@ -1,0 +1,2 @@
+["situation", "all", null, null, "hardship"]
+["refuse", "all", null, null, ""]

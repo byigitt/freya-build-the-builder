@@ -1,0 +1,8 @@
+["situation", "all", null, null, "hardship"]
+["propose", "all", null, "this Friday", ""]
+["refuse", "p3", null, "this Friday", ""]
+["refuse", "p3", "75", null, ""]
+["refuse", "p3", null, null, ""]
+["refuse", "p3", null, "2026-10-16", ""]
+["propose", "p1", "220", "2026-10-16", ""]
+["refuse", "p3", "75", "2026-10-16", ""]

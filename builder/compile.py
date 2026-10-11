@@ -424,8 +424,8 @@ def compile_workflow(spec, openapi):
     decline_rule = spec.get("identity", {}).get("decline_rule", "")
     id_common = (
         "\nNever say why you are calling and never mention " + forbidden + " until every security answer is verified.\n" + decline_rule + "\n"
-        "Count declines across ALL security questions in this call: a correct answer in between does not reset the count. "
-        "The second decline anywhere in the security check (for example: refuses the date of birth, then gives it, then refuses the phone digits) closes the call: call transition_to_close_id_declined at once, without explaining again.\n"
+        "Every time the customer refuses to answer, asks to skip a question, or asks what the call is about instead of answering, call record_decline first. "
+        "The bank's rules count these refusals for the whole call and end the call on the second one; after the first, explain once that the questions protect their account and ask again.\n"
         "If the customer asks for a human: the first time, ask whether you can help first. If they insist, call transfer_" + human_q + ".\n"
         + bullets(spec.get("identity", {}).get("rules", [])) + "\nIf the customer asked a question earlier in the call that has not been answered yet (for example whether this is a scam or whether you are a robot), answer it in one sentence before your next question.\nALWAYS (also while asking security questions):\n" + bullets(spec.get("global_rules", [])) + "\nDo not call any other tool."
     )
@@ -437,7 +437,13 @@ def compile_workflow(spec, openapi):
         fail_conds.append({"variable": tool_name + "_response.data.wrong_answers_left", "operator": "equals", "operand": "0"})
         fail_conds.append({"variable": tool_name + "_state", "operator": "equals", "operand": "failed"})
     failed_tr = {"target_node": "close_id_failed", "description": "no wrong answers left", "condition": {"logic": "or", "conditions": fail_conds}}
-    declined_tr = tool_transition("close_id_declined", "The customer refused the security questions a second time, or asked a second time what the call is about instead of answering.")
+    declined_tr = eq_any("identity_decline_state", ["close"], "close_id_declined", "second refusal of the security questions")
+    decline_tool = {"type": "function", "function": {
+        "name": "record_decline", "handler": "__function__:code_exec",
+        "description": "CALL it every time the customer refuses to answer a security question, asks to skip it, or asks what the call is about instead of answering. Then explain once that the questions protect their account and ask again.",
+        "parameters": {"type": "object", "properties": {"code": {"type": "string", "default": check_code(
+            "try:\n    n = int(float(vars.get('identity_declines') or 0)) + 1\nexcept Exception:\n    n = 1\n"
+            "vars['identity_declines'] = str(n)\nvars['identity_decline_state'] = 'close' if n >= " + str(int(spec.get("identity", {}).get("max_declines", 2) or 2)) + " else 'explain'\n")}}, "required": []}}}
     vprops = api.props("verify_identity")
     per_question = f_field in vprops and a_field in vprops
     if not per_question and idq:
@@ -454,7 +460,7 @@ def compile_workflow(spec, openapi):
         tool = api_fn(api, "verify_identity", body, desc="Check the security answers. CALL it once you have every answer. Then follow what_to_do_next.",
                       post=verify_post("the answers", hints, "verify_identity"))
         failed_tr["condition"]["conditions"].append({"variable": "verify_identity_state", "operator": "equals", "operand": "failed"})
-        nodes["identity"] = conv("identity", task, [tool] + ([human_tr] if human_tr else []), [
+        nodes["identity"] = conv("identity", task, [tool, decline_tool] + ([human_tr] if human_tr else []), [
             eq_any("verify_identity_state", ["verified"], "load_account", "answers verified"), failed_tr] + human_exit() + [declined_tr],
             on_enter={"type": "tts", "text": "Thank you, " + addr + ". " + idq[0].get("ask", "")})
         idq = []
@@ -489,7 +495,7 @@ def compile_workflow(spec, openapi):
                       pre=verify_pre(kind, order, q.get("digits")).replace("ANSWER", a_field),
                       post=verify_post("the " + q.get("say_name", q["field"]), hints, tool_name))
         ok_var = tool_name + "_response.data."
-        nodes[key] = conv(key, task, [tool] + ([human_tr] if human_tr else []), [
+        nodes[key] = conv(key, task, [tool, decline_tool] + ([human_tr] if human_tr else []), [
             {"target_node": nxt, "description": "answer verified", "condition": {"logic": "or", "conditions": [
                 {"variable": tool_name + "_state", "operator": "equals", "operand": "verified"},
                 {"variable": ok_var + "verified", "operator": "equals", "operand": "true"},
@@ -593,7 +599,9 @@ def compile_workflow(spec, openapi):
         "- They accept being connected or transferred: call transition_to_offer_accept.\n"
         "- They decline, or answer with anything else without accepting (for example they ask for a discount, or say they cannot pay): "
         "if they asked a question, answer it in one short sentence (never offer a discount, a plan or any other term), then call transition_to_offer_decline.\n"
-        "- They name a day or an amount to pay themselves: call assess with a_event propose (a_date, a_amount as they said it).\n"
+        "- They name a day or an amount to pay themselves: call assess with a_event propose (a_date, a_amount as they said it), "
+        "one product at a time for the products they named (a_product all only if they clearly mean every product).\n"
+        "- They ask for a different person or team instead (for example a human): call assess with a_event situation and that PRIORITY SITUATION's name.\n"
         "Never ask about a payment, a day or an amount yourself. Never repeat the offer.\n\nALWAYS:\n" + bullets(spec.get("global_rules", []))
     )
     nodes["offer_decision"] = conv("offer_decision", offer_task, [assess_tool], [

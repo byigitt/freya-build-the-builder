@@ -30,7 +30,8 @@ class Api:
                 schema = self._resolve(((op.get("requestBody") or {}).get("content") or {}).get("application/json", {}).get("schema") or {})
                 resp = self._resolve((((op.get("responses") or {}).get("200") or {}).get("content") or {}).get("application/json", {}).get("schema") or {})
                 key = path.strip("/").split("/")[-1]
-                self.ops[key] = dict(path=path, method=method.upper(), schema=schema, response=resp, name=name, summary=op.get("summary", ""))
+                self.ops[key] = dict(path=path, method=method.upper(), schema=schema, response=resp, name=name, summary=op.get("summary", ""),
+                                     response_roles=op.get("x-response-roles") or {})
                 if op.get("x-role") in TOOLS:
                     self.ops[op["x-role"]] = self.ops[key]
 
@@ -123,6 +124,19 @@ def api_fn(api, tool, body, name=None, desc="", pre="", post="", retries=0):
             }},
         },
     }
+    response_roles = api.ops.get(tool, {}).get("response_roles") or {}
+    if response_roles:
+        # Normalize at the API boundary so hooks, transitions and policy share the same fields.
+        # Keep the original response fields for prompts and contract-specific consumers.
+        assignments = []
+        for role, field in response_roles.items():
+            if role not in {"verified", "all_verified", "attempts_left", "ok", "hint", "locked"}:
+                raise ValueError("unknown response role: " + str(role))
+            if not isinstance(field, str) or field not in api.resp_props(tool):
+                raise ValueError("response role " + role + " names an absent field: " + str(field))
+            assignments.append("if " + repr(field) + " in d:\n    d[" + repr(role) + "] = d[" + repr(field) + "]")
+        normalize = POST_HEAD + "\n".join("        " + line for line in "\n".join(assignments).split("\n")) + "\n" + POST_TAIL
+        post = normalize + post
     if pre:
         t["pre_process_code"] = check_code(pre)
     if post:

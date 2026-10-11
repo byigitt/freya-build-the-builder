@@ -74,7 +74,7 @@ def ask_json(messages, purpose, trace):
     for model in [MODEL] + [m for m in FALLBACK_MODELS if m != MODEL]:
         for attempt in range(2):
             try:
-                raw = llm.call(messages, model=model, purpose=purpose + ("" if attempt == 0 else " (retry)"), max_tokens=16000, trace=trace)
+                raw = llm.call(messages, model=model, purpose=purpose + ("" if attempt == 0 else " (retry)"), max_tokens=32000, trace=trace)
                 out = llm.parse_json(raw)
                 if isinstance(out, dict):
                     return out

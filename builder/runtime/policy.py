@@ -22,6 +22,11 @@ NUM_WORDS = dict(zero=0, one=1, two=2, three=3, four=4, five=5, six=6, seven=7, 
 ORD_WORDS = dict(first=1, second=2, third=3, fourth=4, fifth=5, sixth=6, seventh=7, eighth=8, ninth=9, tenth=10, eleventh=11,
                  twelfth=12, thirteenth=13, fourteenth=14, fifteenth=15, sixteenth=16, seventeenth=17, eighteenth=18,
                  nineteenth=19, twentieth=20, thirtieth=30)
+TR_WEEKDAYS = ["pazartesi", "sali", "carsamba", "persembe", "cuma", "cumartesi", "pazar"]
+TR_MONTHS = ["ocak", "subat", "mart", "nisan", "mayis", "haziran", "temmuz", "agustos", "eylul", "ekim", "kasim", "aralik"]
+TR_NUM_WORDS = dict(sifir=0, bir=1, iki=2, uc=3, dort=4, bes=5, alti=6, yedi=7, sekiz=8, dokuz=9,
+                    on=10, yirmi=20, otuz=30, kirk=40, elli=50, altmis=60, yetmis=70, seksen=80, doksan=90)
+TR_SUFFIX = r"(?:ya|ye|a|e|yi|yu|i|u|nin|nun|in|un|da|de|ta|te|dan|den|tan|ten|na|ne|nda|nde|inda|inde|unda|unde|inin|unun|si|su|sinin|sunun|sinda|sinde)?"
 
 
 # ------------------------------------------------------------------ small helpers
@@ -167,6 +172,40 @@ def words_to_int(text):
     return total + cur if seen else None
 
 
+def normalize_turkish(text):
+    return str(text).lower().translate(str.maketrans("çğıöşü", "cgiosu")).replace("\u0307", "").replace("’", "'")
+
+
+def localized_name_in(text, name):
+    return re.search(r"\b" + re.escape(normalize_turkish(name)) + r"'?" + TR_SUFFIX + r"\b", text) is not None
+
+
+def turkish_words_to_number(text):
+    """Parse Turkish cardinal words, including implicit one in yüz and bin."""
+    total, cur, seen = 0, 0, False
+    for word in re.findall(r"[a-z]+(?:'[a-z]+)?", normalize_turkish(text)):
+        if word in TR_NUM_WORDS:
+            cur += TR_NUM_WORDS[word]
+            seen = True
+        elif word == "yuz":
+            cur = max(cur, 1) * 100
+            seen = True
+        elif word in ("bin", "milyon"):
+            total += max(cur, 1) * (1000 if word == "bin" else 1000000)
+            cur = 0
+            seen = True
+        elif word in ("yarim", "bucuk"):
+            cur += 0.5
+            seen = True
+        else:
+            for name, value in TR_NUM_WORDS.items():
+                if localized_name_in(word, name):
+                    cur += value
+                    seen = True
+                    break
+    return total + cur if seen else None
+
+
 def parse_amount(x):
     if x is None:
         return None
@@ -175,6 +214,16 @@ def parse_amount(x):
     s = str(x).strip().lower()
     if not s or s in ("none", "null", "nan"):
         return None
+    tr = normalize_turkish(s)
+    numeric = re.search(r"\d[\d.,]*\d|\d", tr)
+    if numeric:
+        value = numeric.group(0)
+        # A three-digit comma group remains English unless the locale/currency says otherwise.
+        turkish_format = cfg("locale.decimal_sep") == "," or re.search(r"\b(?:tl|lira|kurus)\b|₺", tr)
+        comma_decimal = re.fullmatch(r"(?:\d+|\d{1,3}(?:\.\d{3})+),\d{1,2}", value)
+        grouped_decimal = re.fullmatch(r"\d{1,3}(?:\.\d{3})+,\d+", value)
+        if comma_decimal or grouped_decimal or (turkish_format and re.fullmatch(r"(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d+)?", value)):
+            return to_float(value.replace(".", "").replace(",", "."))
     m = re.search(r"\d[\d,]*(?:\.\d+)?", s)
     if m:
         return to_float(m.group(0))
@@ -186,11 +235,17 @@ def parse_amount(x):
         if cv is not None:
             cents = cv / (10.0 ** len(str(cv)))
     v = words_to_int(s)
+    if v is None:
+        v = turkish_words_to_number(s)
     return None if v is None else v + cents
 
 
 def parse_date(x, today):
-    """Return a date or None. Accepts ISO, '16 October', 'October 16th', 'the twenty-third', weekdays with this/next, today, tomorrow."""
+    """Parse English/Turkish dates; this/next weekdays mean this/next calendar week.
+
+    Turkish names accept ASCII spellings and common case suffixes. Explicit month/day
+    and bare day rollover retain the English rules; ay sonu means this month's last day.
+    """
     if x is None:
         return None
     s = str(x).strip().lower()
@@ -210,19 +265,41 @@ def parse_date(x, today):
         return today + datetime.timedelta(days=1)
     if "today" in s or "now" == s:
         return today
+    tr = normalize_turkish(s)
+    if re.search(r"\bobur gun\b", tr):
+        return today + datetime.timedelta(days=2)
+    if re.search(r"\b(?:yarin|ertesi gun)\b", tr):
+        return today + datetime.timedelta(days=1)
+    if re.search(r"\bbugun\b", tr):
+        return today
+    if re.search(r"\b(?:ay|ayin) sonu\b", tr):
+        next_month = today.replace(day=28) + datetime.timedelta(days=4)
+        return next_month.replace(day=1) - datetime.timedelta(days=1)
     month = None
     for i, name in enumerate(MONTHS):
         if name in s or re.search(r"\b" + name[:3] + r"\b", s):
             month = i + 1
             break
+    if month is None:
+        for names in (cfg("locale.months", []), TR_MONTHS):
+            for i, name in enumerate(names):
+                if localized_name_in(tr, name):
+                    month = i + 1
+                    break
+            if month is not None:
+                break
     day = None
     m = re.search(r"\b(\d{1,2})(?:st|nd|rd|th)?\b", s)
+    if m is None:
+        m = re.search(r"\b(\d{1,2})'?" + TR_SUFFIX + r"\b", tr)
     if m:
         day = int(m.group(1))
     else:
         dv = words_to_int(re.sub(r"\b(" + "|".join(MONTHS) + r")\b", " ", s))
-        if dv and 1 <= dv <= 31:
-            day = dv
+        if dv is None and not any(re.search(r"\b" + name + r"\b", s) for name in WEEKDAYS + MONTHS):
+            dv = turkish_words_to_number(tr)
+        if dv and 1 <= dv <= 31 and int(dv) == dv:
+            day = int(dv)
     if day:
         if month is None:
             month = today.month
@@ -259,6 +336,16 @@ def parse_date(x, today):
             if "this" in s:
                 return this_d
             return this_d if this_d >= today else this_d + datetime.timedelta(days=7)
+    for names in (cfg("locale.weekdays", []), TR_WEEKDAYS):
+        for i, name in enumerate(names):
+            if localized_name_in(tr, name):
+                monday = today - datetime.timedelta(days=today.weekday())
+                this_d = monday + datetime.timedelta(days=i)
+                if re.search(r"\b(?:haftaya|gelecek hafta|onumuzdeki|next|following)\b", tr):
+                    return this_d + datetime.timedelta(days=7)
+                if re.search(r"\b(?:bu|this)\b", tr):
+                    return this_d
+                return this_d if this_d >= today else this_d + datetime.timedelta(days=7)
     return None
 
 

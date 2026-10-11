@@ -11,7 +11,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "builder"))
 import ingest
 import build
-from compile import Api
+from compile import Api, api_fn, verify_post
 from extract import enum_of, enum_of_response, tool_summary
 
 
@@ -74,6 +74,39 @@ class IngestTests(unittest.TestCase):
         actual = copy.deepcopy(mapped["paths"]["/kimlik-dogrula"]["post"])
         actual.pop("x-role")
         self.assertEqual(actual, operation)
+
+    def test_response_roles_normalize_identity_and_commit(self):
+        from runtime.policy import ok_of
+
+        for verified, remaining, expected in ((True, 1, "verified"), (False, 1, "wrong"), (False, 0, "failed")):
+            operation = {
+                "x-role": "verify_identity",
+                "x-response-roles": {"verified": "matched_answer", "attempts_left": "remaining"},
+                "responses": {"200": {"content": {"application/json": {"schema": {
+                    "type": "object", "properties": {"matched_answer": {"type": "boolean"}, "remaining": {"type": "integer"}}
+                }}}}}
+            }
+            api = Api({"paths": {"/check": {"post": operation}}})
+            fn = api_fn(api, "verify_identity", {}, post=verify_post("the answers", {}, "verify_identity"))
+            scope = {"result": {"data": {"matched_answer": verified, "remaining": remaining}}, "vars": {}}
+            exec(fn["post_process_code"], scope)
+            self.assertEqual(scope["vars"]["verify_identity_state"], expected)
+            self.assertEqual(scope["result"]["data"]["matched_answer"], verified)
+
+        operation["x-role"] = "create_promise"
+        operation["x-response-roles"] = {"ok": "success"}
+        operation["responses"]["200"]["content"]["application/json"]["schema"]["properties"] = {"success": {"type": "boolean"}}
+        api = Api({"paths": {"/promise": {"post": operation}}})
+        fn = api_fn(api, "create_promise", {})
+        for success in (True, False):
+            scope = {"result": {"data": {"success": success}}, "vars": {}}
+            exec(fn["post_process_code"], scope)
+            self.assertEqual(ok_of({"commit_1_response.data.ok": str(scope["result"]["data"]["ok"]), "commit_1_success_count": 1}, "commit_1"), success)
+
+    def test_response_roles_reject_absent_field(self):
+        api = Api({"paths": {"/promise": {"post": {"x-role": "create_promise", "x-response-roles": {"ok": "invented"}}}}})
+        with self.assertRaisesRegex(ValueError, "absent field"):
+            api_fn(api, "create_promise", {})
 
 
 if __name__ == "__main__":

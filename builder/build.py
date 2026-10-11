@@ -121,6 +121,14 @@ def prepare_openapi(case, mock_url=None, openapi=None, trace=print):
     if openapi is None:
         openapi = case.get("openapi")
     roles = ", ".join(TOOLS)
+    response_instruction = (
+        "Also annotate each operation with x-response-roles: a JSON map from semantic role to the EXACT existing top-level response field. "
+        "Allowed response roles: verified (this identity check matched), all_verified (all identity checks passed), "
+        "attempts_left (remaining wrong-answer attempts), ok (operation succeeded), hint (identity correction hint), locked (identity is locked). "
+        "For example, a documented success boolean named success maps as {\"ok\": \"success\"}. "
+        "Only map roles documented by the response; omit absent roles, never invent fields or rename the response schema. "
+        "Identity match is verified, not ok: a completed check can legitimately return verified=false. "
+    )
     if openapi is None or "swagger" in openapi:
         source = case["contract_text"]
         if openapi is not None:
@@ -137,6 +145,7 @@ def prepare_openapi(case, mock_url=None, openapi=None, trace=print):
             "add_note records a note; schedule_callback books a callback; transfer_to_agent transfers to a human; "
             "close_call records or ends the call. Leave unmatched roles absent. Map a role to at most one operation. "
             "Preserve the actual response structure even if the debt is a single object rather than a products array. "
+            + response_instruction +
             "Use servers: [{\"url\": " + json.dumps(mock_url or "") + "}]. Return only the OpenAPI JSON object."
         )
         openapi = ask_json([{"role": "system", "content": prompt}, {"role": "user", "content": source}],
@@ -149,14 +158,15 @@ def prepare_openapi(case, mock_url=None, openapi=None, trace=print):
                       if method.lower() in {"get", "post", "put", "patch", "delete", "head", "options", "trace"}
                       and isinstance(op, dict)]
         unknown = [(path, method, op) for path, method, op in operations
-                   if not op.get("x-role") and path.rstrip("/").split("/")[-1] not in TOOLS]
+                   if (not op.get("x-role") and path.rstrip("/").split("/")[-1] not in TOOLS)
+                   or (op.get("x-role") in TOOLS and "x-response-roles" not in op)]
         if unknown:
             prompt = (
                 "Assign semantic compiler roles to the supplied OpenAPI operations. Do not rename endpoints or fields. "
-                "Return only {\"roles\": [{\"path\": \"/exact-path\", \"method\": \"post\", \"role\": \"get_account\"}]}. "
+                "Return only {\"roles\": [{\"path\": \"/exact-path\", \"method\": \"post\", \"role\": \"get_account\", \"x-response-roles\": {}}]}. "
                 "Allowed roles: " + roles + ". Match by operation purpose, descriptions and schemas, not spelling. "
                 "Leave unrelated operations unmapped; never invent an operation or force an absent role. "
-                "Assign each role at most once and preserve existing x-role mappings."
+                "Assign each role at most once and preserve existing x-role mappings. " + response_instruction
             )
             result = ask_json([{"role": "system", "content": prompt},
                                {"role": "user", "content": json.dumps(openapi, ensure_ascii=False)}],
@@ -167,6 +177,8 @@ def prepare_openapi(case, mock_url=None, openapi=None, trace=print):
                 if role not in TOOLS or not isinstance(op, dict):
                     raise ValueError("invalid tool role mapping: " + str(mapping))
                 op["x-role"] = role
+                if "x-response-roles" in mapping:
+                    op["x-response-roles"] = mapping["x-response-roles"]
     if mock_url:
         openapi["servers"] = [{"url": mock_url}]
     return openapi

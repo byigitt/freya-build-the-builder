@@ -1,12 +1,27 @@
-# Build the Builder: collections phone-agent builder
+# Build the Builder: phone-agent builder
 
-A program that reads a bank's collections brief and its tool API file and creates a phone agent (a Freya workflow).
+A program that reads a bank's documents (a folder of Markdown, Word, PDF, Excel, images, or a single brief) and the
+address of the bank's services, and creates a phone agent (a Freya workflow).
 
 ```bash
 cp env.example env.sh         # FREYA_API_KEY, FREYA_BANK_TEAM_KEY, AI_GATEWAY_API_KEY
 source env.sh
-python3 builder/build.py <brief.md> <tool_api.json> 2>&1 | tee traces/<brief>.log
+python3 builder/build.py <case_folder> <mock_url> 2>&1 | tee traces/final.log      # folder of documents + service URL
+python3 builder/build.py <brief.md> <tool_api.json> 2>&1 | tee traces/<brief>.log  # practice format
 ```
+
+Two modes, chosen per case (logged in the trace; `BUILDER_MODE=design|collections` overrides):
+
+- **collections**: outbound debt-collection calls with promises. A spec is extracted and compiled into a fixed, tested
+  call graph with deterministic policy code (below).
+- **design**: any other call. A strong model designs the call flow from the documents (resolving conflicts between
+  documents by date), writes the workflow, which is validated and repaired, published, and then tested in simulated
+  chats built from the documents' example conversations; failures are fed back for revision.
+  `BUILDER_SELFTESTS` (default 2) and `BUILDER_TEST_TURNS` (default 6) size that test.
+
+Ingestion (`builder/ingest.py`): text files, Word, Excel, PowerPoint, HTML, PDF; images, embedded pictures and
+flowchart pages are read by a vision model. A service contract without an OpenAPI file is turned into one (pointing at
+the given service URL) with the role of each operation.
 
 Python 3.10+, standard library only. The builder's own model calls go through an OpenAI-compatible chat endpoint
 (`AI_GATEWAY_API_KEY` for the Vercel AI Gateway, or `LLM_BASE_URL` + `LLM_API_KEY`). The model is `BUILDER_MODEL`
@@ -52,5 +67,7 @@ the spec coverage list, self-test results, the workflow and agent ids, and the s
 | `builder/runtime/policy.py` | Policy code embedded in the workflow's code steps |
 | `builder/llm.py` | Model client with a spend cap (`LLM_BUDGET_USD`) |
 | `specs/` | Hand-written specs for the public briefs (development reference) |
+| `builder/ingest.py`, `builder/design.py` | Document ingestion; design mode |
+| `mock/` | Our mock of the bank's services (Cloudflare Worker); not part of the builder |
 | `lab/` | Development tools: local parallel case harness, policy tests, variant briefs |
 | `freya.py`, `tools/`, `docs/`, `briefs/`, `public-test-set.json` | From the organisers' kit (v3) |

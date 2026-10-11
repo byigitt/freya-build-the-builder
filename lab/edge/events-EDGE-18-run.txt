@@ -1,0 +1,654 @@
+ended: customer-ended-call
+USER  [opening] Yes, this is Lena Hoffmann.
+   EV tool_call_routing {"event": "tool_call_routing", "tool_name": "transition_to_identity", "from_node": "opening", "target": "identity"}
+   -> node identity (from opening: Tool call: transition_to_identity)
+AGENT [identity] Thank you, Ms Hoffmann. For security, please tell me your date of birth.
+   EV turn_completed {"event": "turn_completed", "turnIndex": 1, "userMessageId": "msg_1_1791696988269", "finalAssistantMessageId": "msg_4_1791696988542", "responseText": "Thank you, Ms Hoffmann. For security, please tell
+   EV conversation_resumed {"event": "conversation_resumed", "fromMessageId": "msg_4_1791696988542", "isBranch": false}
+USER  [identity] January thirtieth nineteen eighty four.
+   ROUTE identity -> None matched=False
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+   CALL verify_date_of_birth {"field": "date_of_birth", "answer": "1984-01-30", "customer_id": "c_a5f124ec-65f"}
+   RESULT verify_date_of_birth {"status": "success", "data": {"ok": true, "verified": true, "wrong_answers_left": 3, "all_verified": false, "what_to_do_next": "Correct. Move on now."}, "message": "Successfully executed POST request", "status_code": 200}
+   ROUTE identity -> identity_2 matched=True
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+   -> node identity_2 (from identity: answer verified (verify_date_of_birth_state == 'verified' OR verify_date_of_birt)
+AGENT [identity_2] Thank you. Now please tell me the last four digits of the phone number on file.
+   EV turn_completed {"event": "turn_completed", "turnIndex": 2, "userMessageId": "msg_2_1791696995257", "finalAssistantMessageId": "msg_8_1791696997214", "responseText": "Thank you. Now please tell me the last four digit
+   EV conversation_resumed {"event": "conversation_resumed", "fromMessageId": "msg_8_1791696997214", "isBranch": false}
+USER  [identity_2] Two two one nine.
+   ROUTE identity_2 -> None matched=False
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+   CALL verify_phone_last4 {"field": "phone_last4", "answer": "2219", "customer_id": "c_a5f124ec-65f"}
+   RESULT verify_phone_last4 {"status": "success", "data": {"ok": true, "verified": true, "wrong_answers_left": 3, "all_verified": true, "what_to_do_next": "Correct. Move on now."}, "message": "Successfully executed POST request", "status_code": 200}
+   ROUTE identity_2 -> load_account matched=True
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+   -> node load_account (from identity_2: answer verified (verify_phone_last4_state == 'verified' OR verify_phone_last4_re)
+   CALL api_call {"customer_id": "c_a5f124ec-65f"}
+   RESULT api_call {"status": "success", "data": {"ok": true, "products": [{"product_id": "p1", "type": "car_loan", "past_due": 1250, "days_late": 14, "instalment_amount": 400}]}, "message": "Successfully executed POST request", "status_code": 200, "header": {"Date": "Sun, 11 Oct 2026 05:36:43 GMT", "Content-Type": "application/json", "Transfer-Encoding": "chunked", "Connection": "keep-alive", "Report-To": "{\"group
+   ROUTE load_account -> prepare matched=True
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+       load_account_response.status = success
+       load_account_response.data.ok = true
+       load_account_response.data.products.0.product_id = p1
+       load_account_response.data.products.0.type = car_loan
+       load_account_response.data.products.0.past_due = 1250
+       load_account_response.data.products.0.days_late = 14
+       load_account_response.data.products.0.instalment_amount = 400
+       load_account_response.message = Successfully executed POST request
+       load_account_response.status_code = 200
+       load_account_response.header.Date = Sun, 11 Oct 2026 05:36:43 GMT
+       load_account_response.header.Content-Type = application/json
+       load_account_response.header.Transfer-Encoding = chunked
+       load_account_response.header.Connection = keep-alive
+       load_account_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Sq7px%2BdciPXCs33MXs2Y%2F26QNw5Z6QsIUuOm4WD55leOeYXftOI56b6FsXDhW8Ju3NGyiGYDwKiBfk%2B9NSbjcELYQWTsGrvWDiXemtGmLeMQh6PXhRgFTs2%2BQLfTKsd7hM9%2F7ydynHTwF4rlaBgA7cH4Re4KWnU%2BAA%3D%3D"}]}
+       load_account_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       load_account_response.header.Content-Encoding = gzip
+       load_account_response.header.Server = cloudflare
+       load_account_response.header.CF-RAY = a48b8241ed4b976a-FRA
+       load_account_response.header.alt-svc = h3=":443"; ma=86400
+       load_account_status_code = 200
+       load_account_success_count = 1
+   -> node prepare (from load_account: always always)
+   CALL code_exec null
+   RESULT code_exec {"status": "success", "data": null, "message": "Code executed successfully", "status_code": 200}
+   ROUTE prepare -> negotiate matched=True
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+       load_account_response.status = success
+       load_account_response.data.ok = true
+       load_account_response.data.products.0.product_id = p1
+       load_account_response.data.products.0.type = car_loan
+       load_account_response.data.products.0.past_due = 1250
+       load_account_response.data.products.0.days_late = 14
+       load_account_response.data.products.0.instalment_amount = 400
+       load_account_response.message = Successfully executed POST request
+       load_account_response.status_code = 200
+       load_account_response.header.Date = Sun, 11 Oct 2026 05:36:43 GMT
+       load_account_response.header.Content-Type = application/json
+       load_account_response.header.Transfer-Encoding = chunked
+       load_account_response.header.Connection = keep-alive
+       load_account_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Sq7px%2BdciPXCs33MXs2Y%2F26QNw5Z6QsIUuOm4WD55leOeYXftOI56b6FsXDhW8Ju3NGyiGYDwKiBfk%2B9NSbjcELYQWTsGrvWDiXemtGmLeMQh6PXhRgFTs2%2BQLfTKsd7hM9%2F7ydynHTwF4rlaBgA7cH4Re4KWnU%2BAA%3D%3D"}]}
+       load_account_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       load_account_response.header.Content-Encoding = gzip
+       load_account_response.header.Server = cloudflare
+       load_account_response.header.CF-RAY = a48b8241ed4b976a-FRA
+       load_account_response.header.alt-svc = h3=":443"; ma=86400
+       load_account_status_code = 200
+       load_account_success_count = 1
+       account_state = ok
+       next_instruction = You just stated the debt and asked the first question about paying. Wait for the answer.
+       facts = - p1: car loan. Past due 1250 dollars, 14 days late. Floor (instalment amount): 400 dollars. Latest allowed promise date (deadline): Friday 23 October (2026-10-23). Persuasion attempts allowed: 2. Status: open.
+       policy_phase = negotiating
+       pol_state = {"products": [{"id": "p1", "words": "car loan", "full": 1250.0, "days_late": 14, "floor": 400.0, "floor_name": "instalment amount", "band": "late", "deadline": "2026-10-23", "attempts_allowed": 2, "attempts_used": 0, "floor_offered": false, "too_much": false, "vague_asked": false, "status": "open", 
+   -> node negotiate (from prepare: always always)
+AGENT [negotiate] Thank you, Ms Hoffmann. I am calling from the collections team about a late payment. Your car loan has 1250 dollars past due and is 14 days late. Can you make this payment today?
+   EV turn_completed {"event": "turn_completed", "turnIndex": 3, "userMessageId": "msg_2_1791697001473", "finalAssistantMessageId": "msg_16_1791697004373", "responseText": "Thank you, Ms Hoffmann. I am calling from the co
+   EV conversation_resumed {"event": "conversation_resumed", "fromMessageId": "msg_16_1791697004373", "isBranch": false}
+USER  [negotiate] Twelve hundred and fifty dollars is too much for me right now.
+   ROUTE negotiate -> None matched=False
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+       load_account_response.status = success
+       load_account_response.data.ok = true
+       load_account_response.data.products.0.product_id = p1
+       load_account_response.data.products.0.type = car_loan
+       load_account_response.data.products.0.past_due = 1250
+       load_account_response.data.products.0.days_late = 14
+       load_account_response.data.products.0.instalment_amount = 400
+       load_account_response.message = Successfully executed POST request
+       load_account_response.status_code = 200
+       load_account_response.header.Date = Sun, 11 Oct 2026 05:36:43 GMT
+       load_account_response.header.Content-Type = application/json
+       load_account_response.header.Transfer-Encoding = chunked
+       load_account_response.header.Connection = keep-alive
+       load_account_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Sq7px%2BdciPXCs33MXs2Y%2F26QNw5Z6QsIUuOm4WD55leOeYXftOI56b6FsXDhW8Ju3NGyiGYDwKiBfk%2B9NSbjcELYQWTsGrvWDiXemtGmLeMQh6PXhRgFTs2%2BQLfTKsd7hM9%2F7ydynHTwF4rlaBgA7cH4Re4KWnU%2BAA%3D%3D"}]}
+       load_account_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       load_account_response.header.Content-Encoding = gzip
+       load_account_response.header.Server = cloudflare
+       load_account_response.header.CF-RAY = a48b8241ed4b976a-FRA
+       load_account_response.header.alt-svc = h3=":443"; ma=86400
+       load_account_status_code = 200
+       load_account_success_count = 1
+       account_state = ok
+       next_instruction = You just stated the debt and asked the first question about paying. Wait for the answer.
+       facts = - p1: car loan. Past due 1250 dollars, 14 days late. Floor (instalment amount): 400 dollars. Latest allowed promise date (deadline): Friday 23 October (2026-10-23). Persuasion attempts allowed: 2. Status: open.
+       policy_phase = negotiating
+       pol_state = {"products": [{"id": "p1", "words": "car loan", "full": 1250.0, "days_late": 14, "floor": 400.0, "floor_name": "instalment amount", "band": "late", "deadline": "2026-10-23", "attempts_allowed": 2, "attempts_used": 0, "floor_offered": false, "too_much": false, "vague_asked": false, "status": "open", 
+   CALL assess {"customer_id": "c_a5f124ec-65f"}
+   RESULT assess {"status": "success", "data": {"next_step": "Offer the instalment amount of 400 dollars instead, once. Say that the rest stays overdue. Ask on which day they can pay 400 dollars.", "say_it": "Say what next_step says, in your own short words. Do not add other offers."}, "message": "Successfully executed POST request", "status_code": 200}
+   ROUTE negotiate -> None matched=False
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+       load_account_response.status = success
+       load_account_response.data.ok = true
+       load_account_response.data.products.0.product_id = p1
+       load_account_response.data.products.0.type = car_loan
+       load_account_response.data.products.0.past_due = 1250
+       load_account_response.data.products.0.days_late = 14
+       load_account_response.data.products.0.instalment_amount = 400
+       load_account_response.message = Successfully executed POST request
+       load_account_response.status_code = 200
+       load_account_response.header.Date = Sun, 11 Oct 2026 05:36:43 GMT
+       load_account_response.header.Content-Type = application/json
+       load_account_response.header.Transfer-Encoding = chunked
+       load_account_response.header.Connection = keep-alive
+       load_account_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Sq7px%2BdciPXCs33MXs2Y%2F26QNw5Z6QsIUuOm4WD55leOeYXftOI56b6FsXDhW8Ju3NGyiGYDwKiBfk%2B9NSbjcELYQWTsGrvWDiXemtGmLeMQh6PXhRgFTs2%2BQLfTKsd7hM9%2F7ydynHTwF4rlaBgA7cH4Re4KWnU%2BAA%3D%3D"}]}
+       load_account_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       load_account_response.header.Content-Encoding = gzip
+       load_account_response.header.Server = cloudflare
+       load_account_response.header.CF-RAY = a48b8241ed4b976a-FRA
+       load_account_response.header.alt-svc = h3=":443"; ma=86400
+       load_account_status_code = 200
+       load_account_success_count = 1
+       account_state = ok
+       next_instruction = Offer the instalment amount of 400 dollars instead, once. Say that the rest stays overdue. Ask on which day they can pay 400 dollars.
+       facts = - p1: car loan. Past due 1250 dollars, 14 days late. Floor (instalment amount): 400 dollars. Latest allowed promise date (deadline): Friday 23 October (2026-10-23). Persuasion attempts allowed: 2. Status: open.
+       policy_phase = negotiating
+       pol_state = {"products": [{"id": "p1", "words": "car loan", "full": 1250.0, "days_late": 14, "floor": 400.0, "floor_name": "instalment amount", "band": "late", "deadline": "2026-10-23", "attempts_allowed": 2, "attempts_used": 0, "floor_offered": true, "too_much": true, "vague_asked": false, "status": "open", "a
+AGENT [negotiate] I understand. You can pay 400 dollars instead, and the rest will stay overdue. On which day can you pay 400 dollars, Ms Hoffmann?
+   EV turn_completed {"event": "turn_completed", "turnIndex": 4, "userMessageId": "msg_2_1791697014612", "finalAssistantMessageId": "msg_7_1791697017441", "responseText": "I understand. You can pay 400 dollars instead, an
+   EV conversation_resumed {"event": "conversation_resumed", "fromMessageId": "msg_7_1791697017441", "isBranch": false}
+USER  [negotiate] I can pay four hundred dollars on Friday October twenty third.
+   ROUTE negotiate -> None matched=False
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+       load_account_response.status = success
+       load_account_response.data.ok = true
+       load_account_response.data.products.0.product_id = p1
+       load_account_response.data.products.0.type = car_loan
+       load_account_response.data.products.0.past_due = 1250
+       load_account_response.data.products.0.days_late = 14
+       load_account_response.data.products.0.instalment_amount = 400
+       load_account_response.message = Successfully executed POST request
+       load_account_response.status_code = 200
+       load_account_response.header.Date = Sun, 11 Oct 2026 05:36:43 GMT
+       load_account_response.header.Content-Type = application/json
+       load_account_response.header.Transfer-Encoding = chunked
+       load_account_response.header.Connection = keep-alive
+       load_account_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Sq7px%2BdciPXCs33MXs2Y%2F26QNw5Z6QsIUuOm4WD55leOeYXftOI56b6FsXDhW8Ju3NGyiGYDwKiBfk%2B9NSbjcELYQWTsGrvWDiXemtGmLeMQh6PXhRgFTs2%2BQLfTKsd7hM9%2F7ydynHTwF4rlaBgA7cH4Re4KWnU%2BAA%3D%3D"}]}
+       load_account_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       load_account_response.header.Content-Encoding = gzip
+       load_account_response.header.Server = cloudflare
+       load_account_response.header.CF-RAY = a48b8241ed4b976a-FRA
+       load_account_response.header.alt-svc = h3=":443"; ma=86400
+       load_account_status_code = 200
+       load_account_success_count = 1
+       account_state = ok
+       next_instruction = Offer the instalment amount of 400 dollars instead, once. Say that the rest stays overdue. Ask on which day they can pay 400 dollars.
+       facts = - p1: car loan. Past due 1250 dollars, 14 days late. Floor (instalment amount): 400 dollars. Latest allowed promise date (deadline): Friday 23 October (2026-10-23). Persuasion attempts allowed: 2. Status: open.
+       policy_phase = negotiating
+       pol_state = {"products": [{"id": "p1", "words": "car loan", "full": 1250.0, "days_late": 14, "floor": 400.0, "floor_name": "instalment amount", "band": "late", "deadline": "2026-10-23", "attempts_allowed": 2, "attempts_used": 0, "floor_offered": true, "too_much": true, "vague_asked": false, "status": "open", "a
+   CALL assess {"customer_id": "c_a5f124ec-65f"}
+   RESULT assess {"status": "success", "data": {"next_step": "Agreed for the car loan: 400 dollars on Friday 23 October. Every product is settled. Read back exactly this and wait for the answer: \"So that is 400 dollars for your car loan on Friday 23 October. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.", "say_it": "Say what next_step says, in your own short words. Do 
+   ROUTE negotiate -> None matched=False
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+       load_account_response.status = success
+       load_account_response.data.ok = true
+       load_account_response.data.products.0.product_id = p1
+       load_account_response.data.products.0.type = car_loan
+       load_account_response.data.products.0.past_due = 1250
+       load_account_response.data.products.0.days_late = 14
+       load_account_response.data.products.0.instalment_amount = 400
+       load_account_response.message = Successfully executed POST request
+       load_account_response.status_code = 200
+       load_account_response.header.Date = Sun, 11 Oct 2026 05:36:43 GMT
+       load_account_response.header.Content-Type = application/json
+       load_account_response.header.Transfer-Encoding = chunked
+       load_account_response.header.Connection = keep-alive
+       load_account_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Sq7px%2BdciPXCs33MXs2Y%2F26QNw5Z6QsIUuOm4WD55leOeYXftOI56b6FsXDhW8Ju3NGyiGYDwKiBfk%2B9NSbjcELYQWTsGrvWDiXemtGmLeMQh6PXhRgFTs2%2BQLfTKsd7hM9%2F7ydynHTwF4rlaBgA7cH4Re4KWnU%2BAA%3D%3D"}]}
+       load_account_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       load_account_response.header.Content-Encoding = gzip
+       load_account_response.header.Server = cloudflare
+       load_account_response.header.CF-RAY = a48b8241ed4b976a-FRA
+       load_account_response.header.alt-svc = h3=":443"; ma=86400
+       load_account_status_code = 200
+       load_account_success_count = 1
+       account_state = ok
+       next_instruction = Agreed for the car loan: 400 dollars on Friday 23 October. Every product is settled. Read back exactly this and wait for the answer: "So that is 400 dollars for your car loan on Friday 23 October. Do you confirm?" When the customer clearly says yes, call transition_to_confirm_promises.
+       facts = - p1: car loan. Past due 1250 dollars, 14 days late. Floor (instalment amount): 400 dollars. Latest allowed promise date (deadline): Friday 23 October (2026-10-23). Persuasion attempts allowed: 2. Status: AGREED 400 dollars on 2026-10-23.
+       policy_phase = readback
+       pol_state = {"products": [{"id": "p1", "words": "car loan", "full": 1250.0, "days_late": 14, "floor": 400.0, "floor_name": "instalment amount", "band": "late", "deadline": "2026-10-23", "attempts_allowed": 2, "attempts_used": 0, "floor_offered": true, "too_much": true, "vague_asked": false, "status": "agreed", 
+AGENT [negotiate] So that is 400 dollars for your car loan on Friday 23 October. Do you confirm?
+   EV turn_completed {"event": "turn_completed", "turnIndex": 5, "userMessageId": "msg_2_1791697027319", "finalAssistantMessageId": "msg_7_1791697031277", "responseText": "So that is 400 dollars for your car loan on Frida
+   EV conversation_resumed {"event": "conversation_resumed", "fromMessageId": "msg_7_1791697031277", "isBranch": false}
+USER  [negotiate] Yes, I confirm.
+   ROUTE negotiate -> None matched=False
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+       load_account_response.status = success
+       load_account_response.data.ok = true
+       load_account_response.data.products.0.product_id = p1
+       load_account_response.data.products.0.type = car_loan
+       load_account_response.data.products.0.past_due = 1250
+       load_account_response.data.products.0.days_late = 14
+       load_account_response.data.products.0.instalment_amount = 400
+       load_account_response.message = Successfully executed POST request
+       load_account_response.status_code = 200
+       load_account_response.header.Date = Sun, 11 Oct 2026 05:36:43 GMT
+       load_account_response.header.Content-Type = application/json
+       load_account_response.header.Transfer-Encoding = chunked
+       load_account_response.header.Connection = keep-alive
+       load_account_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Sq7px%2BdciPXCs33MXs2Y%2F26QNw5Z6QsIUuOm4WD55leOeYXftOI56b6FsXDhW8Ju3NGyiGYDwKiBfk%2B9NSbjcELYQWTsGrvWDiXemtGmLeMQh6PXhRgFTs2%2BQLfTKsd7hM9%2F7ydynHTwF4rlaBgA7cH4Re4KWnU%2BAA%3D%3D"}]}
+       load_account_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       load_account_response.header.Content-Encoding = gzip
+       load_account_response.header.Server = cloudflare
+       load_account_response.header.CF-RAY = a48b8241ed4b976a-FRA
+       load_account_response.header.alt-svc = h3=":443"; ma=86400
+       load_account_status_code = 200
+       load_account_success_count = 1
+       account_state = ok
+       next_instruction = Agreed for the car loan: 400 dollars on Friday 23 October. Every product is settled. Read back exactly this and wait for the answer: "So that is 400 dollars for your car loan on Friday 23 October. Do you confirm?" When the customer clearly says yes, call transition_to_confirm_promises.
+       facts = - p1: car loan. Past due 1250 dollars, 14 days late. Floor (instalment amount): 400 dollars. Latest allowed promise date (deadline): Friday 23 October (2026-10-23). Persuasion attempts allowed: 2. Status: AGREED 400 dollars on 2026-10-23.
+       policy_phase = readback
+       pol_state = {"products": [{"id": "p1", "words": "car loan", "full": 1250.0, "days_late": 14, "floor": 400.0, "floor_name": "instalment amount", "band": "late", "deadline": "2026-10-23", "attempts_allowed": 2, "attempts_used": 0, "floor_offered": true, "too_much": true, "vague_asked": false, "status": "agreed", 
+   EV tool_call_routing {"event": "tool_call_routing", "tool_name": "transition_to_confirm_promises", "from_node": "negotiate", "target": "confirm_promises"}
+   -> node confirm_promises (from negotiate: Tool call: transition_to_confirm_promises)
+   CALL code_exec null
+   RESULT code_exec {"status": "success", "data": null, "message": "Code executed successfully", "status_code": 200}
+   ROUTE confirm_promises -> commit_1 matched=True
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+       load_account_response.status = success
+       load_account_response.data.ok = true
+       load_account_response.data.products.0.product_id = p1
+       load_account_response.data.products.0.type = car_loan
+       load_account_response.data.products.0.past_due = 1250
+       load_account_response.data.products.0.days_late = 14
+       load_account_response.data.products.0.instalment_amount = 400
+       load_account_response.message = Successfully executed POST request
+       load_account_response.status_code = 200
+       load_account_response.header.Date = Sun, 11 Oct 2026 05:36:43 GMT
+       load_account_response.header.Content-Type = application/json
+       load_account_response.header.Transfer-Encoding = chunked
+       load_account_response.header.Connection = keep-alive
+       load_account_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Sq7px%2BdciPXCs33MXs2Y%2F26QNw5Z6QsIUuOm4WD55leOeYXftOI56b6FsXDhW8Ju3NGyiGYDwKiBfk%2B9NSbjcELYQWTsGrvWDiXemtGmLeMQh6PXhRgFTs2%2BQLfTKsd7hM9%2F7ydynHTwF4rlaBgA7cH4Re4KWnU%2BAA%3D%3D"}]}
+       load_account_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       load_account_response.header.Content-Encoding = gzip
+       load_account_response.header.Server = cloudflare
+       load_account_response.header.CF-RAY = a48b8241ed4b976a-FRA
+       load_account_response.header.alt-svc = h3=":443"; ma=86400
+       load_account_status_code = 200
+       load_account_success_count = 1
+       account_state = ok
+       next_instruction = Agreed for the car loan: 400 dollars on Friday 23 October. Every product is settled. Read back exactly this and wait for the answer: "So that is 400 dollars for your car loan on Friday 23 October. Do you confirm?" When the customer clearly says yes, call transition_to_confirm_promises.
+       facts = - p1: car loan. Past due 1250 dollars, 14 days late. Floor (instalment amount): 400 dollars. Latest allowed promise date (deadline): Friday 23 October (2026-10-23). Persuasion attempts allowed: 2. Status: AGREED 400 dollars on 2026-10-23.
+       policy_phase = readback
+       pol_state = {"products": [{"id": "p1", "words": "car loan", "full": 1250.0, "days_late": 14, "floor": 400.0, "floor_name": "instalment amount", "band": "late", "deadline": "2026-10-23", "attempts_allowed": 2, "attempts_used": 0, "floor_offered": true, "too_much": true, "vague_asked": false, "status": "agreed", 
+       commit_ready = yes
+       c1_product = p1
+       c1_amount = 400.0
+       c1_date = 2026-10-23
+       c1_go = yes
+   -> node commit_1 (from confirm_promises: ready to record commit_ready == 'yes')
+   CALL api_call {"date": "2026-10-23", "amount": 400.0, "product_id": "p1", "customer_id": "c_a5f124ec-65f"}
+   RESULT api_call {"status": "success", "data": {"ok": true, "promise_id": "pr1"}, "message": "Successfully executed POST request", "status_code": 200, "header": {"Date": "Sun, 11 Oct 2026 05:37:17 GMT", "Content-Type": "application/json", "Content-Length": "30", "Connection": "keep-alive", "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=r4oR
+   ROUTE commit_1 -> finalize matched=True
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+       load_account_response.status = success
+       load_account_response.data.ok = true
+       load_account_response.data.products.0.product_id = p1
+       load_account_response.data.products.0.type = car_loan
+       load_account_response.data.products.0.past_due = 1250
+       load_account_response.data.products.0.days_late = 14
+       load_account_response.data.products.0.instalment_amount = 400
+       load_account_response.message = Successfully executed POST request
+       load_account_response.status_code = 200
+       load_account_response.header.Date = Sun, 11 Oct 2026 05:36:43 GMT
+       load_account_response.header.Content-Type = application/json
+       load_account_response.header.Transfer-Encoding = chunked
+       load_account_response.header.Connection = keep-alive
+       load_account_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Sq7px%2BdciPXCs33MXs2Y%2F26QNw5Z6QsIUuOm4WD55leOeYXftOI56b6FsXDhW8Ju3NGyiGYDwKiBfk%2B9NSbjcELYQWTsGrvWDiXemtGmLeMQh6PXhRgFTs2%2BQLfTKsd7hM9%2F7ydynHTwF4rlaBgA7cH4Re4KWnU%2BAA%3D%3D"}]}
+       load_account_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       load_account_response.header.Content-Encoding = gzip
+       load_account_response.header.Server = cloudflare
+       load_account_response.header.CF-RAY = a48b8241ed4b976a-FRA
+       load_account_response.header.alt-svc = h3=":443"; ma=86400
+       load_account_status_code = 200
+       load_account_success_count = 1
+       account_state = ok
+       next_instruction = Agreed for the car loan: 400 dollars on Friday 23 October. Every product is settled. Read back exactly this and wait for the answer: "So that is 400 dollars for your car loan on Friday 23 October. Do you confirm?" When the customer clearly says yes, call transition_to_confirm_promises.
+       facts = - p1: car loan. Past due 1250 dollars, 14 days late. Floor (instalment amount): 400 dollars. Latest allowed promise date (deadline): Friday 23 October (2026-10-23). Persuasion attempts allowed: 2. Status: AGREED 400 dollars on 2026-10-23.
+       policy_phase = readback
+       pol_state = {"products": [{"id": "p1", "words": "car loan", "full": 1250.0, "days_late": 14, "floor": 400.0, "floor_name": "instalment amount", "band": "late", "deadline": "2026-10-23", "attempts_allowed": 2, "attempts_used": 0, "floor_offered": true, "too_much": true, "vague_asked": false, "status": "agreed", 
+       commit_ready = yes
+       c1_product = p1
+       c1_amount = 400.0
+       c1_date = 2026-10-23
+       c1_go = yes
+       commit_1_response.status = success
+       commit_1_response.data.ok = true
+       commit_1_response.data.promise_id = pr1
+       commit_1_response.message = Successfully executed POST request
+       commit_1_response.status_code = 200
+       commit_1_response.header.Date = Sun, 11 Oct 2026 05:37:17 GMT
+       commit_1_response.header.Content-Type = application/json
+       commit_1_response.header.Content-Length = 30
+       commit_1_response.header.Connection = keep-alive
+       commit_1_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=r4oRnCvpVt0hrd14SnnSsaYz9jgLgfxCNiJ2s4naTbIXAxPhgSxyTJVxGqj5LtLoUQS9BCfHRaHnIBJOWfVcn%2B73n2I5D5%2F8sESCbsTeBM%2Fe6uPujw%2F911Gyxr%2BRe9JZZE1gTPw%2F%2BM%2F7Zo5DRc83qMYhjo9np%2FiLUQ%3D%3D"}]}
+       commit_1_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       commit_1_response.header.Server = cloudflare
+       commit_1_response.header.CF-RAY = a48b831339e637c8-FRA
+       commit_1_response.header.alt-svc = h3=":443"; ma=86400
+       commit_1_status_code = 200
+       commit_1_success_count = 1
+   -> node finalize (from commit_1: always always)
+   CALL code_exec null
+   RESULT code_exec {"status": "success", "data": null, "message": "Code executed successfully", "status_code": 200}
+   ROUTE finalize -> close_final matched=True
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+       load_account_response.status = success
+       load_account_response.data.ok = true
+       load_account_response.data.products.0.product_id = p1
+       load_account_response.data.products.0.type = car_loan
+       load_account_response.data.products.0.past_due = 1250
+       load_account_response.data.products.0.days_late = 14
+       load_account_response.data.products.0.instalment_amount = 400
+       load_account_response.message = Successfully executed POST request
+       load_account_response.status_code = 200
+       load_account_response.header.Date = Sun, 11 Oct 2026 05:36:43 GMT
+       load_account_response.header.Content-Type = application/json
+       load_account_response.header.Transfer-Encoding = chunked
+       load_account_response.header.Connection = keep-alive
+       load_account_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Sq7px%2BdciPXCs33MXs2Y%2F26QNw5Z6QsIUuOm4WD55leOeYXftOI56b6FsXDhW8Ju3NGyiGYDwKiBfk%2B9NSbjcELYQWTsGrvWDiXemtGmLeMQh6PXhRgFTs2%2BQLfTKsd7hM9%2F7ydynHTwF4rlaBgA7cH4Re4KWnU%2BAA%3D%3D"}]}
+       load_account_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       load_account_response.header.Content-Encoding = gzip
+       load_account_response.header.Server = cloudflare
+       load_account_response.header.CF-RAY = a48b8241ed4b976a-FRA
+       load_account_response.header.alt-svc = h3=":443"; ma=86400
+       load_account_status_code = 200
+       load_account_success_count = 1
+       account_state = ok
+       next_instruction = Agreed for the car loan: 400 dollars on Friday 23 October. Every product is settled. Read back exactly this and wait for the answer: "So that is 400 dollars for your car loan on Friday 23 October. Do you confirm?" When the customer clearly says yes, call transition_to_confirm_promises.
+       facts = - p1: car loan. Past due 1250 dollars, 14 days late. Floor (instalment amount): 400 dollars. Latest allowed promise date (deadline): Friday 23 October (2026-10-23). Persuasion attempts allowed: 2. Status: AGREED 400 dollars on 2026-10-23.
+       policy_phase = readback
+       pol_state = {"products": [{"id": "p1", "words": "car loan", "full": 1250.0, "days_late": 14, "floor": 400.0, "floor_name": "instalment amount", "band": "late", "deadline": "2026-10-23", "attempts_allowed": 2, "attempts_used": 0, "floor_offered": true, "too_much": true, "vague_asked": false, "status": "recorded"
+       commit_ready = yes
+       c1_product = p1
+       c1_amount = 400.0
+       c1_date = 2026-10-23
+       c1_go = yes
+       commit_1_response.status = success
+       commit_1_response.data.ok = true
+       commit_1_response.data.promise_id = pr1
+       commit_1_response.message = Successfully executed POST request
+       commit_1_response.status_code = 200
+       commit_1_response.header.Date = Sun, 11 Oct 2026 05:37:17 GMT
+       commit_1_response.header.Content-Type = application/json
+       commit_1_response.header.Content-Length = 30
+       commit_1_response.header.Connection = keep-alive
+       commit_1_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=r4oRnCvpVt0hrd14SnnSsaYz9jgLgfxCNiJ2s4naTbIXAxPhgSxyTJVxGqj5LtLoUQS9BCfHRaHnIBJOWfVcn%2B73n2I5D5%2F8sESCbsTeBM%2Fe6uPujw%2F911Gyxr%2BRe9JZZE1gTPw%2F%2BM%2F7Zo5DRc83qMYhjo9np%2FiLUQ%3D%3D"}]}
+       commit_1_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       commit_1_response.header.Server = cloudflare
+       commit_1_response.header.CF-RAY = a48b831339e637c8-FRA
+       commit_1_response.header.alt-svc = h3=":443"; ma=86400
+       commit_1_status_code = 200
+       commit_1_success_count = 1
+       final_outcome = promise
+       final_reason = 
+       final_say = Your promise is recorded. You will receive a text message confirming this promise.
+   -> node close_final (from finalize: always always)
+   EV turn_completed {"event": "turn_completed", "turnIndex": 6, "userMessageId": "msg_2_1791697036143", "finalAssistantMessageId": null, "responseText": "Your promise is recorded. You will receive a text message confirmi
+   CALL api_call {"outcome": "promise", "customer_id": "c_a5f124ec-65f"}
+   RESULT api_call {"status": "success", "data": {"ok": true}, "message": "Successfully executed POST request", "status_code": 200, "header": {"Date": "Sun, 11 Oct 2026 05:37:18 GMT", "Content-Type": "application/json", "Content-Length": "11", "Connection": "keep-alive", "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=tZTFWw57hYjBrgS2lz%2BI27U
+   ROUTE close_final -> end matched=True
+       commit_1.current_turns = 0
+       commit_1.total_turns = 0
+       commit_2.current_turns = 0
+       commit_2.total_turns = 0
+       commit_3.current_turns = 0
+       commit_3.total_turns = 0
+       load_account.current_turns = 0
+       load_account.total_turns = 0
+       commit_1_retry.current_turns = 0
+       commit_1_retry.total_turns = 0
+       commit_2_retry.current_turns = 0
+       commit_2_retry.total_turns = 0
+       commit_3_retry.current_turns = 0
+       commit_3_retry.total_turns = 0
+       load_account_response.status = success
+       load_account_response.data.ok = true
+       load_account_response.data.products.0.product_id = p1
+       load_account_response.data.products.0.type = car_loan
+       load_account_response.data.products.0.past_due = 1250
+       load_account_response.data.products.0.days_late = 14
+       load_account_response.data.products.0.instalment_amount = 400
+       load_account_response.message = Successfully executed POST request
+       load_account_response.status_code = 200
+       load_account_response.header.Date = Sun, 11 Oct 2026 05:36:43 GMT
+       load_account_response.header.Content-Type = application/json
+       load_account_response.header.Transfer-Encoding = chunked
+       load_account_response.header.Connection = keep-alive
+       load_account_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Sq7px%2BdciPXCs33MXs2Y%2F26QNw5Z6QsIUuOm4WD55leOeYXftOI56b6FsXDhW8Ju3NGyiGYDwKiBfk%2B9NSbjcELYQWTsGrvWDiXemtGmLeMQh6PXhRgFTs2%2BQLfTKsd7hM9%2F7ydynHTwF4rlaBgA7cH4Re4KWnU%2BAA%3D%3D"}]}
+       load_account_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       load_account_response.header.Content-Encoding = gzip
+       load_account_response.header.Server = cloudflare
+       load_account_response.header.CF-RAY = a48b8241ed4b976a-FRA
+       load_account_response.header.alt-svc = h3=":443"; ma=86400
+       load_account_status_code = 200
+       load_account_success_count = 1
+       account_state = ok
+       next_instruction = Agreed for the car loan: 400 dollars on Friday 23 October. Every product is settled. Read back exactly this and wait for the answer: "So that is 400 dollars for your car loan on Friday 23 October. Do you confirm?" When the customer clearly says yes, call transition_to_confirm_promises.
+       facts = - p1: car loan. Past due 1250 dollars, 14 days late. Floor (instalment amount): 400 dollars. Latest allowed promise date (deadline): Friday 23 October (2026-10-23). Persuasion attempts allowed: 2. Status: AGREED 400 dollars on 2026-10-23.
+       policy_phase = readback
+       pol_state = {"products": [{"id": "p1", "words": "car loan", "full": 1250.0, "days_late": 14, "floor": 400.0, "floor_name": "instalment amount", "band": "late", "deadline": "2026-10-23", "attempts_allowed": 2, "attempts_used": 0, "floor_offered": true, "too_much": true, "vague_asked": false, "status": "recorded"
+       commit_ready = yes
+       c1_product = p1
+       c1_amount = 400.0
+       c1_date = 2026-10-23
+       c1_go = yes
+       commit_1_response.status = success
+       commit_1_response.data.ok = true
+       commit_1_response.data.promise_id = pr1
+       commit_1_response.message = Successfully executed POST request
+       commit_1_response.status_code = 200
+       commit_1_response.header.Date = Sun, 11 Oct 2026 05:37:17 GMT
+       commit_1_response.header.Content-Type = application/json
+       commit_1_response.header.Content-Length = 30
+       commit_1_response.header.Connection = keep-alive
+       commit_1_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=r4oRnCvpVt0hrd14SnnSsaYz9jgLgfxCNiJ2s4naTbIXAxPhgSxyTJVxGqj5LtLoUQS9BCfHRaHnIBJOWfVcn%2B73n2I5D5%2F8sESCbsTeBM%2Fe6uPujw%2F911Gyxr%2BRe9JZZE1gTPw%2F%2BM%2F7Zo5DRc83qMYhjo9np%2FiLUQ%3D%3D"}]}
+       commit_1_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       commit_1_response.header.Server = cloudflare
+       commit_1_response.header.CF-RAY = a48b831339e637c8-FRA
+       commit_1_response.header.alt-svc = h3=":443"; ma=86400
+       commit_1_status_code = 200
+       commit_1_success_count = 1
+       final_outcome = promise
+       final_reason = 
+       final_say = Your promise is recorded. You will receive a text message confirming this promise.
+       close_final_response.status = success
+       close_final_response.data.ok = true
+       close_final_response.message = Successfully executed POST request
+       close_final_response.status_code = 200
+       close_final_response.header.Date = Sun, 11 Oct 2026 05:37:18 GMT
+       close_final_response.header.Content-Type = application/json
+       close_final_response.header.Content-Length = 11
+       close_final_response.header.Connection = keep-alive
+       close_final_response.header.Report-To = {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=tZTFWw57hYjBrgS2lz%2BI27UMBsuaP5x11DcF3qSCswZNf9xu9GsmHFLAqEud31oKY3UghOXounjLk9n1lhdD6wpXXnnT0WALDboJNYoFQvf7j0C39yZzXd%2F0h1qxgItmizI36LSCCjJacKF%2FIGloQcITvHl6VGSpRQ%3D%3D"}]}
+       close_final_response.header.Nel = {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+       close_final_response.header.Server = cloudflare
+       close_final_response.header.CF-RAY = a48b8318a899d3ac-FRA
+       close_final_response.header.alt-svc = h3=":443"; ma=86400
+       close_final_status_code = 200
+       close_final_success_count = 1
+   -> node end (from close_final: always always)
+   CALL end_call null
+AGENT [end] Your promise is recorded. You will receive a text message confirming this promise. Thank you for your time, Ms Hoffmann. Goodbye.
+   EV function_call_complete_deferred {"event": "function_call_complete_deferred", "function": "end_call", "result": null, "deferred": true}
+   EV conversation_resumed {"event": "conversation_resumed", "fromMessageId": "msg_25_1791697038231", "isBranch": false}

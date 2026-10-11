@@ -1,0 +1,62 @@
+{
+ "workflow_id": "9140b357-c2fc-45a7-910e-c2e72662a76c",
+ "rows": [
+  {
+   "id": "EDGE-31",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": true,
+   "failed": [],
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "get_account",
+    "get_account",
+    "get_account",
+    "get_account",
+    "get_account",
+    "get_account",
+    "add_note",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "call_id": "2a1ca748-b09c-4bb5-afee-f8bec3c81946",
+   "customer_id": "c_efb6a6ad-8db",
+   "turns": 9,
+   "seconds": 91,
+   "slowest_turn_s": 12.7,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Ms Almeida?\nUSER: Yes, I am Sofia Almeida.\nAGENT: Thank you, Ms Almeida. For security, please tell me your date of birth.\nUSER: Third of June nineteen eighty-seven.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1987-06-03\", \"customer_id\": \"c_efb6a6ad-8db\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: Two two eight eight.\nSYSTEM: call verify_phone_last4 {\"field\": \"phone_last4\", \"answer\": \"2288\", \"customer_id\": \"c_efb6a6ad-8db\"}\nSYSTEM: result verify_phone_last4 {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": true, \"what_to_do_next\": \"Correct. Move on now.\"}\nSYSTEM: call api_call {\"customer_id\": \"c_efb6a6ad-8db\"}\nSYSTEM: result api_call {\"ok\": true, \"products\": [{\"product_id\": \"p1\", \"type\": \"credit_card\", \"card_last4\": \"2288\", \"past_due\": 220, \"days_late\": 9, \"minimum_payment\": 66}, {\"product_id\": \"p2\", \"type\": \"personal_loan\", \"past_due\": 640, \"days_late\": 9, \"instalment_amount\": 213}, {\"product_id\": \"p3\", \"type\": \"car_loan\", \"pas\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"bank_name\\\":\\\"Freya Bank\\\",\\\"agent_identity\\\":\\\"Freya Bank\\\\'s digital assistant\\\",\\\"language\\\":\\\"English\\\",\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\nSYSTEM: result code_exec null\nAGENT: Thank you, Ms Almeida. I am calling from the collections team about a late payment. Your credit card ending 2288 has 220 dollars past due and is 9 days late. Your personal loan has 640 dollars past due and is 9 days late. Your car loan has 75 dollars past due and is 3 days late. Can you pay all of them today?\nUSER: No, I cannot pay all of those today.\nSYSTEM: call assess {\"customer_id\": \"c_efb6a6ad-8db\"}\nSYSTEM: result assess {\"next_step\": \"Persuasion attempt 1 of 2: propose exactly 220 dollars for your credit card ending 2288 on Friday 16 October (2026-10-16). Ask if they can do that.\", \"say_it\": \"Say what next_step says, in your own short words. Do not add other offers.\"}\nAGENT: Could you pay 220 dollars for your credit card ending 2288 this Friday, 16 October?\nUSER: I cannot make that payment.\nSYSTEM: call assess {\"customer_id\": \"c_efb6a6ad-8db\"}\nSYSTEM: result assess {\"next_step\": \"Persuasion attempt 2 of 2: propose exactly 66 dollars for your credit card ending 2288 on Friday 23 October (2026-10-23). Say that the rest stays overdue. Ask if they can do that.\", \"say_it\": \"Say what next_step says, in your own short words. Do not add other offers.\"}\nAGENT: Ms Almeida, could you pay 66 dollars for your credit card ending 2288 on Friday 23 October? The rest would stay overdue. Can you do that?\nUSER: No, I won't be able to pay that.\nSYSTEM: call assess {\"customer_id\": \"c_efb6a6ad-8db\"}\nSYSTEM: result assess {\"next_step\": \"The persuasion attempts for the credit card ending 2288 are used up. Do not make another offer for it. Now the personal loan (p2). Do NOT ask about paying today again. Persuasion attempt 1 of 2: propose exactly 640 dollars for your personal loan on Friday 16 October (2026-10-16). Ask \nAGENT: Regarding your personal loan, could you pay 640 dollars this Friday, 16 October? Can you do that, Ms Almeida?\nUSER: I cannot pay that.\nSYSTEM: call assess {\"customer_id\": \"c_efb6a6ad-8db\"}\nSYSTEM: result assess {\"next_step\": \"Persuasion attempt 2 of 2: propose exactly 213 dollars for your personal loan on Friday 23 October (2026-10-23). Say that the rest stays overdue. Ask if they can do that.\", \"say_it\": \"Say what next_step says, in your own short words. Do not add other offers.\"}\nAGENT: Ms Almeida, could you pay 213 dollars for your personal loan on Friday 23 October? The rest would stay overdue. Can you do that?\nUSER: No, I cannot do that.\nSYSTEM: call assess {\"customer_id\": \"c_efb6a6ad-8db\"}\nSYSTEM: result assess {\"next_step\": \"The persuasion attempts for the personal loan are used up. Do not make another offer for it. Now the car loan (p3). Do NOT ask about paying today again. Persuasion attempt 1 of 1: propose exactly 75 dollars for your car loan on Friday 16 October (2026-10-16). Ask if they can do that.\"\nAGENT: Ms Almeida, could you pay 75 dollars for your car loan this Friday, 16 October? Can you do that?\nUSER: I cannot pay that.\nSYSTEM: call assess {\"customer_id\": \"c_efb6a6ad-8db\"}\nSYSTEM: result assess {\"next_step\": \"The persuasion attempts for the car loan are used up. Do not make another offer for it. Every product is settled and no promise was agreed. Say one short polite sentence. Do not offer anything else.\", \"say_it\": \"Say what next_step says, in your own short words. Do not add other offers\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"bank_name\\\":\\\"Freya Bank\\\",\\\"agent_identity\\\":\\\"Freya Bank\\\\'s digital assistant\\\",\\\"language\\\":\\\"English\\\",\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\nSYSTEM: result code_exec null\nSYSTEM: call api_call {\"text\": \"refused\", \"reason\": \"refused\", \"product_id\": \"p1\", \"customer_id\": \"c_efb6a6ad-8db\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call api_call {\"text\": \"refused\", \"reason\": \"refused\", \"product_id\": \"p2\", \"customer_id\": \"c_efb6a6ad-8db\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call api_call {\"text\": \"refused\", \"reason\": \"refused\", \"product_id\": \"p3\", \"customer_id\": \"c_efb6a6ad-8db\"}\nSYSTEM: result api_call {\"ok\": true}\nAGENT: Thank you for your time, Ms Almeida. Goodbye.\nSYSTEM: call api_call {\"reason\": \"refused\", \"outcome\": \"no_promise\", \"customer_id\": \"c_efb6a6ad-8db\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  },
+  {
+   "id": "EDGE-35",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": false,
+   "failed": [
+    "outcome ('paid', None), expected ('no_promise', 'dispute')",
+    "notes [('p1', 'paid'), ('p2', 'paid'), ('p3', 'paid')], expected [('p1', 'paid'), ('p2', 'dispute'), ('p3', 'refused')]",
+    "conversation: The agent incorrectly marked the personal loan as 'paid' instead of 'dispute' and failed to continue the car loan process with its early-band attempt, instead marking it as 'paid' as well."
+   ],
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "get_account",
+    "add_note",
+    "add_note",
+    "add_note",
+    "close_call"
+   ],
+   "call_id": "e8f1c71c-0cd7-4caf-8d1f-87b754f3aeed",
+   "customer_id": "c_592eb0bc-160",
+   "turns": 4,
+   "seconds": 56,
+   "slowest_turn_s": 12.6,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Ms Almeida?\nUSER: Yes, this is Sofia Almeida.\nAGENT: Thank you, Ms Almeida. For security, please tell me your date of birth.\nUSER: 3 June 1987.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1987-06-03\", \"customer_id\": \"c_592eb0bc-160\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: 2288.\nSYSTEM: call verify_phone_last4 {\"field\": \"phone_last4\", \"answer\": \"2288\", \"customer_id\": \"c_592eb0bc-160\"}\nSYSTEM: result verify_phone_last4 {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": true, \"what_to_do_next\": \"Correct. Move on now.\"}\nSYSTEM: call api_call {\"customer_id\": \"c_592eb0bc-160\"}\nSYSTEM: result api_call {\"ok\": true, \"products\": [{\"product_id\": \"p1\", \"type\": \"credit_card\", \"card_last4\": \"2288\", \"past_due\": 220, \"days_late\": 9, \"minimum_payment\": 66}, {\"product_id\": \"p2\", \"type\": \"personal_loan\", \"past_due\": 640, \"days_late\": 9, \"instalment_amount\": 213}, {\"product_id\": \"p3\", \"type\": \"car_loan\", \"pas\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"bank_name\\\":\\\"Freya Bank\\\",\\\"agent_identity\\\":\\\"Freya Bank\\\\'s digital assistant\\\",\\\"language\\\":\\\"English\\\",\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\nSYSTEM: result code_exec null\nAGENT: Thank you, Ms Almeida. I am calling from the collections team about a late payment. Your credit card ending 2288 has 220 dollars past due and is 9 days late. Your personal loan has 640 dollars past due and is 9 days late. Your car loan has 75 dollars past due and is 3 days late. Can you pay all of them today?\nUSER: I paid the card arrears this morning; the personal loan was closed and paid off two years ago.\nSYSTEM: call assess {\"customer_id\": \"c_592eb0bc-160\"}\nSYSTEM: result assess {\"next_step\": \"Say that payments can take one business day to appear. Take no promise for the credit card ending 2288, the personal loan, the car loan. Every product is settled and no promise was agreed. Say one short polite sentence. Do not offer anything else.\", \"say_it\": \"Say what next_step says,\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"bank_name\\\":\\\"Freya Bank\\\",\\\"agent_identity\\\":\\\"Freya Bank\\\\'s digital assistant\\\",\\\"language\\\":\\\"English\\\",\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\nSYSTEM: result code_exec null\nSYSTEM: call api_call {\"text\": \"paid\", \"reason\": \"paid\", \"product_id\": \"p1\", \"customer_id\": \"c_592eb0bc-160\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call api_call {\"text\": \"paid\", \"reason\": \"paid\", \"product_id\": \"p2\", \"customer_id\": \"c_592eb0bc-160\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call api_call {\"text\": \"paid\", \"reason\": \"paid\", \"product_id\": \"p3\", \"customer_id\": \"c_592eb0bc-160\"}\nSYSTEM: result api_call {\"ok\": true}\nAGENT: Payments can take one business day to appear. Thank you for your time, Ms Almeida. Goodbye.\nSYSTEM: call api_call {\"outcome\": \"paid\", \"customer_id\": \"c_592eb0bc-160\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  }
+ ]
+}

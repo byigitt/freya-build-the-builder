@@ -510,8 +510,8 @@ def compile_workflow(spec, openapi):
         "pay_today": "they agree to pay TODAY / right now. Only when they say today or now. A named day (Friday, tomorrow, the 20th) is propose, even for all products",
         "propose": "they name a day and/or an amount themselves (pass what they said in date and amount)",
         "accept_offer": "they accept the offer you just made",
-        "too_much": "they say the FULL amount is too much or that they could pay only part of it, without naming an amount (NOT a plain 'I can't pay')",
-        "refuse": "a clear no to paying or to your offer ('no', 'I can't pay', 'not now', 'not that day'), with no day and no amount",
+        "too_much": "they explicitly say the AMOUNT itself is too high for them or ask to pay a smaller part, without naming an amount. Not 'I cannot pay today' and not 'I cannot pay all of that today'",
+        "refuse": "a clear no with no day and no amount: 'no', 'I can't pay', 'not today', 'I cannot pay all of that today', 'not that day'. These are refusals, not too_much",
         "vague": "they give a vague period (next week, end of the month, when my salary comes) instead of a day",
         "no_answer": "their message does not answer your question (it trails off, is cut off, or only talks about something else)",
         "situation": "one of the PRIORITY SITUATIONS below (give its name in situation)",
@@ -522,7 +522,7 @@ def compile_workflow(spec, openapi):
     assess_body = {
         cid_field: CID,
         "a_event": {"type": "string", "enum": list(events), "default": "{{a_event}}", "description": "; ".join(k + " = " + v for k, v in events.items())},
-        "a_product": {"type": "string", "default": "{{a_product}}", "description": "The product id the answer is about (p1, p2, ...), or all when the answer is about every product."},
+        "a_product": {"type": "string", "default": "{{a_product}}", "description": "One product id (p1, p2, ...). Use all ONLY when the same answer explicitly applies to every remaining product. Never put a product the customer did not mention into all."},
         "a_date": {"type": "string", "default": "{{a_date}}", "description": "The day the customer said, as YYYY-MM-DD if you are sure, otherwise their exact words (for example: next Friday, the 26th). Empty if none."},
         "a_amount": {"type": "string", "default": "{{a_amount}}", "description": "The amount the customer said, as a number. Empty if none."},
     }
@@ -558,10 +558,13 @@ def compile_workflow(spec, openapi):
         "The result's next_step is what you say next, in your own short words. Say only that: never decide dates, amounts or offers yourself, never add an offer of your own, and never skip assess.\n"
         "   Call assess ONCE per customer message, never several at the same time. Products are handled one at a time: report the answer for the product the last instruction is about "
         "(now: {{current_product}}), or a_product all when the answer covers every product. What they say about later products is taken up when their turn comes. "
-        "A PRIORITY SITUATION about any product may be reported at once.\n"
+        "A PRIORITY SITUATION about any product may be reported at once. When one message says different things about different products "
+        "(for example 'I paid the card this morning, and the loan was closed years ago'), report each product separately, one assess call after the other "
+        "(wait for each result), each with its own event or situation. A recent payment of the past-due amount is paid; a claim that a product was closed or paid off in the past is a dispute.\n"
         "2. A day or an amount the customer names is never a refusal: use a_event propose. A message that trails off, is cut off or talks about something else is not a refusal: use a_event no_answer.\n"
         "3. When next_step says to read back, read it back exactly and ask \"" + T.get("confirm_question", "Do you confirm?") + "\". "
-        "When the customer clearly says yes to the read-back, call transition_to_confirm_promises. If they change a day or an amount instead, call assess with a_event propose.\n"
+        "When the customer clearly says yes to the read-back, call transition_to_confirm_promises. If the yes comes with a question, first answer it in one sentence "
+        "(for example: a recorded promise can be changed later in the mobile app), then call transition_to_confirm_promises. If they change a day or an amount instead, call assess with a_event propose.\n"
         "4. Never say a promise is recorded: that is said for you after it is recorded.\n"
         "5. People talk loosely. If a number or a date sounds unfinished (\"four hundred and...\", \"the twenty...\"), ask them to finish it before you call assess, and join the parts. "
         "If they correct themselves (\"the 21st, sorry, the 20th\"), use the corrected value. Amounts and dates said in words are normal: convert them. "

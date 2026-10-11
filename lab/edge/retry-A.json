@@ -1,0 +1,54 @@
+{
+ "workflow_id": "723bc1ba-f766-4c11-badd-a618779a80c4",
+ "rows": [
+  {
+   "id": "EDGE-18",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": true,
+   "failed": [],
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "get_account",
+    "get_account",
+    "get_account",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "call_id": "f6d8eec1-e314-4cf5-aba6-d1b0fece53dc",
+   "customer_id": "c_6c5ee14b-cf1",
+   "turns": 8,
+   "seconds": 69,
+   "slowest_turn_s": 8.3,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Ms Hoffmann?\nUSER: Yes, this is Lena Hoffmann.\nAGENT: Thank you, Ms Hoffmann. For security, please tell me your date of birth.\nUSER: 30 January 1984.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1984-01-30\", \"customer_id\": \"c_6c5ee14b-cf1\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: 2219.\nSYSTEM: call verify_phone_last4 {\"field\": \"phone_last4\", \"answer\": \"2219\", \"customer_id\": \"c_6c5ee14b-cf1\"}\nSYSTEM: result verify_phone_last4 {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": true, \"what_to_do_next\": \"Correct. Move on now.\"}\nSYSTEM: call api_call {\"customer_id\": \"c_6c5ee14b-cf1\"}\nSYSTEM: result api_call {\"ok\": true, \"products\": [{\"product_id\": \"p1\", \"type\": \"car_loan\", \"past_due\": 1250, \"days_late\": 14, \"instalment_amount\": 400}]}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"bank_name\\\":\\\"Freya Bank\\\",\\\"agent_identity\\\":\\\"Freya Bank\\\\'s digital assistant\\\",\\\"language\\\":\\\"English\\\",\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\nSYSTEM: result code_exec null\nAGENT: Thank you, Ms Hoffmann. I am calling from the collections team about a late payment. Your car loan has 1250 dollars past due and is 14 days late. Can you make this payment today?\nUSER: The full 1250 is too much.\nSYSTEM: call assess {\"customer_id\": \"c_6c5ee14b-cf1\"}\nSYSTEM: result assess {\"next_step\": \"Offer the instalment amount of 400 dollars instead, once. Say that the rest stays overdue. Ask on which day they can pay 400 dollars.\", \"say_it\": \"Say what next_step says, in your own short words. Do not add other offers.\"}\nAGENT: I understand, Ms Hoffmann. You can pay 400 dollars instead, and the rest will stay overdue. On which day can you pay the 400 dollars?\nUSER: No, I cannot pay that.\nSYSTEM: call assess {\"customer_id\": \"c_6c5ee14b-cf1\"}\nSYSTEM: result assess {\"next_step\": \"Persuasion attempt 1 of 2: propose exactly 400 dollars for your car loan on Friday 16 October (2026-10-16). Say that the rest stays overdue. Ask if they can do that.\", \"say_it\": \"Say what next_step says, in your own short words. Do not add other offers.\"}\nAGENT: Ms Hoffmann, could you pay 400 dollars for your car loan this Friday, 16 October? The rest would stay overdue.\nUSER: No, I will not pay that.\nSYSTEM: call assess {\"customer_id\": \"c_6c5ee14b-cf1\"}\nSYSTEM: result assess {\"next_step\": \"Persuasion attempt 2 of 2: propose exactly 400 dollars for your car loan on Friday 23 October (2026-10-23). Say that the rest stays overdue. Ask if they can do that.\", \"say_it\": \"Say what next_step says, in your own short words. Do not add other offers.\"}\nAGENT: Ms Hoffmann, could you pay 400 dollars for your car loan on Friday 23 October? The rest would stay overdue. Can you do that?\nUSER: Yes, I can pay 400 dollars on Friday 23 October. I confirm that.\nSYSTEM: call assess {\"customer_id\": \"c_6c5ee14b-cf1\"}\nSYSTEM: result assess {\"next_step\": \"Agreed for the car loan: 400 dollars on Friday 23 October. Every product is settled. Read back exactly this and wait for the answer: \\\"So that is 400 dollars for your car loan on Friday 23 October. Do you confirm?\\\" When the customer clearly says yes, call transition_to_confirm_promis\nAGENT: So that is 400 dollars for your car loan on Friday 23 October. Do you confirm?\nUSER: Yes, I confirm.\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"bank_name\\\":\\\"Freya Bank\\\",\\\"agent_identity\\\":\\\"Freya Bank\\\\'s digital assistant\\\",\\\"language\\\":\\\"English\\\",\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\nSYSTEM: result code_exec null\nSYSTEM: call api_call {\"date\": \"2026-10-23\", \"amount\": 400.0, \"product_id\": \"p1\", \"customer_id\": \"c_6c5ee14b-cf1\"}\nSYSTEM: result api_call {\"ok\": true, \"promise_id\": \"pr1\"}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"bank_name\\\":\\\"Freya Bank\\\",\\\"agent_identity\\\":\\\"Freya Bank\\\\'s digital assistant\\\",\\\"language\\\":\\\"English\\\",\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\nSYSTEM: result code_exec null\nAGENT: Your promise is recorded. You will receive a text message confirming this promise. Thank you for your time, Ms Hoffmann. Goodbye.\nSYSTEM: call api_call {\"outcome\": \"promise\", \"customer_id\": \"c_6c5ee14b-cf1\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  },
+  {
+   "id": "EDGE-20",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": false,
+   "failed": [
+    "conversation: The agent failed to direct the customer to the mobile app after the customer asked to change the recorded promise."
+   ],
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "call_id": "718bcc99-8268-44fb-8328-1a68e805f6fb",
+   "customer_id": "c_0ca780df-067",
+   "turns": 5,
+   "seconds": 37,
+   "slowest_turn_s": 8.4,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Mr Reyes?\nUSER: Yes, this is Daniel Reyes.\nAGENT: Thank you, Mr Reyes. For security, please tell me your date of birth.\nUSER: My date of birth is 14 March 1988.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1988-03-14\", \"customer_id\": \"c_0ca780df-067\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: The last four digits are 4471.\nSYSTEM: call verify_phone_last4 {\"field\": \"phone_last4\", \"answer\": \"4471\", \"customer_id\": \"c_0ca780df-067\"}\nSYSTEM: result verify_phone_last4 {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": true, \"what_to_do_next\": \"Correct. Move on now.\"}\nSYSTEM: call api_call {\"customer_id\": \"c_0ca780df-067\"}\nSYSTEM: result api_call {\"ok\": true, \"products\": [{\"product_id\": \"p1\", \"type\": \"credit_card\", \"card_last4\": \"4821\", \"past_due\": 420, \"days_late\": 6, \"minimum_payment\": 126}]}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"bank_name\\\":\\\"Freya Bank\\\",\\\"agent_identity\\\":\\\"Freya Bank\\\\'s digital assistant\\\",\\\"language\\\":\\\"English\\\",\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\nSYSTEM: result code_exec null\nAGENT: Thank you, Mr Reyes. I am calling from the collections team about a late payment. Your credit card ending 4821 has 420 dollars past due and is 6 days late. Can you make this payment today?\nUSER: Yes, I can pay the 420 today.\nSYSTEM: call assess {\"customer_id\": \"c_0ca780df-067\"}\nSYSTEM: result assess {\"next_step\": \"Agreed for the credit card ending 4821: 420 dollars on Wednesday 14 October. Every product is settled. Read back exactly this and wait for the answer: \\\"So that is 420 dollars for your credit card ending 4821 on Wednesday 14 October. Do you confirm?\\\" When the customer clearly says ye\nAGENT: So that is 420 dollars for your credit card ending 4821 on Wednesday 14 October. Do you confirm?\nUSER: Yes I confirm. Once that is recorded, can you change it to tomorrow for me?\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"bank_name\\\":\\\"Freya Bank\\\",\\\"agent_identity\\\":\\\"Freya Bank\\\\'s digital assistant\\\",\\\"language\\\":\\\"English\\\",\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\nSYSTEM: result code_exec null\nSYSTEM: call api_call {\"date\": \"2026-10-14\", \"amount\": 420.0, \"product_id\": \"p1\", \"customer_id\": \"c_0ca780df-067\"}\nSYSTEM: result api_call {\"ok\": true, \"promise_id\": \"pr1\"}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"bank_name\\\":\\\"Freya Bank\\\",\\\"agent_identity\\\":\\\"Freya Bank\\\\'s digital assistant\\\",\\\"language\\\":\\\"English\\\",\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\nSYSTEM: result code_exec null\nAGENT: Your promise is recorded. You will receive a text message confirming this promise. Thank you for your time, Mr Reyes. Goodbye.\nSYSTEM: call api_call {\"outcome\": \"promise\", \"customer_id\": \"c_0ca780df-067\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  }
+ ]
+}

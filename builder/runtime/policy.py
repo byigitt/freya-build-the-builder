@@ -854,7 +854,10 @@ def run_assess(vars, params):
             return
         all_events = ("pay_today", "propose_date", "propose", "accept_offer")
         if target in ("all", "every", "both", "everything", "") and len(st["products"]) > 1 and ev in all_events:
-            targets = open_products(st) if ev != "accept_offer" else [p for p in st["products"] if p["status"] == "offered"]
+            if ev == "accept_offer":
+                targets = [p for p in st["products"] if p["status"] == "offered"]
+            else:
+                targets = [p for p in st["products"] if p["status"] in ("open", "offered") or (p["status"] == "closed" and p.get("reason") in (cfg("reasons.refused", "refused"), cfg("reasons.hardship", "hardship")))]
         else:
             p0 = prod_by_id(st, target)
             targets = [p0] if p0 is not None else []
@@ -886,6 +889,9 @@ def assess_one(p, st, ev, amt, dt, today, multi=False, raw_date=None):
         hardship = cfg("reasons.hardship", "hardship")
         if ev in ("propose", "propose_date", "propose_amount", "pay_today") and p["status"] == "agreed":
             p["status"] = "open"
+        elif ev in ("propose", "propose_date", "propose_amount", "pay_today") and p["status"] == "closed" and p.get("reason") == cfg("reasons.refused", "refused"):
+            p["status"] = "open"             # they refused earlier but now name a day or an amount themselves
+            p["reason"] = None
         elif ev in ("propose", "propose_date", "propose_amount", "pay_today") and p["status"] == "closed" and p.get("reason") == hardship:
             p["status"] = "open"             # the customer still names a day or an amount: handle it, but never persuade
             p["no_persuasion"] = True
@@ -909,15 +915,11 @@ def assess_one(p, st, ev, amt, dt, today, multi=False, raw_date=None):
         p["reason"] = cfg("reasons.hardship", "hardship")
         return "Acknowledge kindly. Take no promise for the " + p["words"] + "."
     if ev == "no_answer":
+        # A cut-off or off-topic message is never a refusal: alternate a short prompt to go on with a brief repeat of the question.
         p["noans"] = int(p.get("noans") or 0) + 1
-        if p["noans"] < 2:
+        if p["noans"] % 2 == 1:
             return ask(p, "Their answer was cut off or did not answer. Do not repeat your question: just say something short like 'Go on, I am listening.'")
-        p["noans"] = 0
-        if p["status"] == "offered":
-            return refused_or_next(p, st, today)
-        if p.get("vague_asked"):
-            return make_offer(p, target_amount(p), datetime.date.fromisoformat(p["deadline"]), "no exact day was given", latest=False)
-        return refused_or_next(p, st, today)
+        return ask(p, "They still have not answered. Briefly repeat your last question once, in different words.")
     p["noans"] = 0
     if ev in ("accept_offer", "accept", "yes"):
         if p["status"] == "offered":

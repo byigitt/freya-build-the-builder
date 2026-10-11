@@ -798,7 +798,7 @@
         "instalment_amount": 400.0
       }
     ],
-    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Say full 1250 is too much. Refuse the 400 floor today. Refuse the floor on Friday October 16. Accept 400 only on Friday October 23 and confirm.",
+    "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. Say full 1250 is too much. On the first offer of the 400 floor, whether the agent asks if you can pay it or asks which day, respond only: No, I cannot pay that. Do not volunteer a date. When offered 400 on Friday October 16 refuse it, with no alternative date or amount. Only when the agent offers 400 on Friday October 23 accept and confirm.",
     "expected": {
       "outcome": "promise",
       "reason": null,

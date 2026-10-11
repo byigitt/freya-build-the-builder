@@ -205,7 +205,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the credit card ending 1234: 100 pounds on Friday 23 October. Agreed for the overdraft: 100 pounds on Thursday 22 October. Agreed for the mortgage: 100 pounds on Thursday 15 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your credit card ending 1234 on Friday 23 October, 100 pounds for your overdraft on Thursday 22 October (that is the latest date I can record for it) and 100 pounds for your mortgage on Thursday 15 October (that is the latest date I can record for it). Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the credit card ending 1234: 100 pounds on Friday 23 October. Agreed (not recorded yet: never say it is recorded) for the overdraft: 100 pounds on Thursday 22 October. Agreed (not recorded yet: never say it is recorded) for the mortgage: 100 pounds on Thursday 15 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your credit card ending 1234 on Friday 23 October, 100 pounds for your overdraft on Thursday 22 October (that is the latest date I can record for it) and 100 pounds for your mortgage on Thursday 15 October (that is the latest date I can record for it). Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -674,7 +674,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the overdraft: 100 pounds on Friday 23 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your overdraft on Friday 23 October. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the overdraft: 100 pounds on Friday 23 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your overdraft on Friday 23 October. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -839,7 +839,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the credit card ending 1234: 100 pounds on Monday 12 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your credit card ending 1234 on Monday 12 October. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the credit card ending 1234: 100 pounds on Monday 12 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your credit card ending 1234 on Monday 12 October. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -1028,7 +1028,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the credit card ending 1234: 50 pounds on Tuesday 13 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 50 pounds for your credit card ending 1234 on Tuesday 13 October. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the credit card ending 1234: 50 pounds on Tuesday 13 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 50 pounds for your credit card ending 1234 on Tuesday 13 October. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -1151,7 +1151,7 @@
                 "noans": 1
               }
             ],
-            "instruction": "Their answer was not clear. Briefly acknowledge what they said and repeat your last question once.",
+            "instruction": "Their answer was cut off or did not answer. Do not repeat your question: just say something short like 'Go on, I am listening.'",
             "phase": "negotiating"
           },
           {
@@ -1388,7 +1388,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the credit card ending 1234: 100 pounds on Monday 12 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your credit card ending 1234 on Monday 12 October. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the credit card ending 1234: 100 pounds on Monday 12 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your credit card ending 1234 on Monday 12 October. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           },
           {
@@ -1546,7 +1546,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the credit card ending 1234: 100 pounds on Tuesday 13 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your credit card ending 1234 on Tuesday 13 October. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the credit card ending 1234: 100 pounds on Tuesday 13 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your credit card ending 1234 on Tuesday 13 October. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           },
           {
@@ -2017,7 +2017,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the working capital loan: 100 euros on Friday 27 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 euros for your working capital loan on Friday 27 November. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the working capital loan: 100 euros on Friday 27 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 euros for your working capital loan on Friday 27 November. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -2182,7 +2182,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the business card ending 1234: 100 euros on Tuesday 24 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 euros for your business card ending 1234 on Tuesday 24 November. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the business card ending 1234: 100 euros on Tuesday 24 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 euros for your business card ending 1234 on Tuesday 24 November. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -2435,7 +2435,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the business card ending 1234: 100 euros on Friday 1 January. Agreed for the equipment finance: 100 euros on Friday 1 January. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 euros for your business card ending 1234 on Friday 1 January and 100 euros for your equipment finance on Friday 1 January. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the business card ending 1234: 100 euros on Friday 1 January. Agreed (not recorded yet: never say it is recorded) for the equipment finance: 100 euros on Friday 1 January. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 euros for your business card ending 1234 on Friday 1 January and 100 euros for your equipment finance on Friday 1 January. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -3102,7 +3102,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the working capital loan: 100 euros on Monday 30 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 euros for your working capital loan on Monday 30 November. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the working capital loan: 100 euros on Monday 30 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 euros for your working capital loan on Monday 30 November. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -3267,7 +3267,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the business card ending 1234: 100 euros on Tuesday 24 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 euros for your business card ending 1234 on Tuesday 24 November. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the business card ending 1234: 100 euros on Tuesday 24 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 euros for your business card ending 1234 on Tuesday 24 November. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -3378,7 +3378,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the business card ending 1234: 100 euros on Monday 16 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 euros for your business card ending 1234 on Monday 16 November. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the business card ending 1234: 100 euros on Monday 16 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 euros for your business card ending 1234 on Monday 16 November. Do you agree to these payment promises?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           },
           {
@@ -3576,7 +3576,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the personal loan: 100 pounds on Tuesday 27 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your personal loan on Tuesday 27 October. Do you agree to this payment promise?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the personal loan: 100 pounds on Tuesday 27 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your personal loan on Tuesday 27 October. Do you agree to this payment promise?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -3692,7 +3692,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the personal loan: 100 pounds on Monday 2 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your personal loan on Monday 2 November. Do you agree to this payment promise?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the personal loan: 100 pounds on Monday 2 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your personal loan on Monday 2 November. Do you agree to this payment promise?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -3808,7 +3808,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the personal loan: 100 pounds on Saturday 7 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your personal loan on Saturday 7 November. Do you agree to this payment promise?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the personal loan: 100 pounds on Saturday 7 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your personal loan on Saturday 7 November. Do you agree to this payment promise?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -4011,7 +4011,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the personal loan: 100 pounds on Tuesday 1 December. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your personal loan on Tuesday 1 December. Do you agree to this payment promise?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the personal loan: 100 pounds on Tuesday 1 December. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your personal loan on Tuesday 1 December. Do you agree to this payment promise?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -4417,7 +4417,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the personal loan: 100 pounds on Monday 2 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your personal loan on Monday 2 November. Do you agree to this payment promise?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the personal loan: 100 pounds on Monday 2 November. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 100 pounds for your personal loan on Monday 2 November. Do you agree to this payment promise?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -4772,7 +4772,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the personal loan: 50 pounds on Tuesday 27 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 50 pounds for your personal loan on Tuesday 27 October. Do you agree to this payment promise?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the personal loan: 50 pounds on Tuesday 27 October. Every product is settled. Read back exactly this and wait for the answer: \"Please check these payment details: 50 pounds for your personal loan on Tuesday 27 October. Do you agree to this payment promise?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -5002,7 +5002,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the credit card ending 1234: 100 pounds on Thursday 12 November. Agreed for the term loan: 100 pounds on Monday 9 November. Agreed for the overdraft: 100 pounds on Friday 6 November. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100 pounds for your credit card ending 1234 on Thursday 12 November, 100 pounds for your term loan on Monday 9 November (that is the latest date I can record for it) and 100 pounds for your overdraft on Friday 6 November (that is the latest date I can record for it). Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the credit card ending 1234: 100 pounds on Thursday 12 November. Agreed (not recorded yet: never say it is recorded) for the term loan: 100 pounds on Monday 9 November. Agreed (not recorded yet: never say it is recorded) for the overdraft: 100 pounds on Friday 6 November. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100 pounds for your credit card ending 1234 on Thursday 12 November, 100 pounds for your term loan on Monday 9 November (that is the latest date I can record for it) and 100 pounds for your overdraft on Friday 6 November (that is the latest date I can record for it). Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -5179,7 +5179,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the overdraft: 22.51 pounds on Tuesday 27 October. Every product is settled. Read back exactly this and wait for the answer: \"So that is 22.51 pounds for your overdraft on Tuesday 27 October. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the overdraft: 22.51 pounds on Tuesday 27 October. Every product is settled. Read back exactly this and wait for the answer: \"So that is 22.51 pounds for your overdraft on Tuesday 27 October. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -5297,7 +5297,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the overdraft: 22.50 pounds on Tuesday 27 October. Every product is settled. Read back exactly this and wait for the answer: \"So that is 22.50 pounds for your overdraft on Tuesday 27 October. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the overdraft: 22.50 pounds on Tuesday 27 October. Every product is settled. Read back exactly this and wait for the answer: \"So that is 22.50 pounds for your overdraft on Tuesday 27 October. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -5990,7 +5990,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the overdraft: 100 pounds on Tuesday 27 October. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100 pounds for your overdraft on Tuesday 27 October. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the overdraft: 100 pounds on Tuesday 27 October. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100 pounds for your overdraft on Tuesday 27 October. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -6172,7 +6172,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the credit card ending 1234: 100 pounds on Monday 26 October. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100 pounds for your credit card ending 1234 on Monday 26 October. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the credit card ending 1234: 100 pounds on Monday 26 October. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100 pounds for your credit card ending 1234 on Monday 26 October. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           },
           {
@@ -7000,7 +7000,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the buy now pay later purchase desk: 100.01 pounds on Friday 6 November. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100.01 pounds for your buy now pay later purchase desk on Friday 6 November. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the buy now pay later purchase desk: 100.01 pounds on Friday 6 November. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100.01 pounds for your buy now pay later purchase desk on Friday 6 November. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -7430,7 +7430,7 @@
                 "offer_kind": "persuasion"
               }
             ],
-            "instruction": "Agreed for the buy now pay later purchase desk: 40 pounds on Tuesday 3 November. Now the buy now pay later purchase desk (p2). Do NOT ask about paying today again. Persuasion attempt 1 of 2: propose exactly 100.02 pounds for your buy now pay later purchase desk on Wednesday 4 November (2026-11-04). Ask if they can do that.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the buy now pay later purchase desk: 40 pounds on Tuesday 3 November. Now the buy now pay later purchase desk (p2). Do NOT ask about paying today again. Persuasion attempt 1 of 2: propose exactly 100.02 pounds for your buy now pay later purchase desk on Wednesday 4 November (2026-11-04). Ask if they can do that.",
             "phase": "negotiating"
           },
           {
@@ -7496,7 +7496,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the buy now pay later purchase desk: 40.01 pounds on Tuesday 3 November. Every product is settled. Read back exactly this and wait for the answer: \"So that is 40 pounds for your buy now pay later purchase desk on Tuesday 3 November and 40.01 pounds for your buy now pay later purchase desk on Tuesday 3 November. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the buy now pay later purchase desk: 40.01 pounds on Tuesday 3 November. Every product is settled. Read back exactly this and wait for the answer: \"So that is 40 pounds for your buy now pay later purchase desk on Tuesday 3 November and 40.01 pounds for your buy now pay later purchase desk on Tuesday 3 November. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -7727,7 +7727,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the credit card ending 1234: 100 pounds on Monday 16 November. Agreed for the buy now pay later purchase desk: 100 pounds on Friday 13 November. Agreed for the buy now pay later purchase desk: 100 pounds on Wednesday 11 November. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100 pounds for your credit card ending 1234 on Monday 16 November, 100 pounds for your buy now pay later purchase desk on Friday 13 November (that is the latest date I can record for it) and 100 pounds for your buy now pay later purchase desk on Wednesday 11 November (that is the latest date I can record for it). Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the credit card ending 1234: 100 pounds on Monday 16 November. Agreed (not recorded yet: never say it is recorded) for the buy now pay later purchase desk: 100 pounds on Friday 13 November. Agreed (not recorded yet: never say it is recorded) for the buy now pay later purchase desk: 100 pounds on Wednesday 11 November. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100 pounds for your credit card ending 1234 on Monday 16 November, 100 pounds for your buy now pay later purchase desk on Friday 13 November (that is the latest date I can record for it) and 100 pounds for your buy now pay later purchase desk on Wednesday 11 November (that is the latest date I can record for it). Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -8129,7 +8129,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the buy now pay later purchase desk: 100 pounds on Tuesday 3 November. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100 pounds for your buy now pay later purchase desk on Tuesday 3 November. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the buy now pay later purchase desk: 100 pounds on Tuesday 3 November. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100 pounds for your buy now pay later purchase desk on Tuesday 3 November. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           }
         ],
@@ -8311,7 +8311,7 @@
                 "pending_floor": false
               }
             ],
-            "instruction": "Agreed for the credit card ending 1234: 100 pounds on Tuesday 3 November. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100 pounds for your credit card ending 1234 on Tuesday 3 November. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
+            "instruction": "Agreed (not recorded yet: never say it is recorded) for the credit card ending 1234: 100 pounds on Tuesday 3 November. Every product is settled. Read back exactly this and wait for the answer: \"So that is 100 pounds for your credit card ending 1234 on Tuesday 3 November. Do you confirm?\" When the customer clearly says yes, call transition_to_confirm_promises.",
             "phase": "readback"
           },
           {

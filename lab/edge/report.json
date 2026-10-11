@@ -1,0 +1,104 @@
+{
+  "case_file": "lab/edge/edge-cases.json",
+  "cases": 38,
+  "counts": {
+    "A": 27,
+    "B": 11
+  },
+  "results": {
+    "initial_valid": {
+      "A": {
+        "passed": 25,
+        "failed": 2
+      },
+      "B": {
+        "passed": 9,
+        "failed": 2
+      }
+    },
+    "one_retry_failures_only": {
+      "A": {
+        "passed": 1,
+        "failed": 1
+      },
+      "B": {
+        "passed": 1,
+        "failed": 1
+      }
+    },
+    "latest_per_case": {
+      "A": {
+        "passed": 26,
+        "failed": 1
+      },
+      "B": {
+        "passed": 10,
+        "failed": 1
+      }
+    }
+  },
+  "notes": [
+    "Pre-owner harness-fix runs invalidated; run-B-invalidated.json is not included. Old A run and old B retry cancelled at owner direction.",
+    "No PUB-10 sessions used. Identity/products/variables copied from each session_case.",
+    "No production files changed or workflows deployed by this worker.",
+    "Latest-per-case results do not establish three-run stability. EDGE-31 remains an observed intermittent bug despite a passing retry.",
+    "EDGE-18 persona clarified before its single retry so a day question does not elicit a premature voluntary date. No expected ledger changed.",
+    "EDGE-20 probes a question about changing the promise after recording, asked in the confirmation turn; actual post-record customer interruption is not exercised because the graph closes immediately."
+  ],
+  "failures": [
+    {
+      "id": "EDGE-18",
+      "class": "b",
+      "reason": "Persona volunteered October 23 instead of refusing the first floor offer; judge then incorrectly demanded unused persuasion attempts. Clarified persona, retry passed.",
+      "initial_call": "756e0432-4d7d-46c5-843d-ebfdf373000c",
+      "retry_call": "f6d8eec1-e314-4cf5-aba6-d1b0fece53dc",
+      "retry": "pass"
+    },
+    {
+      "id": "EDGE-20",
+      "class": "c",
+      "reason": "Confirmation plus a question about changing the recorded promise immediately commits and closes without answering mobile-app question.",
+      "initial_call": "be1d53f6-d8a3-4b45-ad91-b7d80a3fa229",
+      "retry_call": "718bcc99-8268-44fb-8328-1a68e805f6fb",
+      "retry": "fail"
+    },
+    {
+      "id": "EDGE-31",
+      "class": "c",
+      "reason": "I cannot pay all of that today is classified too_much/all rather than refusal, incorrectly offering floor 66 before the required full 220 attempt 1.",
+      "initial_call": "558c8c47-79b3-451b-bc56-b988fd970cad",
+      "retry_call": "2a1ca748-b09c-4bb5-afee-f8bec3c81946",
+      "retry": "pass"
+    },
+    {
+      "id": "EDGE-35",
+      "class": "c",
+      "reason": "Mixed card-paid/personal-loan-dispute statement becomes situation/all/paid, incorrectly marking even unmentioned car loan paid.",
+      "initial_call": "6aec9dcd-c9f4-4e06-9b4d-39fd70e3e49d",
+      "retry_call": "e8f1c71c-0cd7-4caf-8d1f-87b754f3aeed",
+      "retry": "fail"
+    }
+  ],
+  "proposed_patches": [
+    {
+      "case": "EDGE-20",
+      "file_lines": "builder/compile.py:563-576",
+      "root_cause": "Unconditional clear-yes transition preempts the rest of the confirmation utterance; commit/finalize pipeline has no subsequent conversational turn.",
+      "snippet": "\"Before transition_to_confirm_promises, answer any question included with the confirmation. \"\n\"If they ask about changing or cancelling the promise once recorded, explain that a recorded promise cannot be changed or cancelled in this call and they can change it in the mobile app. \"\n\"If they instead request a new date or amount now, call assess with propose, read it back again and obtain confirmation. \"\n\"Only transition when the current read-back is confirmed and no question or change remains unanswered.\\n\"",
+      "transition_description": "The current read-back is clearly confirmed, with no unanswered question and no requested change remaining."
+    },
+    {
+      "case": "EDGE-31",
+      "file_lines": "builder/compile.py:513-514 and 562",
+      "root_cause": "Classifier does not explicitly distinguish inability to pay today/all today from unaffordability of the product full amount. Exact failed event was [too_much,all,null,null,empty].",
+      "snippet": "\"too_much\": \"explicitly says the product FULL AMOUNT is unaffordable or asks to pay a smaller part, without naming an amount. Not a refusal to pay today or all products today\",\n\"refuse\": \"a clear no with no alternative date or amount. Includes I cannot pay all of that today and I cannot pay today. These are refusals, not too_much, unless they explicitly say the amount itself is too high\","
+    },
+    {
+      "case": "EDGE-35",
+      "file_lines": "builder/compile.py:525,559-561; downstream builder/runtime/policy.py:835-848",
+      "root_cause": "One-event prompt permits all for heterogeneous multi-product utterances; policy faithfully closes all open products with that single paid reason. Exact failed event [situation,all,null,null,paid].",
+      "snippet": "\"a_product\": {\"type\": \"string\", \"default\": \"{{a_product}}\", \"description\": \"One product id (p1, p2, ...). Use all only when the SAME event and SAME situation explicitly apply to EVERY unresolved product. Never include an unmentioned product or combine paid/disputed/refused products into all.\"},",
+      "prompt_addition": "\"For mixed statements about different products, report only the current product with its own event and situation; retain the other clauses for those products’ turns. Never generalize one product’s payment to other products. A recent payment of arrears is paid; a product allegedly paid off or closed in the past is dispute. After settling the current product, use the remembered claim when that product is discussed; do not turn a historical payoff into paid.\\n\""
+    }
+  ]
+}

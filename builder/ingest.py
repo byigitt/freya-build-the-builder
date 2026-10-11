@@ -33,6 +33,22 @@ def _describe(data, mime, name, trace=None):
         return ""
 
 
+def _describe_page(page, name, trace=None):
+    """Tall pages (long flow drawings) are read in overlapping slices so small labels stay legible."""
+    import pymupdf
+    r = page.rect
+    parts = max(1, min(6, int(round(r.height / max(r.width, 1)))))
+    if parts == 1:
+        return _describe(page.get_pixmap(dpi=110).tobytes("png"), "image/png", name, trace)
+    out = []
+    for k in range(parts):
+        y0, y1 = max(0, r.height * k / parts - 40), min(r.height, r.height * (k + 1) / parts + 40)
+        png = page.get_pixmap(dpi=110, clip=pymupdf.Rect(0, y0, r.width, y1)).tobytes("png")
+        out.append("[part %d of %d, top to bottom; arrows may continue from the previous part]\n" % (k + 1, parts)
+                   + _describe(png, "image/png", "%s part %d/%d" % (name, k + 1, parts), trace))
+    return "\n".join(out)
+
+
 def _html(text):
     import html, re
     text = re.sub(r"(?is)<(script|style).*?</\1>", " ", text)
@@ -184,8 +200,9 @@ def load_case(paths, trace=None):
                         for i, page in enumerate(doc, 1):
                             t = page.get_text()
                             # a page that is mostly a drawing (flowchart, scan) is read by a vision model
-                            if len(t.strip()) < 200 and (page.get_images() or page.get_drawings()):
-                                d = _describe(page.get_pixmap(dpi=110).tobytes("png"), "image/png", "%s page %d" % (path.name, i), trace)
+                            # a flowchart keeps its box labels as text but its arrows only as drawings: read those pages too
+                            if (len(t.strip()) < 200 and (page.get_images() or page.get_drawings())) or len(page.get_drawings()) > 30:
+                                d = _describe_page(page, "%s page %d" % (path.name, i), trace)
                                 t = (t + "\n[page drawing]\n" + d) if d else t
                             pages.append(t)
                     text = "\n".join(pages)

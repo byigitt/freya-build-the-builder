@@ -7,7 +7,7 @@
     }
   ],
   "repo": "https://github.com/byigitt/freya-build-the-builder",
-  "commit": "08cd637",
+  "commit": "d3ebd46",
   "run_command": "python3 builder/build.py {case_folder} {mock_url}",
   "workflow": "submission/final.workflow.json",
   "trace": "traces/final.log",

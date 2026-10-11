@@ -35,7 +35,7 @@
 
    ```json
    {
-     "team": "<team name>",
+     "team": "wired",
      "repo": "https://github.com/byigitt/freya-build-the-builder",
      "commit": "<short hash from step 4>",
      "run_command": "python3 builder/build.py {brief_path} {tool_api_path}",
@@ -44,4 +44,4 @@
    }
    ```
 
-The repository must be readable by the organisers (make it public, or add them as collaborators) before sending the form.
+Before sending the form, make the repository public: `gh repo edit byigitt/freya-build-the-builder --visibility public --accept-visibility-change-consequences`.

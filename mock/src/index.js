@@ -1,92 +1,118 @@
-// Mock of the bank's statement services for the final case, served from the bank's own test data
-// (src/test-customers.json: per customer, per service, per card (and week) the exact HTTP status and body).
+// Mock of Freya Bank's statement services (service contract of 2026-10-01, section 5), serving exactly the
+// answers of the bank's test environment (src/test-customers.json): same paths, envelope, status codes and bodies.
 import DATA from "./test-customers.json";
 
 const SERVICES = ["cards.list", "cards.balance", "statement.week.get", "statement.week.decide", "statement.week.change", "contact.email.get", "statement.pdf.send"];
-const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-const BY_NORM = Object.fromEntries(SERVICES.map((s) => [norm(s), s]));
+const LOOKUP = {               // what each service is looked up by (test-customers.md)
+  "cards.list": ["customerNo"],
+  "cards.balance": ["cardNumber"],
+  "statement.week.get": ["cardNumber"],
+  "statement.week.decide": ["cardNumber", "newStatementWeek"],
+  "statement.week.change": ["cardNumber", "newStatementWeek"],
+  "contact.email.get": ["customerNo"],
+  "statement.pdf.send": ["customerNo"],
+};
+const REQUIRED = {             // a missing or empty field gives 400 INVALID_ARGUMENTS_ERROR (contract section 4)
+  "cards.list": ["customerNo"],
+  "cards.balance": ["cardNumber"],
+  "statement.week.get": ["cardNumber"],
+  "statement.week.decide": ["cardNumber", "newStatementWeek", "statementDay"],
+  "statement.week.change": ["cardNumber", "newStatementWeek", "statementDay"],
+  "contact.email.get": ["customerNo", "intAddressInfoType"],
+  "statement.pdf.send": ["customerNo", "cardNumber", "currencyType", "statementDate", "emailAddress"],
+};
+const NOT_FOUND = {            // the 404 of each service, where the contract has one
+  "cards.list": ["FB_IVR_CHANNEL_102", "Müşteriye ait geçerli kart bilgisi bulunamadı."],
+  "cards.balance": ["FB_IVR_CHANNEL_120", "Kart bilgisi bulunamadı."],
+  "statement.week.get": ["FB_IVR_CHANNEL_121", "Kart bilgisi bulunamadı."],
+  "statement.pdf.send": ["FB_IVR_CHANNEL_107", "Pdf dokümanı bulunamadı"],
+};
 const CUSTOMERS = Object.fromEntries(DATA.customers.map((c) => [String(c.customerNo), c]));
+const CORS = { "Access-Control-Allow-Origin": "*" };
 const LOG = [];
 
-const json = (body, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } });
+const json = (body, status = 200) => Response.json(body, { status, headers: CORS });
+const guid = () => crypto.randomUUID().replace(/-/g, "");
+const isTemplate = (v) => typeof v === "string" && (v.includes("{{") || v.startsWith("%7B%7B"));
 
-function serviceOf(path) {
-  const p = norm(path);
-  if (BY_NORM[p]) return BY_NORM[p];
-  // longest service name contained in the path (e.g. /api/v1/statement/week/decide)
-  const hit = SERVICES.filter((s) => p.endsWith(norm(s)) || p.includes(norm(s))).sort((a, b) => b.length - a.length)[0];
-  return hit || null;
+function error(status, code, message, type) {
+  const g = guid();
+  return json({ result: { guid: g, returnCode: code, messageText: message, code, message, type,
+    details: { guid: g, rootCause: type === "ERROR" ? "InvalidArgumentsException" : "NotFoundException", errorOrigin: "ivr-gateway-test:ivr-channel-v0" } } }, status);
+}
+const invalid = (field) => error(400, "INVALID_ARGUMENTS_ERROR", field + " cannot be empty", "ERROR");
+function notFound(service) {
+  const nf = NOT_FOUND[service];
+  return nf ? error(404, nf[0], nf[1], "WARNING") : error(400, "INVALID_ARGUMENTS_ERROR", "invalid arguments", "ERROR");
 }
 
-function flat(obj, out = {}) {
-  for (const [k, v] of Object.entries(obj || {})) {
-    if (v && typeof v === "object" && !Array.isArray(v)) flat(v, out);
-    else out[k] = v;
+const digits = (s) => String(s ?? "").replace(/\D/g, "");
+function cardKey(table, value) {
+  const v = String(value ?? "").trim();
+  if (table[v]) return v;
+  const d = digits(v);                         // same card written differently: first six + last four must match
+  const m = Object.keys(table).filter((k) => d.length >= 10 && digits(k) === d.slice(0, 6) + d.slice(-4));
+  return m.length === 1 ? m[0] : null;
+}
+
+function firstRecord(service) {                // the panel's "Test API Request" sends unfilled {{variables}}
+  for (const c of DATA.customers) {
+    let e = c.services[service];
+    while (e && e.http === undefined) e = e[Object.keys(e)[0]];
+    if (e) return e;
   }
-  return out;
-}
-
-function findCustomer(f) {
-  for (const [k, v] of Object.entries(f)) if (/cust|musteri|müşteri/i.test(k) && CUSTOMERS[String(v).trim()]) return CUSTOMERS[String(v).trim()];
-  for (const v of Object.values(f)) if (CUSTOMERS[String(v).trim()]) return CUSTOMERS[String(v).trim()];
   return null;
 }
 
-function pickKey(table, f, prefer) {
-  const keys = Object.keys(table || {});
-  const vals = Object.entries(f).filter(([k]) => !prefer || prefer.test(k)).map(([, v]) => String(v ?? "").replace(/\s/g, ""));
-  for (const v of vals) if (keys.includes(v)) return v;                                  // exact (masked) card number
-  const digits = (s) => s.replace(/\D/g, "");
-  for (const v of vals) {                                                                   // same last digits
-    const d = digits(v);
-    if (d.length >= 4) {
-      const m = keys.filter((k) => digits(k).endsWith(d.slice(-4)) && (d.length < 10 || digits(k).startsWith(d.slice(0, 6))));
-      if (m.length === 1) return m[0];
+async function answer(service, data) {
+  if (Object.values(data).some(isTemplate)) {
+    const e = firstRecord(service);
+    return e ? json(e.response, e.http) : notFound(service);
+  }
+  for (const f of REQUIRED[service]) {
+    if (data[f] === undefined || data[f] === null || String(data[f]).trim() === "") return invalid(f);
+  }
+  let entry;
+  if (LOOKUP[service][0] === "customerNo") {
+    const c = CUSTOMERS[String(data.customerNo).trim()];
+    entry = c && c.services[service];
+  } else {
+    let table = null;
+    for (const c of DATA.customers) {
+      const t = c.services[service];
+      if (t && cardKey(t, data.cardNumber)) { table = t; break; }
     }
+    entry = table && table[cardKey(table, data.cardNumber)];
+    if (entry && LOOKUP[service][1]) entry = entry[String(data.newStatementWeek).trim()];
   }
-  return null;
+  if (!entry) return notFound(service);
+  const delay = entry.delaySeconds ?? entry.gecikmeSaniye;
+  if (delay) await new Promise((r) => setTimeout(r, delay * 1000));
+  return json(entry.response ?? entry.yanit, entry.http);
 }
 
 async function handle(request) {
   const url = new URL(request.url);
-  const path = url.pathname.replace(/\/+$/, "") || "/";
-  if (path === "/_health") return json({ ok: true, customers: Object.keys(CUSTOMERS).length });
+  if (request.method === "OPTIONS") return new Response(null, { headers: { ...CORS, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "*" } });
+  const path = url.pathname.replace(/\/+$/, "");
+  if (path === "/health" || path === "/_health") return json({ durum: "ok", customers: DATA.customers.length });
   if (path === "/_log") return json(LOG.slice(-300));
+  const service = SERVICES.find((s) => path === "/voice/v1/" + s || path === "/" + s);
+  if (!service) return json({ hata: "bulunamadı", yollar: SERVICES.map((s) => "POST /voice/v1/" + s) }, 404);
   let body = {};
-  if (request.method !== "GET") { try { body = await request.json(); } catch { body = {}; } }
-  for (const [k, v] of url.searchParams) body[k] = v;
-  const service = serviceOf(path);
-  if (!service) return json({ error: "unknown service " + path }, 404);
-  const f = flat(body);
-  const cust = findCustomer(f);
-  if (!cust) return json({ data: null, result: { returnCode: "0", messageText: "Customer not found", code: "0", message: "Customer not found" } }, 404);
-  let entry = cust.services[service];
-  if (!entry) return json({ data: null, result: { returnCode: "0", messageText: "No data for this customer", code: "0", message: "No data" } }, 404);
-  if (entry.http === undefined) {
-    const card = pickKey(entry, f, /card|kart/i) || pickKey(entry, f);
-    if (!card) return json({ data: null, result: { returnCode: "0", messageText: "Card not found", code: "0", message: "Card not found" } }, 404);
-    entry = entry[card];
-    if (entry.http === undefined) {
-      const wk = Object.entries(f).find(([k]) => /week|hafta/i.test(k));
-      const w = wk ? String(wk[1]).replace(/\D/g, "") : "";
-      entry = entry[w];
-      if (!entry) return json({ data: null, result: { returnCode: "0", messageText: "Week not available", code: "0", message: "Week not available" } }, 400);
-    }
-  }
-  if (entry.gecikmeSaniye) await new Promise((r) => setTimeout(r, entry.gecikmeSaniye * 1000));
-  return json(entry.response ?? entry.yanit ?? {}, entry.http || 200);
+  try { body = await request.json(); } catch { body = {}; }
+  const data = body && typeof body.data === "object" && body.data ? body.data : body;   // envelope {data, call}
+  return answer(service, data || {});
 }
 
 export default {
   async fetch(request) {
-    const res = await handle(request.clone());
-    try {
-      let body = null;
-      try { body = await request.json(); } catch { body = null; }
-      LOG.push({ t: new Date().toISOString(), path: new URL(request.url).pathname, body, status: res.status });
-      if (LOG.length > 1000) LOG.splice(0, LOG.length - 1000);
-    } catch {}
+    const copy = request.clone();
+    const res = await handle(request);
+    let body = null;
+    try { body = await copy.json(); } catch { body = null; }
+    LOG.push({ t: new Date().toISOString(), path: new URL(request.url).pathname, body, status: res.status });
+    if (LOG.length > 1000) LOG.splice(0, LOG.length - 1000);
     return res;
   },
 };

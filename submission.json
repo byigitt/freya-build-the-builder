@@ -1,0 +1,10 @@
+{
+  "team": "wired",
+  "members": [{"name": "Barış Bayburtlu", "email": "barisbayburtlu33@gmail.com"}],
+  "repo": "https://github.com/byigitt/freya-build-the-builder",
+  "commit": "TO_FILL",
+  "run_command": "python3 builder/build.py {case_folder} {mock_url}",
+  "workflow": "submission/final.workflow.json",
+  "trace": "traces/final.log",
+  "mock_url": "https://wired-bank-mock.barisbayburtlu33.workers.dev"
+}

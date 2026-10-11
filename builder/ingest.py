@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 WORD = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 SHEET = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 REL = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+MAX_FILE_CHARS = int(__import__("os").environ.get("BUILDER_MAX_FILE_CHARS", "24000"))
 TEXT_SUFFIXES = {".md", ".txt", ".csv", ".tsv", ".json", ".yaml", ".yml", ".eml", ".xml", ".log"}
 IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp"}
 VISION_MODEL = "anthropic/claude-opus-5.5"
@@ -219,6 +220,10 @@ def load_case(paths, trace=None):
                     warnings.warn("Skipping unreadable file %s" % path, stacklevel=2)
                     continue
             name = path.relative_to(root).as_posix()
+            if len(text) > MAX_FILE_CHARS:
+                # a bulk data file (test records, exports) would drown the documents: keep its head as a sample
+                text = (text[:MAX_FILE_CHARS] + "\n[... file truncated: %d of %d characters shown. It is bulk data; read "
+                        "its structure from the sample above and its overview documents.]" % (MAX_FILE_CHARS, len(text)))
             files.append(name)
             chunks.append("=== FILE: " + name + " ===\n" + text)
             if openapi is None:

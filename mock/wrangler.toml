@@ -2,10 +2,10 @@ name = "wired-bank-mock"
 main = "src/index.js"
 compatibility_date = "2026-10-01"
 
-[[durable_objects.bindings]]
-name = "BANK"
-class_name = "Bank"
-
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Bank"]
+
+[[migrations]]
+tag = "v2"
+deleted_classes = ["Bank"]

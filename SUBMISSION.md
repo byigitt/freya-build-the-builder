@@ -1,47 +1,42 @@
-# Sunday runbook (hidden briefs open 17:00 UTC, submissions close 20:00 UTC)
+# Final runbook (final case opens 17:00 UTC, submissions close 20:00 UTC)
 
-1. Get the latest builder and the keys.
+The final is one case (Turkish). Input: a zip with a folder of the bank's documents (Markdown, Word, PDF, Excel):
+`BRIEF.md`, `README.md`, a service contract, test customers and six example conversations.
 
-   ```bash
-   git pull && source env.sh
-   ```
-
-2. Save each hidden brief and its tool API file next to the public ones:
-
-   ```
-   briefs/hidden-1.md   briefs/hidden-1.openapi.json
-   briefs/hidden-2.md   briefs/hidden-2.openapi.json
-   ```
-
-3. Run the builder once per brief and keep everything it prints (about 3 minutes each):
+1. Get the latest builder and the keys: `git pull && source env.sh`.
+2. Unzip the case into `cases/` (for example `cases/<CaseFolder>/`).
+3. Write the mock of the bank's services in `mock/` (Cloudflare Workers) from the service contract and the test
+   customers: `mock/src/routes.js` (endpoints), `mock/src/customers.js` (data). Deploy with `cd mock && wrangler deploy`.
+   URL: `https://wired-bank-mock.barisbayburtlu33.workers.dev`. Keep it running until the results are out.
+   Debug endpoints: `GET /_health`, `GET /_log`, `GET /_records`, `POST /_reset`.
+4. Run the builder on the folder and keep everything it prints:
 
    ```bash
-   python3 builder/build.py briefs/hidden-1.md briefs/hidden-1.openapi.json 2>&1 | tee traces/hidden-1.log
-   python3 builder/build.py briefs/hidden-2.md briefs/hidden-2.openapi.json 2>&1 | tee traces/hidden-2.log
+   python3 builder/build.py cases/<CaseFolder> https://wired-bank-mock.barisbayburtlu33.workers.dev 2>&1 | tee traces/final.log
    ```
 
-   Each run exports its phone agent to `submission/<brief>.workflow.json` and writes a detailed trace to
-   `traces/<brief>-<time>.log`. Check the trace: `self-test problems: 0`, `bank-call audit: every bank call sends ...`,
-   and the chat smoke test line. Do not edit the phone agent after the run. If a run fails, fix the builder (never by
-   writing anything from a hidden brief into it), commit the fix, and run again.
-
-4. Commit and push the traces and the exported workflows:
+   It exports the phone agent to `submission/<CaseFolder>.workflow.json`. Copy it to `submission/final.workflow.json`.
+   Do not edit the phone agent after the run. If a run fails, fix the builder generically (never write anything
+   from the case into it), commit, and run again.
+5. Test the agent against the mock: `python3 lab/final_harness.py <workflow_id> <cases.json> <mock_url>`.
+6. Commit and push traces and the workflow, make the repo public:
 
    ```bash
-   git add traces submission && git commit -m "Hidden brief runs" && git push && git rev-parse --short HEAD
+   git add traces submission mock && git commit -m "Final run" && git push && git rev-parse --short HEAD
+   gh repo edit byigitt/freya-build-the-builder --visibility public --accept-visibility-change-consequences
    ```
 
-5. Send the form before 20:00 UTC:
+7. Before 20:00 UTC send `submission.json` to the address in the kit e-mail:
 
    ```json
    {
      "team": "wired",
+     "members": [{"name": "Barış Bayburtlu", "email": "barisbayburtlu33@gmail.com"}],
      "repo": "https://github.com/byigitt/freya-build-the-builder",
-     "commit": "<short hash from step 4>",
-     "run_command": "python3 builder/build.py {brief_path} {tool_api_path}",
-     "workflows": {"hidden-1": "submission/hidden-1.workflow.json", "hidden-2": "submission/hidden-2.workflow.json"},
-     "traces": {"hidden-1": "traces/hidden-1.log", "hidden-2": "traces/hidden-2.log"}
+     "commit": "<short hash from step 6>",
+     "run_command": "python3 builder/build.py {case_folder} {mock_url}",
+     "workflow": "submission/final.workflow.json",
+     "trace": "traces/final.log",
+     "mock_url": "https://wired-bank-mock.barisbayburtlu33.workers.dev"
    }
    ```
-
-Before sending the form, make the repository public: `gh repo edit byigitt/freya-build-the-builder --visibility public --accept-visibility-change-consequences`.

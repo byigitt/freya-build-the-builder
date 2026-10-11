@@ -2,6 +2,7 @@
 import json, os, pathlib, re
 
 import llm
+from compile import Api
 
 HERE = pathlib.Path(__file__).resolve().parent
 GUIDE = (HERE / "spec_guide.md").read_text()
@@ -44,9 +45,11 @@ def tool_summary(openapi):
 
     for path, item in openapi.get("paths", {}).items():
         for method, op in item.items():
-            if not isinstance(op, dict):
+            if method.lower() not in {"get", "post", "put", "patch", "delete", "head", "options", "trace"} or not isinstance(op, dict):
                 continue
             lines.append(method.upper() + " " + path + ": " + op.get("summary", "") + " " + op.get("description", ""))
+            if op.get("x-role"):
+                lines.append(" compiler tool role: " + op["x-role"])
             req = ((op.get("requestBody") or {}).get("content") or {}).get("application/json", {}).get("schema")
             if req:
                 lines.append(" request (required: " + ", ".join(res(req).get("required", [])) + "):")
@@ -87,7 +90,10 @@ def ask_json(messages, purpose, trace):
 def extract(brief_text, openapi, trace=print):
     tools = tool_summary(openapi)
     user = ("THE BRIEF (read all of it):\n<<<\n" + brief_text + "\n>>>\n\nTHE TOOL API:\n<<<\n" + tools + "\n>>>\n\n"
-            "Write the spec JSON for this brief. Reply with the JSON object only.")
+            "Write the spec JSON for this brief. Detect its conversation language and fill language, the complete locale (all templates), "
+            "and ALL texts in that language, including thanks, listening, callback and closing sentences. Preserve prescribed wording verbatim; "
+            "otherwise use natural polite phrasing. Product display words, security questions and quoted speech must use that language too. "
+            "Never translate API identifiers or placeholders. Reply with the JSON object only.")
     spec = ask_json([{"role": "system", "content": system_prompt()}, {"role": "user", "content": user}], "extract the spec from the brief", trace)
     problems = validate(spec, openapi)
     trace("spec check after extraction: " + (("; ".join(problems)) if problems else "no problems"))
@@ -96,6 +102,8 @@ def extract(brief_text, openapi, trace=print):
               "\n\nReview the draft against the brief, rule by rule. For every rule, check the spec holds it with the brief's exact values "
               "(numbers, dates, holidays, codes, sentences, order of questions, bands, attempts, persuasion steps, callback window, what counts as confirmation). "
               "Check that no value was copied from the guide's example when the brief says something else. Fix every problem the check found. "
+              "Check language and locale, including every sentence template and every fixed spoken text: no English fallback in a non-English call. "
+              "Check product display words, dates, amounts, identity questions, side answers, callback speech and all closings. "
               "Reply with the complete corrected spec JSON only (include the coverage list).")
     try:
         spec2 = ask_json([{"role": "system", "content": system_prompt()}, {"role": "user", "content": review}],
@@ -110,14 +118,7 @@ def extract(brief_text, openapi, trace=print):
 
 
 def enum_of(openapi, tool, field):
-    for path, item in openapi.get("paths", {}).items():
-        if path.strip("/").split("/")[-1] != tool:
-            continue
-        for op in item.values():
-            if isinstance(op, dict):
-                props = (((op.get("requestBody") or {}).get("content") or {}).get("application/json", {}).get("schema") or {}).get("properties", {})
-                return (props.get(field) or {}).get("enum") or []
-    return []
+    return Api(openapi).enum(tool, field)
 
 
 def validate(spec, openapi):
@@ -175,7 +176,7 @@ def validate(spec, openapi):
 
 
 def enum_of_response(openapi):
-    s = json.dumps(openapi.get("paths", {}).get("/get_account", {}))
+    s = json.dumps(Api(openapi).ops.get("get_account", {}).get("response", {}))
     m = re.search(r'"type":\s*\{"type":\s*"string",\s*"enum":\s*(\[[^\]]*\])', s)
     return json.loads(m.group(1)) if m else []
 

@@ -24,13 +24,15 @@ class Api:
         self.ops = {}
         for path, item in openapi.get("paths", {}).items():
             for method, op in item.items():
-                if not isinstance(op, dict):
+                if method.lower() not in {"get", "post", "put", "patch", "delete", "head", "options", "trace"} or not isinstance(op, dict):
                     continue
                 name = op.get("operationId") or path.strip("/").split("/")[-1]
                 schema = self._resolve(((op.get("requestBody") or {}).get("content") or {}).get("application/json", {}).get("schema") or {})
                 resp = self._resolve((((op.get("responses") or {}).get("200") or {}).get("content") or {}).get("application/json", {}).get("schema") or {})
                 key = path.strip("/").split("/")[-1]
                 self.ops[key] = dict(path=path, method=method.upper(), schema=schema, response=resp, name=name, summary=op.get("summary", ""))
+                if op.get("x-role") in TOOLS:
+                    self.ops[op["x-role"]] = self.ops[key]
 
     def _resolve(self, s):
         if isinstance(s, dict) and "$ref" in s:
@@ -156,7 +158,7 @@ def strip_source(src):
 
 
 POLICY_KEYS = ("bank_name", "agent_identity", "variables", "texts", "calendar", "bands", "dates", "persuasion", "multi", "reasons", "outcomes", "transfer_reasons",
-               "account", "callback", "situations", "closing", "promise_reasons")
+               "account", "callback", "situations", "closing", "promise_reasons", "language", "locale")
 
 
 def _prune(src, entry):
@@ -350,13 +352,13 @@ def compile_workflow(spec, openapi):
         return key
 
     early_text = {
-        "unclear": "I am sorry, I could not confirm who I am speaking with. " + bye,
-        "callback": "Thank you, we will call back then. Goodbye.",
-        "no_callback": "Thank you, we will try again another time. Goodbye.",
-        "wrong_number": "I apologise for the disturbance. Goodbye.",
-        "deceased": T.get("condolence", "I am sorry for your loss.") + " Goodbye.",
-        "id_failed": T.get("identity_failed", "I could not verify your identity.") + " " + bye,
-        "id_declined": "I understand. Without the security check I cannot continue this call. " + bye,
+        "unclear": T.get("close_unclear", "I am sorry, I could not confirm who I am speaking with. " + bye),
+        "callback": T.get("close_callback", "Thank you, we will call back then. Goodbye."),
+        "no_callback": T.get("close_no_callback", "Thank you, we will try again another time. Goodbye."),
+        "wrong_number": T.get("close_wrong_number", "I apologise for the disturbance. Goodbye."),
+        "deceased": T.get("close_deceased", T.get("condolence", "I am sorry for your loss.") + " " + T.get("goodbye_short", "Goodbye.")),
+        "id_failed": T.get("close_id_failed", T.get("identity_failed", "I could not verify your identity.") + " " + bye),
+        "id_declined": T.get("close_id_declined", "I understand. Without the security check I cannot continue this call. " + bye),
     }
     for key, (oc, rs) in closes_spec.items():
         close_node("close_" + key, oc, rs, spec.get("close_texts", {}).get(key) or early_text.get(key, bye))
@@ -377,7 +379,7 @@ def compile_workflow(spec, openapi):
     human_q = (situations.get("human") or {}).get("queue", "general")
     human_tr = transfer_tool(human_q, "only when the person insists on a human after you asked once whether you can help first.") if human_q in queues else None
     oc_tr = outcomes.get("transferred", "transferred")
-    close_node("close_transfer_early", oc_tr, tr_reason.get(human_q, "human"), "I am transferring you to a colleague now. " + bye)
+    close_node("close_transfer_early", oc_tr, tr_reason.get(human_q, "human"), T.get("close_transfer_early", "I am transferring you to a colleague now. " + bye))
     del nodes["close_transfer_human_early"]
 
     def human_exit():
@@ -596,7 +598,7 @@ def compile_workflow(spec, openapi):
         failed_tr["condition"]["conditions"].append({"variable": "verify_identity_state", "operator": "equals", "operand": "failed"})
         nodes["identity"] = conv("identity", task, [tool] + ([human_tr] if human_tr else []), [
             eq_any("verify_identity_state", ["verified"], "load_account", "answers verified"), failed_tr] + human_exit() + [declined_tr],
-            on_enter={"type": "tts", "text": "{{qa_prefix}}Thank you, " + addr + ". " + idq[0].get("ask", "")})
+            on_enter={"type": "tts", "text": "{{qa_prefix}}" + T.get("thanks_address", "Thank you, " + addr + ".") + " " + idq[0].get("ask", "")})
         nodes["identity"]["extraction_schema"] = list(side_q)
         reask["identity"] = idq[0].get("ask", "")
         add_refusal("identity")
@@ -622,7 +624,7 @@ def compile_workflow(spec, openapi):
         else:
             how = "As soon as the customer has given the complete answer, call " + tool_name + " with the answer exactly as given (normalized: no extra words)."
             adesc = q.get("format", "The answer.")
-        thanks = "Thank you, " + addr + ". " if i == 0 else "Thank you. "
+        thanks = (T.get("thanks_address", "Thank you, " + addr + ".") if i == 0 else T.get("thanks", "Thank you.")) + " "
         why = T.get("identity_why", "These questions protect your account.")
         robot = T.get("robot_reply") or ("I am " + agent_id + ".")
         scam = T.get("scam_reply") or ("You can verify this call by phoning " + spec.get("bank_name", "the bank") + "'s customer service number.")
@@ -630,7 +632,7 @@ def compile_workflow(spec, openapi):
                 "If the latest message asks whether you are a robot, an AI or a real person, your reply MUST begin with: \"" + robot + "\" "
                 "If it asks whether this is a scam or a real call, your reply MUST begin with: \"" + scam + "\" Then continue.\n"
                 "If the customer asks why you need it (instead of answering), reply with exactly this and nothing more: \"" + why + "\" Do not ask the question again in that reply.\n" + how +
-                "\nIf the customer's message is cut off or has no answer in it, say something short like 'Go on, I am listening.' If you already said that and their next message is cut off again, briefly repeat the question.\nIf a message contains an answer together with a question or a complaint, FIRST call " + tool_name + " with the answer, then reply to the rest. Every answer given counts and must be checked.\n"
+                "\nIf the customer's message is cut off or has no answer in it, say something short like '" + T.get("listening", "Go on, I am listening.") + "' If you already said that and their next message is cut off again, briefly repeat the question.\nIf a message contains an answer together with a question or a complaint, FIRST call " + tool_name + " with the answer, then reply to the rest. Every answer given counts and must be checked.\n"
                 "After each result, follow what_to_do_next exactly. A wrong answer is asked again; the check counts wrong answers itself. "
                 "Never ask a question that was already verified again." + id_common)
         tool = api_fn(api, "verify_identity", {cid_field: CID, f_field: leaf("string", q["field"]), a_field: leaf("string", "{{answer}}", adesc)}, name=tool_name,
@@ -652,12 +654,12 @@ def compile_workflow(spec, openapi):
         add_refusal(key)
 
     # ---------------- account
-    products_field = spec.get("account", {}).get("products_field", "products")
+    products_field = spec.get("account", {}).get("products_field", "products") or ""   # empty: the account itself is the one product
     nodes["load_account"] = {
         "name": "load_account", "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "prepare",
         "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
         "pre_actions": [api_fn(api, "get_account", {cid_field: CID}, desc="Get the late products.", retries=2)],
-        "response_mapping": [{"path": "data." + products_field, "variable": "account_products"}],
+        "response_mapping": [{"path": ("data." + products_field) if products_field else "data", "variable": "account_products"}],
         "transitions": [always("prepare")],
     }
     nodes["prepare"] = code_node("prepare", policy_code(spec, "run_prepare(vars)"), "negotiate")
@@ -703,7 +705,7 @@ def compile_workflow(spec, openapi):
         "    config['body'] = dict([(" + repr(cid_field) + ", b.get(" + repr(cid_field) + "))])\n"
         "except Exception as e:\n    vars['next_instruction'] = 'Continue carefully. (policy error ' + str(e)[:60] + ')'\n"))
     assess_post = ("try:\n    if isinstance(result, dict):\n        result.pop('header', None)\n"
-                   "        result['data'] = dict(next_step=str(vars.get('next_instruction') or 'Continue.'), say_it='Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said it in this turn, say something short like Take your time. Never reply with nothing, and do not add other offers.')\n"
+                   "        result['data'] = dict(next_step=str(vars.get('next_instruction') or 'Continue.'), say_it=" + py_literal("Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said it in this turn, say something short like " + T.get("take_your_time", "Take your time.") + " Never reply with nothing, and do not add other offers.") + ")\n"
                    "except Exception:\n    pass\n")
     assess_tool = api_fn(api, "get_account", assess_body, name="assess",
                          desc="Report what the customer just said. CALL it after EVERY customer answer about paying, a day, an amount, your offer, the debt or a PRIORITY SITUATION, BEFORE you reply. The result tells you exactly what to say next (next_step).",
@@ -732,6 +734,9 @@ def compile_workflow(spec, openapi):
         "(wait for each result), each with its own event or situation. A recent payment of the past-due amount is paid; a claim that a product was closed or paid off in the past is a dispute.\n"
         "2. A day or an amount the customer names is never a refusal: use a_event propose. A message that breaks off mid-sentence: use a_event cut_off. "
         "A complete message that does not answer the question: use a_event no_answer.\n"
+        "   A cut-off message is not lost: read it together with the next one, and report what both say (a cut-off 'I lost my job in...' followed by 'I cannot pay anything' is that PRIORITY SITUATION). "
+        "Report a PRIORITY SITUATION only when the words match its description; a request for something no situation describes (for example a discount) is answered by the rules, not reported as a situation. "
+        "If the messages match several PRIORITY SITUATIONS, report the one listed first.\n"
         "3. When next_step says to read back, read it back exactly and ask \"" + T.get("confirm_question", "Do you confirm?") + "\". "
         "When the customer clearly says yes to the read-back, call transition_to_confirm_promises. If the yes comes with a question, first answer it in one sentence "
         "(for example: a recorded promise can be changed later in the mobile app), then call transition_to_confirm_promises. If they change a day or an amount instead, call assess with a_event propose.\n"
@@ -752,7 +757,7 @@ def compile_workflow(spec, openapi):
         tool_transition("confirm_promises", "The customer clearly said yes to the read-back of every agreed promise."),
     ]
     nodes["negotiate"] = conv("negotiate", neg_task, [assess_tool], neg_trans,
-                              on_enter={"type": "tts", "text": "{{qa_prefix}}Thank you, " + addr + ". {{debt_statement}}"})
+                              on_enter={"type": "tts", "text": "{{qa_prefix}}" + T.get("thanks_address", "Thank you, " + addr + ".") + " {{debt_statement}}"})
     # An offer (for example to connect a customer in hardship with a support team) gets its own step: the model only decides yes or no.
     offer_task = (
         "The customer is verified and told you about their situation. Do this now, in one or two short sentences: {{next_instruction}}\n"
@@ -791,6 +796,8 @@ def compile_workflow(spec, openapi):
         key = "commit_" + str(k) + ("_retry" if retry else "")
         nxt_go = "commit_" + str(k + 1) if k < 3 else "finalize"
         body = {cid_field: CID, pid_f: leaf("string", "{{c" + str(k) + "_product}}"), amt_f: leaf("number", "{{c" + str(k) + "_amount}}"), date_f: leaf("string", "{{c" + str(k) + "_date}}")}
+        if api.props("create_promise") and pid_f not in api.props("create_promise"):
+            body.pop(pid_f)                              # a single-account API has no product field
         trans = []
         if not retry:
             trans.append({"target_node": key + "_retry", "description": "the promise call failed", "condition": {"logic": "or", "conditions": [
@@ -820,6 +827,8 @@ def compile_workflow(spec, openapi):
         ntext = api.field("add_note", "text") if "text" in api.props("add_note") else None
         for k in (1, 2, 3):
             body = {cid_field: CID, npid: leaf("string", "{{n" + str(k) + "_product}}"), nrea: leaf("string", "{{n" + str(k) + "_reason}}")}
+            if api.props("add_note") and npid not in api.props("add_note"):
+                body.pop(npid)
             if ntext:
                 body[ntext] = leaf("string", "{{n" + str(k) + "_reason}}")
             trans = [eq_any("n" + str(k + 1) + "_go", ["yes"], "note_" + str(k + 1), "next note")] if k < 3 else []
@@ -841,6 +850,21 @@ def compile_workflow(spec, openapi):
     for need in ("close_unclear", "close_callback", "close_no_callback", "close_wrong_number", "close_deceased", "close_id_failed"):
         if need not in nodes:
             close_node(need, outcomes.get("not_reached", "not_reached"), need[len("close_"):], bye)
+
+    language = str(spec.get("language", "English"))
+    if language.lower() not in ("en", "english", "en-us", "en-gb"):
+        language_name = spec.get("locale", {}).get("language_name") or {"tr": "Turkish"}.get(language.lower(), language)
+        language_rule = "Speak only " + language_name + ". Speak numbers, amounts and dates naturally in that language. Instructions may be in English; never read those instructions aloud.\n"
+        system += "\n" + language_rule
+        cb_extract[0]["description"] = ("If the latest message gives a callback day or time, normalize the day to YYYY-MM-DD and the time to HH:MM, separated by a space when both are given. "
+                                        "Use the call's now for relative days. Preserve only the supplied parts; never invent a missing day or time. Empty if neither is given.")
+        assess_body["a_date"]["description"] = "The customer's proposed payment day as YYYY-MM-DD, using the call's now for relative days. If no exact day can be determined, preserve their words. Empty if none."
+        assess_body["a_amount"]["description"] = "Only an explicit amount for this one product, normalized to digits with a dot decimal separator and no thousands separator or currency. Empty if none, full amount, or one total for several products."
+        for node in nodes.values():
+            if node.get("node_type") == "conversation":
+                node["task_message"] = language_rule + node["task_message"]
+                if node["on_enter"].get("type") == "llm" and node["on_enter"].get("prompt"):
+                    node["on_enter"]["prompt"] = language_rule + node["on_enter"]["prompt"]
 
     for key in [k for k, n in list(nodes.items()) if n.get("node_type") == "code"]:
         add_retry(nodes, key)

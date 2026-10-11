@@ -43,22 +43,32 @@ def to_float(x, default=None):
         return default
 
 
+def phrase(key, default, **values):
+    return cfg("locale.templates." + key, default).format(**values)
+
+
 def money(x):
     x = round(float(x), 2)
-    if abs(x - int(x)) < 0.005:
-        s = "%d" % int(x)
-    else:
-        s = "%.2f" % x
-    word = cfg("texts.currency_word", "")
-    return (s + " " + word).strip() if word else s
+    places = 0 if abs(x - int(x)) < 0.005 else 2
+    thousands = cfg("locale.thousands_sep", "")
+    s = format(x, ("," if thousands else "") + "." + str(places) + "f")
+    whole, dot, fraction = s.partition(".")
+    s = whole.replace(",", thousands) + (cfg("locale.decimal_sep", ".") + fraction if dot else "")
+    word = cfg("locale.currency.word", cfg("texts.currency_word", ""))
+    if not word:
+        return s
+    separator = cfg("locale.currency.separator", " ")
+    return word + separator + s if cfg("locale.currency.position", "after") == "before" else s + separator + word
 
 
 def say_date(d):
-    return WEEKDAYS[d.weekday()].capitalize() + " " + str(d.day) + " " + MONTHS[d.month - 1].capitalize()
+    weekdays = cfg("locale.weekdays", [w.capitalize() for w in WEEKDAYS])
+    months = cfg("locale.months", [m.capitalize() for m in MONTHS])
+    return cfg("locale.date_pattern", "{weekday} {day} {month}").format(weekday=weekdays[d.weekday()], day=d.day, month=months[d.month - 1], year=d.year)
 
 
 def say_date_year(d):
-    return say_date(d) + " " + str(d.year)
+    return phrase("date_year", "{date} {year}", date=say_date(d), year=d.year)
 
 
 def holidays():
@@ -254,8 +264,9 @@ def parse_date(x, today):
 
 # ------------------------------------------------------------------ products and bands
 def find_products(vars):
-    field = cfg("account.products_field", "products")
-    prods = vars.get(field) if field != "products" else vars.get("products")
+    acc = CFG.get("account") if isinstance(CFG.get("account"), dict) else dict()
+    field = (acc.get("products_field") or "") if "products_field" in acc else "products"   # null: one account, no list
+    prods = (vars.get(field) if field != "products" else vars.get("products")) if field else None
     if prods is None:
         prods = vars.get("account_products")
     if isinstance(prods, str):
@@ -271,6 +282,13 @@ def find_products(vars):
     if isinstance(prods, list) and prods and isinstance(prods[0], dict):
         return prods
     found = dict()
+    if not field:                                       # the account response itself is the one product
+        one = dict()
+        for k, v in list(vars.items()):
+            m = re.search(r"load_account_response\.data\.(\w+)$", str(k))
+            if m:
+                one[m.group(1)] = v
+        return [one] if one else []
     pat = re.compile(r"(?:^|\.)" + re.escape(field) + r"\.(\d+)\.(\w+)$")
     for k, v in list(vars.items()):
         m = pat.search(str(k))
@@ -282,7 +300,7 @@ def find_products(vars):
 def product_words(p):
     types = cfg("account.types", dict())
     t = str(p.get(cfg("account.type_field", "type")) or "")
-    spec = types.get(t) or dict()
+    spec = types.get(t) or (list(types.values())[0] if len(types) == 1 else dict())   # one product type: no type field needed
     tpl = spec.get("words") or t.replace("_", " ")
     out = tpl
     for k, v in p.items():
@@ -293,7 +311,7 @@ def product_words(p):
 def product_floor(p):
     types = cfg("account.types", dict())
     t = str(p.get(cfg("account.type_field", "type")) or "")
-    spec = types.get(t) or dict()
+    spec = types.get(t) or (list(types.values())[0] if len(types) == 1 else dict())   # one product type: no type field needed
     fld = spec.get("floor_field")
     val = to_float(p.get(fld)) if fld else None
     if val is None and spec.get("floor_percent") is not None:
@@ -423,7 +441,7 @@ def target_amount(p):
 
 
 def offer_text(p, amount, d):
-    return money(amount) + " for your " + p["words"] + " on " + say_date(d)
+    return phrase("offer", "{amount} for your {product} on {date}", amount=money(amount), product=p["words"], date=say_date(d))
 
 
 # ------------------------------------------------------------------ texts the model must say
@@ -452,7 +470,7 @@ def debt_statement(st):
     intro = cfg("texts.debt_intro", "I am calling about a late payment.")
     parts = []
     for p in st["products"]:
-        parts.append("Your " + p["words"] + " has " + money(p["full"]) + " past due and is " + str(p["days_late"]) + " days late.")
+        parts.append(phrase("debt_line", "Your {product} has {amount} past due and is {days_late} days late.", product=p["words"], amount=money(p["full"]), days_late=p["days_late"]))
     if len(st["products"]) > 1:
         ask = cfg("texts.ask_today_all", "Can you pay all of them today?")
     else:
@@ -466,15 +484,15 @@ def readback_text(st):
         return ""
     bits = []
     for p in agreed:
-        b = money(p["agreed_amount"]) + " for your " + p["words"] + " on " + say_date(datetime.date.fromisoformat(p["agreed_date"]))
+        b = offer_text(p, p["agreed_amount"], datetime.date.fromisoformat(p["agreed_date"]))
         if p.get("clamped"):
-            b += " (that is the latest date I can record for it)"
+            b += phrase("clamped", " (that is the latest date I can record for it)")
         bits.append(b)
     if len(bits) == 1:
         body = bits[0]
     else:
-        body = ", ".join(bits[:-1]) + " and " + bits[-1]
-    return cfg("texts.readback_prefix", "So that is") + " " + body + ". " + cfg("texts.confirm_question", "Do you confirm?")
+        body = cfg("locale.list_separator", ", ").join(bits[:-1]) + cfg("locale.list_final_separator", " and ") + bits[-1]
+    return phrase("readback", "{prefix} {body}. {question}", prefix=cfg("texts.readback_prefix", "So that is"), body=body, question=cfg("texts.confirm_question", "Do you confirm?"))
 
 
 def start_transfer(vars, st, queue):
@@ -677,7 +695,7 @@ def run_callback(vars, params):
                 d = None
         asks = int(to_float(vars.get("cb_asks"), 0) or 0) + 1
         vars["cb_asks"] = str(asks)
-        window = " or ".join(("today until " + end) if x == today else (say_date(x) + " between " + start + " and " + end) for x in days)
+        window = cfg("locale.alternative_separator", " or ").join(phrase("callback_today", "today until {end}", end=end) if x == today else phrase("callback_day", "{date} between {start} and {end}", date=say_date(x), start=start, end=end) for x in days)
         outside = int(to_float(vars.get("cb_outside"), 0) or 0)
 
         def is_out(day, tm):
@@ -698,7 +716,7 @@ def run_callback(vars, params):
                 vars["cb_say"] = ""
                 return
             vars["cb_state"] = "ask"
-            vars["cb_say"] = "I am sorry, I can only call back " + window + ". Is there another day and time that works?"
+            vars["cb_say"] = phrase("callback_outside", "I am sorry, I can only call back {window}. Is there another day and time that works?", window=window)
             return
         if outside >= 1 and cb.get("incomplete_second_offer") == "give_up" and not (d is not None and t is not None):
             vars["cb_state"] = "give_up"     # the brief closes when the second offer is still incomplete
@@ -718,13 +736,13 @@ def run_callback(vars, params):
         if d is not None:
             vars["cb_day_seen"] = d.isoformat()
             vars["cb_state"] = "ask"
-            vars["cb_say"] = "At what time on " + say_date(d) + "? I can call between " + (now.strftime("%H:%M") if d == today else start) + " and " + end + "."
+            vars["cb_say"] = phrase("callback_time", "At what time on {date}? I can call between {start} and {end}.", date=say_date(d), start=now.strftime("%H:%M") if d == today else start, end=end)
             return
         vars["cb_state"] = "ask"
-        vars["cb_say"] = "When can I reach them? I can call back " + window + "."
+        vars["cb_say"] = phrase("callback_when", "When can I reach them? I can call back {window}.", window=window)
     except Exception as e:
         vars["cb_state"] = "ask"
-        vars["cb_say"] = "When can I reach them, which day and at what time?"
+        vars["cb_say"] = phrase("callback_missing", "When can I reach them, which day and at what time?")
         vars["cb_error"] = str(e)[:120]
 
 
@@ -885,10 +903,10 @@ def run_assess(vars, params):
             sid = pend
             st["offer_done_" + sid] = True
         elif pend and ev == "question":
-            set_outputs(vars, st, "Answer their question in one short sentence, using only your facts and rules. Then ask once more whether they would like to be connected.")
+            set_outputs(vars, st, "Answer their question in one short sentence, using only your facts and rules, and stop there. The offer was made once: do not mention it or ask about it again.")
             return
         elif pend and ev in ("cut_off", "no_answer"):
-            set_outputs(vars, st, "Their answer was cut off or did not answer your offer. Do not repeat the offer: just say something short like 'Go on, I am listening.'")
+            set_outputs(vars, st, "Their answer was cut off or did not answer your offer. Do not repeat the offer: just say something short like '" + cfg("texts.listening", "Go on, I am listening.") + "'")
             return
         elif pend and ev not in ("situation", "no_answer", "cut_off", "question"):
             st["pending_offer"] = ""
@@ -1040,7 +1058,7 @@ def assess_one(p, st, ev, amt, dt, today, multi=False, raw_date=None):
         # A message that breaks off is not an answer yet: alternate a short prompt to go on with a brief repeat of the question.
         p["noans"] = int(p.get("noans") or 0) + 1
         if p["noans"] % 2 == 1:
-            return ask(p, "Their answer was cut off or did not answer. Do not repeat your question: just say something short like 'Go on, I am listening.'")
+            return ask(p, "Their answer was cut off or did not answer. Do not repeat your question: just say something short like '" + cfg("texts.listening", "Go on, I am listening.") + "'")
         return ask(p, "They still have not answered. Briefly repeat your last question once, in different words.")
     p["noans"] = 0
     if ev in ("accept_offer", "accept", "yes"):

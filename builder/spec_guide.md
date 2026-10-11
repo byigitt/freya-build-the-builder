@@ -20,11 +20,33 @@ the exact spelling and case of a code is the one in the tool API's enum.
 `{{var}}` placeholders in texts refer to call variables (the variables every call starts with, listed in the brief), for example `{{title}} {{last_name}}`.
 Use only variables the brief lists. Texts are spoken on the phone: plain words, short sentences.
 
+Detect the conversation language from the brief and example conversations, not the language of the service contract.
+Fill `language`, `locale`, and ALL spoken `texts` in that language. Preserve prescribed sentences verbatim; otherwise
+use natural polite phrasing. Translate product `words`/`floor_name`, security questions, closing texts, and any quoted
+sentences in rules or situation actions too. Never translate API fields, enum codes, tool names or placeholders.
+Instructions to the model may stay English, but text it must say exactly must not. English defaults exist only for
+older practice specs: for a non-English call, do not rely on any English fallback.
+
 ## Fields
 
 - `bank_name`: the bank's name.
 - `agent_identity`: how the agent describes itself when asked if it is a robot (e.g. "Freya Bank's digital assistant").
-- `language`: language of the call.
+- `language`: language code or name, e.g. `en` / `English`, `tr` / `Turkish`.
+- `locale`: spoken formatting and sentence templates. Fill every field (see the English example):
+  - `language_name`: language name used in prompts, e.g. `Turkish`.
+  - `months`: exactly 12 month names; `weekdays`: exactly 7 names, Monday first, in their spoken capitalization.
+  - `currency`: `word` (word or symbol, e.g. `TL`), `position` (`before` or `after`), `separator` (usually a space).
+  - `decimal_sep`, `thousands_sep`: e.g. `,` and `.` for `1.250,50 TL`. Use empty thousands separator to disable grouping. Whole amounts omit decimal zeros.
+  - `date_pattern`: single-brace placeholders `{weekday}`, `{day}`, `{month}`, optional `{year}`. Example: `{day} {month} {weekday}`.
+  - `list_separator`, `list_final_separator`, `alternative_separator`: separators including spaces, e.g. `, ` / ` ve ` / ` veya `.
+  - `templates`: every template listed below, translated as a whole so word order fits the language. These are NOT Freya variables: preserve single braces and the exact placeholder names. Do not add other placeholders.
+    - `date_year`: `{date} {year}` (use `{date}` alone if date_pattern already includes the year).
+    - `debt_line`: one product's debt sentence; `{product}`, `{amount}`, `{days_late}`.
+    - `offer`: the payment/read-back item; `{product}`, `{amount}`, `{date}`.
+    - `clamped`: suffix explaining that this is the latest recordable date; no placeholders, include the leading space.
+    - `readback`: entire confirmation sentence; `{prefix}`, `{body}`, `{question}`. `prefix` and `question` come from texts below; body joins all agreed products.
+    - `callback_today`: `{end}`; `callback_day`: `{date}`, `{start}`, `{end}`; these form the allowed callback window.
+    - `callback_outside`: `{window}`; `callback_time`: `{date}`, `{start}`, `{end}`; `callback_when`: `{window}`; `callback_missing`: no placeholders.
 - `variables`: map of role -> call variable name. Roles: `customer_id` (passed to every tool), `now` (current date-time of the call), and any name fields (`first_name`, `last_name`, `title`, ...). Use the brief's names.
 - `address`: how to address the customer, with placeholders (e.g. "{{title}} {{last_name}}").
 - `customer_full_name`: full name with placeholders (e.g. "{{first_name}} {{last_name}}"), or the company/contact name if the brief calls companies.
@@ -45,6 +67,10 @@ Use only variables the brief lists. Texts are spoken on the phone: plain words, 
   - `goodbye`: thanks and goodbye at the end of every call.
   - `currency_word`: how amounts are spoken ("dollars", "euros", "pounds", ...).
   - `floor_name`: generic name of the lowest acceptable amount.
+  - `thanks_address`: thank-you sentence including the customer's address using the brief's Freya variables; `thanks`: short thank-you sentence.
+  - `listening`: short invitation to finish speaking; `take_your_time`: short reassurance when waiting.
+  - `goodbye_short`: short goodbye appended to condolences.
+  - `close_unclear`, `close_callback`, `close_no_callback`, `close_wrong_number`, `close_deceased`, `close_id_failed`, `close_id_declined`, `close_transfer_early`: COMPLETE spoken closings, including goodbye. Fill every one in the conversation language. Existing `close_texts` overrides still take precedence for matching early-close keys.
 - `forbidden_before_verification`: words/topics the agent must not say before identity is verified.
 - `opening`: `max_asks` (how many times the identity question may be asked in total), `confirmation` (what counts as confirmation, in one sentence), `rules` (other opening rules, sentences).
 - `third_party.rules`: rules for when someone else answers (sentences).

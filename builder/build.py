@@ -17,7 +17,7 @@ ROOT = HERE.parent
 sys.path[:0] = [str(HERE), str(ROOT)]
 import freya
 import llm
-from compile import compile_workflow, POLICY_SRC
+from compile import compile_workflow, audit, POLICY_SRC
 from extract import extract
 
 
@@ -140,6 +140,8 @@ def main(argv):
 
     trace("step 3: compile, validate, save and publish")
     wf = compile_workflow(spec, openapi)
+    issues = audit(wf, openapi)
+    trace("  bank-call audit: " + ("; ".join(issues) if issues else "every bank call sends the fields the tool API requires"))
     (out / (slot + ".workflow.json")).write_text(json.dumps(wf, indent=1))
     freya.validate_workflow(slot, wf)
     trace("  dry-run validation passed: %d steps, %d tools, %d bytes" % (len(wf["nodes"]), sum(len(n.get("tools", [])) + len(n.get("pre_actions", [])) for n in wf["nodes"].values()), len(json.dumps(wf))))

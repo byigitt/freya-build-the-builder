@@ -1,0 +1,203 @@
+{
+  "files_created": [
+    "lab/stress/s1-raw.md",
+    "lab/stress/s1-api.json",
+    "lab/stress/s1-expected.json",
+    "lab/stress/s1.got.json",
+    "lab/stress/s1-extraction.log",
+    "lab/stress/s2-clean.md",
+    "lab/stress/s2-api.json",
+    "lab/stress/s2-expected.json",
+    "lab/stress/s2.got.json",
+    "lab/stress/s2-extraction.log",
+    "lab/stress/findings.json"
+  ],
+  "runs": {
+    "s1": {
+      "extraction_runs": 1,
+      "model_calls": 2,
+      "reported_cost_usd": 0.4081,
+      "diff_count": 2,
+      "diff_summary": [
+        "account: got adds undocumented floor_rounding=up_to_penny; same field mappings and 22.5% floor otherwise.",
+        "callback: got adds reask_once=true; actual window and eligibility match."
+      ],
+      "compiled_nodes": 30,
+      "selftest_problems": 0,
+      "correctly_extracted": [
+        "Memo M2 restores only overdraft floor=22.5%, stage3 deadline=3 and callback end=18:00.",
+        "Memo M1 stage2 deadline=4, callback start=09:30 and added holiday 2026-11-03 retained.",
+        "All three bands, boundaries, attempt counts and ordered persuasion steps match.",
+        "Renamed account response fields, new OVERDRAFT type, ordered birth_year/mobile_suffix security and uppercase enum codes match."
+      ]
+    },
+    "s2": {
+      "extraction_runs": 1,
+      "model_calls": 2,
+      "reported_cost_usd": 0.3997,
+      "diff_count": 4,
+      "diff_summary": [
+        "early_closes: extra debt_management_plan -> [transferred, managed_plan].",
+        "callback: extra reask_once=true; 08:30\u201317:00 and two-business-day window match.",
+        "Two situation diffs are one arbitrary ID rename debt_management -> debt_management_plan, plus redundant reason=managed_plan; transfer queue/reason mapping is correct."
+      ],
+      "compiled_nodes": 32,
+      "selftest_problems": 0,
+      "correctly_extracted": [
+        "postcode -> birth_year -> card_last4 in exact order and correct kinds/lengths, not example phone questions.",
+        "Same-day promises prohibited and initial question text asks next business day.",
+        "Three critical-band persuasion steps, band limits, holidays and BNPL 40% floor match.",
+        "New DMP situation is distinguished from new-plan requests; debt_management queue and managed_plan close reason are correct."
+      ]
+    }
+  },
+  "overall": "Strong semantic extraction: no wrong memo precedence, enum casing, band value, question order, deadline, callback value or same-day boolean observed. One scope-broadening wording error and several unsupported-rule encodings remain. Raw diff count is not a semantic error count.",
+  "expected_spec_note": "Expected fixtures deliberately use current guide fields only. Unsupported arithmetic/routing/priority rules are preserved in prose, not invented executable keys. Arbitrary situation ids, optional explicit defaults, and wording are interpreted semantically rather than treating all diffs as failures.",
+  "extraction_errors_and_misleading_encodings": [
+    {
+      "brief": "s1",
+      "kind": "Unsupported-field invention, not lost rule",
+      "brief_rule": "Overdraft floor must round UP to next penny.",
+      "got_spec": "account.types.OVERDRAFT.floor_rounding = \"up_to_penny\", plus correct negotiation_rules text.",
+      "impact": "Extractor invented an undocumented executable-looking field; validation reported no problems, but runtime ignores it. The percentage and memo rollback were correct.",
+      "evidence": "lab/stress/s1.got.json:120-125,311,359"
+    },
+    {
+      "brief": "s1",
+      "kind": "Unimplemented precedence preserved as prose",
+      "brief_rule": "Mixed no-promise reasons must use SYSTEM_ERROR > DISPUTED > HARDSHIP > REFUSAL > PAID_CLAIM.",
+      "got_spec": "Correct ordered rule appears only in negotiation_rules; coverage maps it to outcomes and negotiation_rules.",
+      "impact": "Not an extraction omission. The current schema lacks executable priority and compiler chooses product-order reason instead.",
+      "evidence": "lab/stress/s1.got.json:322,370"
+    },
+    {
+      "brief": "s2",
+      "kind": "Trigger-scope broadening",
+      "brief_rule": "The CUSTOMER says they are in a debt-management plan / an organisation administers THEIR repayments.",
+      "got_spec": "opening.rules says \"If the person says the customer is in a debt-management plan ... immediately transfer\"; situations.debt_management_plan.trigger and global_rules still correctly say customer.",
+      "impact": "The opening rule broadens an authenticated-or-self-identifying customer assertion to any person reporting on the customer, creating an inconsistent third-party trigger. Actual conversational behavior is untested.",
+      "evidence": "lab/stress/s2.got.json:58,270,335"
+    },
+    {
+      "brief": "s2",
+      "kind": "Cross-stage rule encoded without executable route",
+      "brief_rule": "Transfer to debt_management immediately during opening or security, before finishing verification.",
+      "got_spec": "Correct transfer situation under id debt_management_plan, correct queue/reason, added early_closes.debt_management_plan, and opening/identity/global prose.",
+      "impact": "Situation-id difference is harmless. Early close pair alone does not execute transfer; compiler does not make that transfer available at those stages. Coverage incorrectly implies executable support.",
+      "evidence": "lab/stress/s2.got.json:258-274,393"
+    },
+    {
+      "brief": "s2",
+      "kind": "Tool-role mapping preserved only as prose",
+      "brief_rule": "create_promise must use required promised_sum / settlement_day instead of amount / date.",
+      "got_spec": "Exact instruction is in global_rules; coverage points to global_rules, account and identity.questions, with no request-role binding.",
+      "impact": "No rule text was lost, but none of these fields configures the compiler commit-body mapping.",
+      "evidence": "lab/stress/s2.got.json:341,404"
+    },
+    {
+      "brief": "s2",
+      "kind": "Unimplemented precedence preserved as prose",
+      "brief_rule": "Mixed no-promise close reason priority is service_error > dispute > hardship > refused > paid.",
+      "got_spec": "Correct ordered list appears in negotiation_rules only.",
+      "impact": "Same representability gap as s1, not a semantic extraction omission.",
+      "evidence": "lab/stress/s2.got.json:332,402"
+    }
+  ],
+  "rules_not_executable_in_current_format_or_compiler": [
+    {
+      "briefs": [
+        "s1"
+      ],
+      "rule": "OVERDRAFT floor is 22.5% rounded UP to next penny.",
+      "current": "account.types.OVERDRAFT.floor_percent captures the percentage, but product_floor unconditionally uses round(..., 2). 100.01 produces 22.50 rather than required 22.51.",
+      "add_field": "account.types.<type>.floor_rounding = {mode: ceiling, decimal_places: 2}",
+      "evidence": "builder/runtime/policy.py:291-306",
+      "classification": "Compiler arithmetic mismatch established by source; no runtime probe run."
+    },
+    {
+      "briefs": [
+        "s1",
+        "s2"
+      ],
+      "rule": "Mixed no-promise final reason priority is service_error > dispute > hardship > refused > paid, independent of product order.",
+      "current": "run_finalize chooses the first unpromised product reason, skipping paid only when a later non-paid reason exists. A first refusal plus later dispute closes refused rather than dispute.",
+      "add_field": "closing.no_promise_reason_priority = [service_error, dispute, hardship, refused, paid] (semantic roles resolved through reasons)",
+      "evidence": "builder/runtime/policy.py:1001-1009",
+      "classification": "Compiler ordering mismatch established by source; no runtime probe run."
+    },
+    {
+      "briefs": [
+        "s2"
+      ],
+      "rule": "Existing debt-management plan triggers debt_management transfer at any stage, including opening or mid-security.",
+      "current": "Generic situations are handled in negotiation. Opening and identity only receive human_tr for the queue in situations.human; putting debt-management prose in global_rules does not expose debt_management there.",
+      "add_field": "situations.<id>.stages = [opening, third_party, identity, negotiation, readback], plus priority if conditions overlap; compile matching tools and transitions at each stage.",
+      "evidence": "builder/compile.py:291-299,337-338,383,445,503-507,527-541",
+      "classification": "Compiler tool-availability mismatch established by source; no Freya execution."
+    },
+    {
+      "briefs": [
+        "s2"
+      ],
+      "rule": "create_promise request names are promised_sum and settlement_day, not amount/date.",
+      "current": "No spec field binds semantic request roles. Api.field does exact/fallback/substring matching and otherwise returns the role literal. Neither renamed field contains amount/date, so commit body is built with undeclared amount/date and omits the two required fields.",
+      "add_field": "tools.create_promise.request_fields = {customer_id: customer_id, product_id: product_id, amount: promised_sum, date: settlement_day}; generalize to all seven operations.",
+      "evidence": "builder/compile.py:59-68,96,544-550",
+      "classification": "Compiler body mismatch established by source; no network/API call."
+    },
+    {
+      "briefs": [
+        "s2"
+      ],
+      "rule": "Initial full-amount ask and an unqualified yes refer to NEXT business day; never ask or accept today.",
+      "current": "dates.today_allowed=false rejects same-day proposals, and custom texts change the spoken question, but run_prepare still says the ask was today; yes without an offer/date becomes pay_today, then makes a counteroffer with the false reason today is not a business day even on a weekday.",
+      "add_field": "negotiation.initial_offer = {amount: full, date: next_business_day}; initialize offer state and derive every initial ask/yes from it.",
+      "evidence": "builder/runtime/policy.py:577,772-780",
+      "classification": "Policy-state mismatch established by source; no conversational simulation."
+    }
+  ],
+  "suggested_spec_guide_edits": [
+    {
+      "location": "builder/spec_guide.md:14-16",
+      "old": "When the brief\nis raw material (mails, policy extracts, memos, code lists), merge it: a later memo or update overrides the earlier text;\na code list defines the outcome and reason codes; read every part before deciding.",
+      "new": "When the brief is raw material, order policy versions and amendments by their stated effective chronology, then apply each amendment field by field. A partial rollback restores only the explicitly named fields; retain all unrevoked earlier changes, including added holidays. Record the final value and its source in coverage. Code lists identify meanings, but exact request enum values in the supplied API are authoritative for wire spelling and case; map display aliases by meaning, never copy invalid codes."
+    },
+    {
+      "location": "builder/spec_guide.md:9",
+      "old": "4. `get_account` returns 1 to 3 late products. The agent states every product, asks for payment today.",
+      "new": "4. `get_account` returns 1 to 3 late products. The agent states every product and makes the initial payment ask required by the brief. Never assume the initial date is today; a same-day prohibition also applies to the initial ask and voluntary offers."
+    },
+    {
+      "location": "builder/spec_guide.md:36",
+      "old": "- `ask_today`, `ask_today_all`: the first ask for one product / for several products.",
+      "new": "- `ask_today`, `ask_today_all`: despite these historical names, copy the brief's exact INITIAL payment question for one product / several products. If today is forbidden, these must ask for the allowed future date, not today. Preserve the initial-date rule separately in negotiation_rules and coverage; text alone cannot configure the policy engine's initial acceptance date."
+    },
+    {
+      "location": "builder/spec_guide.md:56",
+      "old": "`floor_percent` (when the floor is a percentage of the past-due amount instead of a field), `floor_min` (a minimum floor amount, if any)",
+      "new": "`floor_percent` (percentage points, e.g. 22.5 for 22.5%, based on the mapped past-due amount), `floor_min` (a minimum floor amount, if any). Preserve any specified rounding mode, precision or cap verbatim in negotiation_rules and coverage; do not claim that floor_percent alone implements upward/downward rounding because the current runtime rounds to nearest penny"
+    },
+    {
+      "location": "builder/spec_guide.md:68",
+      "old": "- `situations`: things the customer may say during the negotiation. Map of id -> object:",
+      "new": "- `situations`: map each distinct brief-defined situation to its own id, trigger and action, including new queues (e.g. an existing debt-management plan must not be merged with requesting a new plan). Capture the exact stages and precedence specified by the brief. Current effect handling runs during negotiation only: preserve a requirement for opening/security handling in global_rules and coverage and identify that it requires compiler support; global prose does not make an unavailable transfer tool callable."
+    },
+    {
+      "location": "builder/spec_guide.md:63",
+      "old": "- `outcomes`: map of the generic outcomes `promise`, `paid`, `transferred`, `no_promise`, `not_verified`, `not_reached` -> the exact `outcome` codes of `close_call`. Add `partial_promise` only if the brief closes differently when a promised amount is below the full past-due amount.",
+      "new": "- `outcomes`: map the generic outcomes promise, paid, transferred, no_promise, not_verified and not_reached to exact close_call enum codes. Add partial_promise only if specified. Separately preserve the brief's precedence for mixed product outcomes/reasons verbatim in negotiation_rules and coverage; mappings alone cannot express a priority table and must not be treated as implementing one."
+    },
+    {
+      "location": "builder/spec_guide.md:78",
+      "old": "- `coverage`: list of strings \"rule <number or short name> -> <spec field>\" for EVERY rule in the brief. Rules that no field can hold go into the closest `*_rules` list, word for word.",
+      "new": "- `coverage`: list a mapping for EVERY brief rule, including every retained amendment, exact sentence, API field rename and cross-stage exception. Where no executable field can implement a rule, preserve it verbatim in the closest *_rules list and label its coverage entry \"UNSUPPORTED by current compiler: <rule> -> <needed field>\". Do not count prose preservation as executable coverage. Request-field role renames require explicit compiler bindings; never assume request roles can be inferred from account response mappings."
+    }
+  ],
+  "verification_limits": [
+    "Ran exactly the requested local extract_check harness once per brief (two LLM calls per run), not twice. Both compile and policy self-test completed without reported problems.",
+    "Self-test uses a fixed 2026-10-14 clock and only refuse-all / late-date scenarios. It does not exercise partial rollback holiday dates, penny-rounding boundaries, mixed-reason ordering, callback endpoints, early DMP routing, or request schema conformance.",
+    "No Freya APIs, deploys, simulations, chat, or live tool calls were made. Synthetic API hosts end in .invalid.",
+    "No runtime probes beyond the requested harness were executed. Additional compiler behavior claims are source-established implications, not observed transcripts or ledger results.",
+    "Only lab/stress was written; PYTHONDONTWRITEBYTECODE=1 prevented importing the harness from creating pycache outside scratch."
+  ]
+}

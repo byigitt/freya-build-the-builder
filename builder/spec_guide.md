@@ -6,14 +6,16 @@ into a phone agent. The compiler already implements this call shape:
 1. Opening: the agent introduces itself, asks "Am I speaking with <customer>?" (asks at most `opening.max_asks` times).
 2. Someone else on the line: no disclosure, try to book a callback inside a window, or close (wrong number, deceased, no callback).
 3. Identity: security questions one at a time, each checked with the `verify_identity` tool. Wrong answers are counted by the bank.
-4. `get_account` returns 1 to 3 late products. The agent states every product, asks for payment today.
+4. `get_account` returns 1 to 3 late products. The agent states every product, then makes the brief's first payment ask (about today, or about the earliest allowed day when the brief forbids a promise for today).
 5. Negotiation per product: dates, amounts, floors, persuasion attempts, special situations. Python code computes every date and amount.
 6. One read-back for all agreed promises, one confirmation, then `create_promise` per product (retry once on failure), `add_note` per product without a promise (only if the brief uses notes), `close_call` with an outcome and reason.
 
 Your job: fill every field from the brief. Values (holidays, limits, names, sentences, codes) MUST come from the brief and the
 tool API you are given. Never copy a value from the example below unless the brief says the same thing. When the brief
-is raw material (mails, policy extracts, memos, code lists), merge it: a later memo or update overrides the earlier text;
-a code list defines the outcome and reason codes; read every part before deciding.
+is raw material (mails, policy extracts, memos, code lists), read every part first. Order the policy versions and amendments by
+their stated dates, then apply each amendment field by field: a later memo overrides only what it names, a partial rollback restores
+only the named fields, and unrevoked earlier changes (for example an added holiday) stay. A code list tells you what each code means;
+the exact spelling and case of a code is the one in the tool API's enum.
 
 `{{var}}` placeholders in texts refer to call variables (the variables every call starts with, listed in the brief), for example `{{title}} {{last_name}}`.
 Use only variables the brief lists. Texts are spoken on the phone: plain words, short sentences.
@@ -33,7 +35,7 @@ Use only variables the brief lists. Texts are spoken on the phone: plain words, 
   - `identity_failed`: what to say when the identity check failed (e.g. where to go instead).
   - `identity_why`: the explanation given once when the customer does not want to answer security questions.
   - `debt_intro`: the sentence before the products are stated (e.g. "I am calling from the collections team about a late payment.").
-  - `ask_today`, `ask_today_all`: the first ask for one product / for several products.
+  - `ask_today`, `ask_today_all`: the brief's exact FIRST payment question for one product / for several products. If a promise for today is not allowed, this question asks about the earliest allowed day, not today.
   - `rest_overdue`: instruction when a floor amount is offered (e.g. "Say that the rest stays overdue."). Empty string if the brief says nothing.
   - `readback_prefix` (e.g. "So that is"), `confirm_question` (e.g. "Do you confirm?").
   - `recorded`: sentence after a successful recording (e.g. "Your promise is recorded."), `after_promise`: any sentence the brief requires after a recorded promise.
@@ -53,7 +55,8 @@ Use only variables the brief lists. Texts are spoken on the phone: plain words, 
   - `hints`: map of a `hint` value the tool may return -> the instruction for the agent (e.g. "day_month_swapped": "...ask for the month as a word. This does not count as a wrong answer.").
   - `decline_rule`: what to do when the customer refuses to answer (in full).
   - `rules`: other identity rules.
-- `account`: how to read `get_account`'s response (field names from the tool API response schema): `products_field` (the array), `id_field`, `type_field`, `amount_field` (the past-due amount), `days_late_field`, and `types`: map of each product type value -> `words` (how to name it on the phone; `<field>` inserts a product field, e.g. "credit card ending <card_last4>"), `floor_field` (the field holding the lowest acceptable amount for this type, or null), `floor_percent` (when the floor is a percentage of the past-due amount instead of a field), `floor_min` (a minimum floor amount, if any), `floor_name` (spoken name, e.g. "minimum payment").
+- `account`: how to read `get_account`'s response (field names from the tool API response schema): `products_field` (the array), `id_field`, `type_field`, `amount_field` (the past-due amount), `days_late_field`, and `types`: map of each product type value -> `words` (how to name it on the phone; `<field>` inserts a product field, e.g. "credit card ending <card_last4>"), `floor_field` (the field holding the lowest acceptable amount for this type, or null), `floor_percent` (percentage points, e.g. 22.5 for 22.5%, of the past-due amount, when the floor is a percentage instead of a field), `floor_rounding` (`round`, `ceil` or `floor` to the cent; only if the brief says), `floor_min` (a minimum floor amount, if any), `floor_name` (spoken name, e.g. "minimum payment").
+- `tool_fields`: only when a tool's request field names differ from the usual ones: map of tool name -> {role: exact request field name}. Roles: `customer_id`, `product_id`, `amount`, `date`, `time`, `reason`, `outcome`, `queue`, `field`, `answer`, `text`. Example: `{"create_promise": {"amount": "promised_sum", "date": "settlement_day"}}`.
 - `calendar`: `business_weekdays` (0=Monday ... 6=Sunday) and `holidays` (YYYY-MM-DD list).
 - `bands`: list of bands by days late: `name`, `min_days`, `max_days` (inclusive), `deadline` (`kind` one of `business_days_after_today` with `n`; `business_days_after_today_inclusive` with `n` (today counts as day 1); `calendar_days_after_today` with `n` and `adjust` = `previous_business_day` or `next_business_day`; `end_of_month`), `attempts` (persuasion attempts allowed).
 - `dates.today_allowed`: whether a promise for today is allowed.
@@ -61,11 +64,12 @@ Use only variables the brief lists. Texts are spoken on the phone: plain words, 
 - `multi`: `notes` (true only if the brief requires `add_note` for products without a promise), `single_date_after_deadline` (`use_product_deadline` if one date named for all products is recorded on each product's own deadline when it is later; otherwise `offer_deadline`), `no_notes_on_transfer` (true if no notes on a transfer).
 - `reasons`: the reason codes used for products without a promise: `refused`, `hardship`, `dispute`, `paid`, `service_error` -> the exact codes from the brief/tool API.
 - `outcomes`: map of the generic outcomes `promise`, `paid`, `transferred`, `no_promise`, `not_verified`, `not_reached` -> the exact `outcome` codes of `close_call`. Add `partial_promise` only if the brief closes differently when a promised amount is below the full past-due amount.
+- `closing.no_promise_reason_priority` (optional): when several products end without a promise for different reasons and the brief gives an order for the close reason, the reason codes in that order (highest first). Without it, the reason of the first product (in `get_account` order) whose reason is not `paid` is used.
 - `promise_reasons` (optional): `{"full": "<reason code>", "partial": "<reason code>"}` only if the brief requires a reason with the promise outcome.
 - `transfer_reasons`: map of each transfer queue (exact enum of `transfer_to_agent`) -> the close reason code used after that transfer.
 - `early_closes`: map of situations that end the call before the account is read -> `[outcome, reason]` (exact codes). Keys: `unclear`, `callback`, `no_callback`, `wrong_number`, `deceased`, `id_failed`, `id_declined`. Add others only if the brief has them.
 - `close_texts` (optional): map of the same keys -> the spoken closing sentence (include the goodbye).
-- `situations`: things the customer may say during the negotiation. Map of id -> object:
+- `situations`: things the customer may say during the negotiation, one id per distinct situation in the brief (do not merge, e.g., "already in a debt-management plan" with "asks for a new plan"). Map of id -> object:
   - `trigger`: when it applies (one or two sentences, from the brief).
   - `action`: what the agent says/does (from the brief), without tool names.
   - `effect`: `transfer` (the call is transferred to `queue`), `product` (that product, or all products with `scope: "all"`, ends without a promise with `reason`), `call` (the whole call ends with `outcome` and `reason`), or `none` (just say something and continue).
@@ -75,7 +79,7 @@ Use only variables the brief lists. Texts are spoken on the phone: plain words, 
   Always include, if the brief covers them: hardship, restructuring/new plan, human request, already paid, dispute, does not want to talk.
 - `negotiation_rules`: other negotiation rules, as short imperative sentences.
 - `global_rules`: rules that hold at every step (robot/AI question, scam question, unknown information, ...).
-- `coverage`: list of strings "rule <number or short name> -> <spec field>" for EVERY rule in the brief. Rules that no field can hold go into the closest `*_rules` list, word for word.
+- `coverage`: list of strings "rule <number or short name> -> <spec field>" for EVERY rule in the brief, including every amendment kept, every exact sentence and every renamed API field. Rules that no field can hold go into the closest `*_rules` list, word for word, and their coverage line says "prose only".
 
 ## Example (for a different brief: do NOT copy its values)
 

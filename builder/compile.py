@@ -56,12 +56,36 @@ class Api:
     def enum(self, tool, field):
         return self.props(tool).get(field, {}).get("enum") or []
 
+    overrides = dict()
+    HINTS = {
+        "customer_id": (lambda k, v: "customer" in k or k.endswith("_id") and "product" not in k),
+        "product_id": (lambda k, v: "product" in k or "account" in k or "loan" in k),
+        "amount": (lambda k, v: v.get("type") in ("number", "integer") or "amount" in k or "sum" in k),
+        "date": (lambda k, v: v.get("format") == "date" or "date" in k or "day" in k),
+        "time": (lambda k, v: "time" in k or "hour" in k),
+        "reason": (lambda k, v: "reason" in k or "code" in k),
+        "outcome": (lambda k, v: "outcome" in k or "result" in k or "status" in k),
+        "queue": (lambda k, v: "queue" in k or "team" in k or "department" in k),
+        "field": (lambda k, v: bool(v.get("enum"))),
+        "answer": (lambda k, v: "answer" in k or "value" in k),
+        "text": (lambda k, v: "text" in k or "note" in k or "comment" in k),
+    }
+
     def field(self, tool, role, fallbacks=()):
-        """Find the request field that plays `role` (exact name first, then fallbacks, then by keyword)."""
+        """Find the request field that plays `role`: the spec's tool_fields first, then the exact name, then by keyword and type."""
         props = self.props(tool)
+        mapped = (self.overrides.get(tool) or {}).get(role)
+        if mapped and mapped in props:
+            return mapped
         for cand in (role,) + tuple(fallbacks):
             if cand in props:
                 return cand
+        taken = set((self.overrides.get(tool) or {}).values())
+        hint = self.HINTS.get(role)
+        if hint:
+            for k, v in props.items():
+                if k not in taken and hint(k.lower(), v or {}):
+                    return k
         for k in props:
             if role.split("_")[-1] in k:
                 return k
@@ -238,6 +262,7 @@ def verify_pre(kind, order, digits):
 # ------------------------------------------------------------------ compile
 def compile_workflow(spec, openapi):
     api = Api(openapi)
+    api.overrides = spec.get("tool_fields") or dict()
     T = spec.get("texts", {})
     V = spec.get("variables", {})
     cid_var = V.get("customer_id", "customer_id")
@@ -266,7 +291,7 @@ def compile_workflow(spec, openapi):
 
     early_text = {
         "unclear": "I am sorry, I could not confirm who I am speaking with. " + bye,
-        "callback": "Thank you, we will call back then. " + bye.replace(addr, "").replace(" ,", ","),
+        "callback": "Thank you, we will call back then. Goodbye.",
         "no_callback": "Thank you, we will try again another time. Goodbye.",
         "wrong_number": "I apologise for the disturbance. Goodbye.",
         "deceased": T.get("condolence", "I am sorry for your loss.") + " Goodbye.",
@@ -315,39 +340,48 @@ def compile_workflow(spec, openapi):
     # ---------------- opening
     op = spec.get("opening", {})
     first_line = T.get("opening", "Hello, this is " + agent_id + ".") + " " + T.get("identity_question", "Am I speaking with " + addr + "?")
-    opening_task = (
-        "If you have not said anything yet in this call, say exactly: \"" + first_line + "\" and stop.\n"
-        "Otherwise: the opening line was said (that was ask number 1 of \"" + T.get("identity_question", "") + "\").\n\n"
-        "Your only job in this step: find out whether " + addr + " is the person on the line. Never say why you are calling. "
-        "If asked what it is about, say you can only discuss it with " + addr + " personally.\n"
-        + op.get("confirmation", "Only a clear yes or their own name counts as confirmation.") + "\n"
-        "Decide on the person's latest message:\n"
-        "1. CONFIRMED (a clear yes, \"that's me\", \"speaking\", or their own name): call transition_to_identity. Say nothing else.\n"
-        "2. Someone else is on the line (a relative or colleague, the customer is not there or not available, the number is not the customer's, "
-        "they do not know the customer, or the customer has died): call transition_to_third_party. Say nothing else.\n"
-        "3. Anything else is NOT a confirmation (\"hello\", \"go ahead\", \"who is this?\", a question, silence). Answer a question first if there was one, "
-        "then ask once more: \"" + T.get("identity_question", "") + "\". You never ask it more than " + str(op.get("max_asks", 2)) + " times in total: "
-        "if after the last ask it is still not a confirmation and not case 2, call transition_to_close_unclear.\n"
-        "   COUNT: the person has answered {{opening.total_turns}} time(s) so far. If that number is " + str(op.get("max_asks", 2)) + " or more and the latest answer is "
-        "still not a confirmation and not case 2, call transition_to_close_unclear NOW. Do not ask again.\n"
-        "4. If the person asks for a human: the first time, ask whether you can help first. If they insist, call transfer_" + human_q + ".\n"
-        "5. If the person says they do not want to talk: the first time, ask again politely. The second time, call transition_to_close_id_declined.\n"
-        + bullets(op.get("rules", [])) + "\nALWAYS:\n" + bullets(spec.get("global_rules", []))
-    )
-    nodes["opening"] = conv("opening", opening_task, [human_tr] if human_tr else [], human_exit() + [
-        tool_transition("identity", "The person clearly confirmed they are the customer."),
-        tool_transition("third_party", "Someone other than the customer is on the line, the customer is not available, the number is not the customer's, or the customer died."),
-        tool_transition("close_unclear", "After the last allowed ask it is still unclear who is on the line."),
-        tool_transition("close_id_declined", "The person said twice that they do not want to talk."),
-    ], on_enter={"type": "tts", "text": first_line})
+    max_asks = max(1, int(op.get("max_asks", 2) or 2))
+    idq_text = T.get("identity_question", "Am I speaking with " + addr + "?")
+    for k in range(1, max_asks + 1):
+        key = "opening" if k == 1 else "opening_" + str(k)
+        nxt = ("opening_" + str(k + 1)) if k < max_asks else "close_unclear"
+        task = (
+            ("If you have not said anything yet in this call, say exactly: \"" + first_line + "\" and stop.\n" if k == 1 else "") +
+            "You have asked \"" + idq_text + "\" " + str(k) + " time(s) now.\n\n"
+            "Your only job in this step: find out whether " + addr + " is the person on the line. Never say why you are calling. "
+            "If asked what it is about, say you can only discuss it with " + addr + " personally.\n"
+            + op.get("confirmation", "Only a clear yes or their own name counts as confirmation.") + "\n"
+            "Decide on the person's latest message:\n"
+            "1. CONFIRMED (a clear yes, \"that's me\", \"speaking\", or their own name): call transition_to_identity. Say nothing else.\n"
+            "2. Someone else is on the line (a relative or colleague, the customer is not there or not available, the number is not the customer's, "
+            "they do not know the customer, or the customer has died): call transition_to_third_party. Say nothing else.\n"
+            "3. Anything else is NOT a confirmation (\"hello\", \"go ahead\", \"who is this?\", \"why?\", a question, silence): call transition_to_" + nxt + ". Say nothing else."
+            + (" (That ends the call: you may not ask again.)" if nxt == "close_unclear" else "") + "\n"
+            "4. If the person asks for a human: the first time, ask whether you can help first. If they insist, call transfer_" + human_q + ".\n"
+            "5. If the person says for the second time that they do not want to talk, call transition_to_close_id_declined.\n"
+            + bullets(op.get("rules", [])) + "\nALWAYS:\n" + bullets(spec.get("global_rules", []))
+        )
+        enter = {"type": "tts", "text": first_line} if k == 1 else {"type": "llm", "prompt": (
+            "The person did not confirm. If their last message asked a question (who you are, whether you are a robot, whether this is a scam), answer it in one short sentence following the rules, "
+            "without saying why you are calling. Then ask exactly: \"" + idq_text + "\" Say nothing else and call no tool.")}
+        nodes[key] = conv(key, task, [human_tr] if human_tr else [], human_exit() + [
+            tool_transition("identity", "The person clearly confirmed they are the customer."),
+            tool_transition("third_party", "Someone other than the customer is on the line, the customer is not available, the number is not the customer's, or the customer died."),
+            tool_transition(nxt, "The latest answer is not a confirmation and not someone else."),
+            tool_transition("close_id_declined", "The person said twice that they do not want to talk."),
+        ], on_enter=enter)
 
     # ---------------- third party
     cb = spec.get("callback", {})
     d_f, t_f = api.field("schedule_callback", "date"), api.field("schedule_callback", "time")
-    callback_tool = api_fn(api, "schedule_callback", {cid_field: CID, d_f: leaf("string", "{{cb_date}}", "Callback date as YYYY-MM-DD."),
-                                                      t_f: leaf("string", "{{cb_time}}", "Callback time as HH:MM, 24 hour.")},
-                           desc="Book a callback. CALL it as soon as the person names a day and an exact time inside the allowed callback window.",
-                           post=post("if ok:\n    d['what_to_do_next'] = 'Callback booked.'\nelse:\n    d['what_to_do_next'] = 'The callback was NOT booked. Do not say it is booked. Ask for another time inside the window.'"))
+    check_cb = {"type": "function", "function": {
+        "name": "check_callback", "handler": "__function__:code_exec",
+        "description": "CALL it every time the person names a day and/or a time when the customer can be reached. Pass their words.",
+        "parameters": {"type": "object", "properties": {
+            "day": {"type": "string", "description": "The day they said, in their words or as YYYY-MM-DD (today, tomorrow, Thursday, the 15th...). Empty if none."},
+            "time": {"type": "string", "description": "The time they said, in their words or as HH:MM (around eleven, 2pm, 14:30...). Empty if none."},
+            "code": {"type": "string", "default": policy_code(spec, "run_callback(vars, params)")},
+        }, "required": ["day", "time"]}}}
     tp_task = (
         "Someone other than " + addr + " is on the line.\nStrict rules: say nothing beyond the opening sentence about who you are. Never say why you are calling. "
         "Never mention " + forbidden + ". Never ask for or accept security answers. Never tell anything about the customer or an account, even if they say they are family or offer to pay; "
@@ -355,20 +389,30 @@ def compile_workflow(spec, openapi):
         "Decide on the person's messages:\n"
         "1. They say this number does not belong to " + full + " or they do not know this person: call transition_to_close_wrong_number.\n"
         "2. They say " + full + " has died: call transition_to_close_deceased immediately, with no words of your own (the condolence is spoken automatically). Ask nothing.\n"
-        "3. Otherwise ask when " + addr + " can be reached (a day and an exact time). The current time is {{now_time}} on {{today_say}}. The allowed callback window:\n{{callback_window}}\n"
-        "   Weekday words: {{week_table}}\n"
-        "   - If they give a day and an exact time inside the window, call schedule_callback with the date (YYYY-MM-DD) and the time (HH:MM, 24 hour). \"Around eleven\" or \"eleven-ish\" in the morning is 11:00.\n"
-        "   - If they give only a day or only a vague time (\"in the afternoon\") and the day is inside the window, ask for an exact time.\n"
-        "   - If the day or the time they give is outside the window, do NOT ask for a time on that day: say when you can call back (the window) and ask ONCE for another day and time. "
-        "If the next answer is also outside the window, or they cannot give one, call transition_to_close_no_callback. Never book a time outside the window.\n"
+        "3. Otherwise ask when " + addr + " can be reached (a day and an exact time). Every time they name a day or a time (or both), call check_callback with their words. "
+        "The bank's rules then decide: the callback is booked, or you are told what to ask. Never promise or book a time yourself.\n"
+        "4. If they say they cannot say when, or refuse to give a time, call transition_to_close_no_callback.\n"
     )
-    nodes["third_party"] = code_node("third_party", policy_code(spec, "run_setup(vars)"), "third_party_call")
-    nodes["third_party_call"] = conv("third_party_call", tp_task, [callback_tool], [
-        is_true("schedule_callback_response.data.ok", "close_callback", "the callback was booked"),
+    cb_trans = [
+        eq_any("cb_state", ["book"], "cb_book", "a callback time inside the window was given"),
+        eq_any("cb_state", ["give_up"], "cb_give_up", "no callback inside the window"),
+        eq_any("cb_state", ["ask"], "cb_clear", "ask again"),
         tool_transition("close_wrong_number", "The number does not belong to the customer."),
         tool_transition("close_deceased", "The customer has died."),
-        tool_transition("close_no_callback", "No callback time inside the allowed window could be agreed after asking once more."),
-    ])
+        tool_transition("close_no_callback", "The person cannot or will not say when the customer can be reached."),
+    ]
+    nodes["cb_give_up"] = code_node("cb_give_up", "vars['cb_state'] = 'closed'\n", "close_no_callback")
+    nodes["third_party"] = code_node("third_party", policy_code(spec, "run_setup(vars)"), "third_party_call")
+    nodes["third_party_call"] = conv("third_party_call", tp_task, [check_cb], cb_trans)
+    nodes["cb_clear"] = code_node("cb_clear", "vars['cb_state'] = 'waiting'\n", "third_party_ask")
+    nodes["third_party_ask"] = conv("third_party_ask", tp_task, [check_cb], cb_trans, on_enter={"type": "tts", "text": "{{cb_say}}"}, first_only=False)
+    nodes["cb_book"] = {"name": "cb_book", "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "close_no_callback",
+                        "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
+                        "pre_actions": [api_fn(api, "schedule_callback", {cid_field: CID, d_f: leaf("string", "{{cb_date}}"), t_f: leaf("string", "{{cb_time}}")}, desc="Book the callback.")],
+                        "response_mapping": [], "transitions": [
+                            is_true("cb_book_response.data.ok", "close_callback", "the callback was booked"),
+                            {"target_node": "close_callback", "description": "booked", "condition": {"logic": "or", "conditions": [{"variable": "cb_book_success_count", "operator": "greater_than", "operand": 0}]}},
+                            always("close_no_callback")]}
 
     # ---------------- identity
     idq = spec.get("identity", {}).get("questions", [])
@@ -407,7 +451,7 @@ def compile_workflow(spec, openapi):
         failed_tr["condition"]["conditions"].append({"variable": "verify_identity_state", "operator": "equals", "operand": "failed"})
         nodes["identity"] = conv("identity", task, [tool] + ([human_tr] if human_tr else []), [
             eq_any("verify_identity_state", ["verified"], "load_account", "answers verified"), failed_tr] + human_exit() + [declined_tr],
-            on_enter={"type": "tts", "text": "Thank you, " + addr + ". " + idq[0].get("ask", "")})
+            on_enter={"type": "llm", "prompt": "If the customer's last message asked a question (for example whether this is a scam or whether you are a robot), first answer it in one sentence following the rules. Then say exactly: \"Thank you, " + addr + ". " + idq[0].get("ask", "") + "\" Say nothing else and call no tool."})
         idq = []
     for i, q in enumerate(idq):
         key = "identity" if i == 0 else "identity_" + str(i + 1)
@@ -448,7 +492,7 @@ def compile_workflow(spec, openapi):
                 {"variable": ok_var + "all_verified", "operator": "equals", "operand": "true"},
                 {"variable": ok_var + "all_verified", "operator": "equals", "operand": "True"}]}},
             failed_tr,
-        ] + human_exit() + [declined_tr], on_enter={"type": "tts", "text": thanks + q.get("ask", "")})
+        ] + human_exit() + [declined_tr], on_enter={"type": "llm", "prompt": "If the customer's last message asked a question (for example whether this is a scam or whether you are a robot), first answer it in one sentence following the rules. Then say exactly: \"" + thanks + q.get("ask", "") + "\" Say nothing else and call no tool."})
 
     # ---------------- account
     products_field = spec.get("account", {}).get("products_field", "products")
@@ -599,6 +643,31 @@ def compile_workflow(spec, openapi):
     # No test_variables: in a chat they override the call's own variables (customer_id included).
     wf = {"initial_node": "opening", "system_prompt": system, "nodes": nodes, "global_nodes": {}}
     return wf
+
+
+def audit(wf, openapi):
+    """Every bank call in the workflow must send each field the tool API marks as required. Returns a list of problems."""
+    api = Api(openapi)
+    by_url = {api.url(t): t for t in api.ops}
+    problems = []
+    for key, node in wf["nodes"].items():
+        for fn in (node.get("tools") or []) + (node.get("pre_actions") or []):
+            f = fn.get("function", {})
+            if f.get("handler") != "__function__:api_call":
+                continue
+            props = f["parameters"]["properties"]
+            tool = by_url.get(props.get("url", {}).get("default"))
+            if not tool:
+                problems.append(key + ": " + f.get("name", "?") + " calls an URL that is not in the tool API")
+                continue
+            body = props.get("body", {}).get("properties", {})
+            for req in api.required(tool):
+                if req not in body:
+                    problems.append(key + ": " + tool + " misses required field " + req)
+            for name in body:
+                if name not in api.props(tool) and not name.startswith("a_"):
+                    problems.append(key + ": " + tool + " sends a field the API does not declare: " + name)
+    return problems
 
 
 if __name__ == "__main__":

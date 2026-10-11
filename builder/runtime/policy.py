@@ -295,7 +295,18 @@ def product_floor(p):
     fld = spec.get("floor_field")
     val = to_float(p.get(fld)) if fld else None
     if val is None and spec.get("floor_percent") is not None:
-        val = round(to_float(p.get(cfg("account.amount_field", "past_due")), 0.0) * to_float(spec.get("floor_percent"), 0) / 100.0, 2)
+        raw = to_float(p.get(cfg("account.amount_field", "past_due")), 0.0) * to_float(spec.get("floor_percent"), 0) / 100.0
+        mode = str(spec.get("floor_rounding") or "round").lower()
+        cents = raw * 100
+        exact = abs(cents - round(cents)) < 1e-6
+        if exact:
+            val = round(cents) / 100.0
+        elif "ceil" in mode or "up" in mode:
+            val = (int(cents) + 1) / 100.0
+        elif "floor" in mode or "down" in mode:
+            val = int(cents) / 100.0
+        else:
+            val = round(raw, 2)
     if val is not None and spec.get("floor_min") is not None:
         val = max(val, to_float(spec.get("floor_min"), 0))
     if val is None:
@@ -550,6 +561,125 @@ def run_setup(vars):
         vars["setup_state"] = "error " + str(e)
 
 
+def parse_time(x):
+    """'11', '11:30', 'eleven', 'around eleven', '2pm', 'half past two', 'quarter to three' -> 'HH:MM' or None."""
+    if x is None:
+        return None
+    s = str(x).strip().lower()
+    if not s or s in ("none", "null"):
+        return None
+    pm = "pm" in s or "p.m" in s or "afternoon" in s or "evening" in s
+    am = "am" in s or "a.m" in s or "morning" in s
+    if "noon" in s or "midday" in s:
+        return "12:00"
+    h, mnt = None, 0
+    m = re.search(r"(\d{1,2})[:.h](\d{2})", s)
+    if m:
+        h, mnt = int(m.group(1)), int(m.group(2))
+    else:
+        m = re.search(r"(?<!\d)(\d{1,2})(?!\d)", s)
+        if m:
+            h = int(m.group(1))
+        else:
+            words = s.replace("-", " ")
+            for w, v in sorted(NUM_WORDS.items(), key=lambda kv: -len(kv[0])):
+                if re.search(r"\b" + w + r"\b", words) and 1 <= v <= 12:
+                    h = v
+                    break
+        if h is not None:
+            if "half past" in s:
+                mnt = 30
+            elif "quarter past" in s:
+                mnt = 15
+            elif "quarter to" in s:
+                h, mnt = h - 1, 45
+            elif re.search(r"\bthirty\b", s):
+                mnt = 30
+    if h is None:
+        return None
+    if pm and h < 12:
+        h += 12
+    if am and h == 12:
+        h = 0
+    if not pm and not am and 1 <= h <= 7:
+        h += 12                               # "at three" on a business call means the afternoon
+    if not (0 <= h <= 23 and 0 <= mnt <= 59):
+        return None
+    return "%02d:%02d" % (h, mnt)
+
+
+def callback_days(vars):
+    now = today_of(vars)
+    today = now.date()
+    cb = cfg("callback", dict())
+    out = []
+    if (is_bd(today) or not cb.get("today_requires_business_day", True)) and cb.get("allow_today", True):
+        out.append(today)
+    nxt = today
+    for i in range(int(to_float(cb.get("business_days_ahead"), 1))):
+        nxt = nth_bd_after(nxt, 1)
+        out.append(nxt)
+    return now, out
+
+
+def run_callback(vars, params):
+    """Check a proposed callback day and time against the window. Sets cb_state (book / ask / give_up), cb_say, cb_date, cb_time."""
+    try:
+        cb = cfg("callback", dict())
+        start, end = str(cb.get("start", "10:00")), str(cb.get("end", "19:00"))
+        now, days = callback_days(vars)
+        today = now.date()
+        d = parse_date(params.get("day"), today)
+        t = parse_time(params.get("time"))
+        if d is None and str(params.get("day") or "").strip() == "" and t is not None:
+            d = None
+        prev_d = vars.get("cb_day_seen")
+        if d is None and prev_d:
+            try:
+                d = datetime.date.fromisoformat(str(prev_d))
+            except Exception:
+                d = None
+        window = " or ".join(("today until " + end) if x == today else (say_date(x) + " between " + start + " and " + end) for x in days)
+        outside = int(to_float(vars.get("cb_outside"), 0) or 0)
+
+        def is_out(day, tm):
+            if day is not None and day not in days:
+                return True
+            if tm is not None and not (start <= tm <= end):
+                return True
+            if day == today and tm is not None and tm <= now.strftime("%H:%M"):
+                return True
+            return False
+
+        if (d is not None or t is not None) and is_out(d, t):
+            outside += 1
+            vars["cb_outside"] = str(outside)
+            vars["cb_day_seen"] = ""
+            if outside >= 2 or not cb.get("reask_once", True):
+                vars["cb_state"] = "give_up"
+                vars["cb_say"] = ""
+                return
+            vars["cb_state"] = "ask"
+            vars["cb_say"] = "I am sorry, I can only call back " + window + ". Is there another day and time that works?"
+            return
+        if d is not None and t is not None:
+            vars["cb_state"] = "book"
+            vars["cb_date"] = d.isoformat()
+            vars["cb_time"] = t
+            return
+        if d is not None:
+            vars["cb_day_seen"] = d.isoformat()
+            vars["cb_state"] = "ask"
+            vars["cb_say"] = "At what time on " + say_date(d) + "? I can call between " + (now.strftime("%H:%M") if d == today else start) + " and " + end + "."
+            return
+        vars["cb_state"] = "ask"
+        vars["cb_say"] = "When can I reach them? I can call back " + window + "."
+    except Exception as e:
+        vars["cb_state"] = "ask"
+        vars["cb_say"] = "When can I reach them, which day and at what time?"
+        vars["cb_error"] = str(e)[:120]
+
+
 def run_prepare(vars):
     try:
         run_setup(vars)
@@ -574,7 +704,7 @@ def run_prepare(vars):
         vars["products_count"] = str(len(st["products"]))
         vars["debt_statement"] = debt_statement(st)
         vars["account_state"] = "ok" if st["products"] else "empty"
-        set_outputs(vars, st, "You just stated the debt and asked whether they can pay today. Wait for the answer.")
+        set_outputs(vars, st, "You just stated the debt and asked the first question about paying. Wait for the answer.")
     except Exception as e:
         vars["account_state"] = "error " + str(e)
         vars["debt_statement"] = cfg("texts.debt_intro", "I am calling about a late payment.")
@@ -657,7 +787,10 @@ def run_assess(vars, params):
             ev = "situation"
         st["events"].append([ev, target, params.get("amount"), params.get("date"), sid])
         pend = st.get("pending_offer")
-        if pend and ev in ("accept_offer", "accept", "yes") and pend in sits:
+        accepting = ev in ("accept_offer", "accept", "yes")
+        if pend and ev == "situation" and sid != pend and (sits.get(sid) or dict()).get("effect") == "transfer":
+            accepting = True            # "yes, connect me" reported as a transfer request while the offer is open
+        if pend and accepting and pend in sits:
             st["pending_offer"] = ""
             set_outputs(vars, st, start_transfer(vars, st, sits[pend].get("offer_queue")))
             return
@@ -774,7 +907,8 @@ def assess_one(p, st, ev, amt, dt, today, multi=False, raw_date=None):
             return agree(p, p["offer_amount"], datetime.date.fromisoformat(p["offer_date"]))
         ev = "propose" if (dt is not None or amt is not None) else "pay_today"
     if ev == "pay_today":
-        d = today
+        # "Yes" to the first ask: the first ask is about today, or about the earliest allowed day when today is not allowed.
+        d = today if cfg("dates.today_allowed", True) else next_bd_on_or_after(today + datetime.timedelta(days=1))
         ok, offer, why = decide_date(p, d, today)
         if ok is None:
             return make_offer(p, target_amount(p) if amt is None else amt, offer, "today is not a business day")
@@ -1007,6 +1141,12 @@ def run_finalize(vars):
                         if p.get("reason") != cfg("reasons.paid", "paid"):
                             reason = p.get("reason")
                             break
+                prio = cfg("closing.no_promise_reason_priority", [])
+                if prio:
+                    present = [p.get("reason") for p in unp if p.get("reason") != cfg("reasons.paid", "paid")] or [p.get("reason") for p in unp]
+                    ranked = [r for r in prio if r in present]
+                    if ranked:
+                        reason = ranked[0]
         vars["final_outcome"] = outcome
         vars["final_reason"] = reason
         for i in range(3):

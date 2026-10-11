@@ -1,0 +1,37 @@
+model call: anthropic/claude-opus-5.5 | extract the spec from the brief | 12110 in / 6847 out tokens | $0.1854 | 48.9 s
+spec check after extraction: no problems
+model call: anthropic/claude-opus-5.5 | review the spec rule by rule against the brief and fix it | 18419 in / 7453 out tokens | $0.2227 | 52.8 s
+DIFF account 
+  expected: {"amount_field": "arrears_balance", "days_late_field": "arrears_days", "id_field": "facility_ref", "products_field": "facilities", "type_field": "facility_kind", "types": {"CARD": {"floor_field": "minimum_due"}, "OVERDRAFT": {"floor_field": null, "floor_percent": 22.5}, "TERM_LOAN": {"floor_field": "contractual_instalment"}}} 
+  got:      {"amount_field": "arrears_balance", "days_late_field": "arrears_days", "id_field": "facility_ref", "products_field": "facilities", "type_field": "facility_kind", "types": {"CARD": {"floor_field": "minimum_due"}, "OVERDRAFT": {"floor_field": null, "floor_percent": 22.5, "floor_rounding": "up_to_penny"}, "TERM_LOAN": {"floor_field": "contractual_instalment"}}}
+DIFF callback 
+  expected: {"allow_today": true, "business_days_ahead": 1, "end": "18:00", "start": "09:30", "today_requires_business_day": true} 
+  got:      {"allow_today": true, "business_days_ahead": 1, "end": "18:00", "reask_once": true, "start": "09:30", "today_requires_business_day": true}
+2 differences
+
+compiled 30 nodes
+  self-test refuse-all days_late=1 products=1: phase=done outcome=NO_PTP/REFUSAL attempts=[1]
+  self-test late-date days_late=1 products=1: commit_ready=yes dates=['2026-10-26']
+  self-test refuse-all days_late=1 products=3: phase=done outcome=NO_PTP/REFUSAL attempts=[1, 1, 1]
+  self-test late-date days_late=1 products=3: commit_ready=yes dates=['2026-10-26', '2026-10-26', '2026-10-26']
+  self-test refuse-all days_late=10 products=1: phase=done outcome=NO_PTP/REFUSAL attempts=[1]
+  self-test late-date days_late=10 products=1: commit_ready=yes dates=['2026-10-26']
+  self-test refuse-all days_late=10 products=3: phase=done outcome=NO_PTP/REFUSAL attempts=[1, 1, 1]
+  self-test late-date days_late=10 products=3: commit_ready=yes dates=['2026-10-26', '2026-10-26', '2026-10-26']
+  self-test refuse-all days_late=11 products=1: phase=done outcome=NO_PTP/REFUSAL attempts=[2]
+  self-test late-date days_late=11 products=1: commit_ready=yes dates=['2026-10-20']
+  self-test refuse-all days_late=11 products=3: phase=done outcome=NO_PTP/REFUSAL attempts=[2, 2, 2]
+  self-test late-date days_late=11 products=3: commit_ready=yes dates=['2026-10-20', '2026-10-20', '2026-10-20']
+  self-test refuse-all days_late=30 products=1: phase=done outcome=NO_PTP/REFUSAL attempts=[2]
+  self-test late-date days_late=30 products=1: commit_ready=yes dates=['2026-10-20']
+  self-test refuse-all days_late=30 products=3: phase=done outcome=NO_PTP/REFUSAL attempts=[2, 2, 2]
+  self-test late-date days_late=30 products=3: commit_ready=yes dates=['2026-10-20', '2026-10-20', '2026-10-20']
+  self-test refuse-all days_late=31 products=1: phase=done outcome=NO_PTP/REFUSAL attempts=[3]
+  self-test late-date days_late=31 products=1: commit_ready=yes dates=['2026-10-19']
+  self-test refuse-all days_late=31 products=3: phase=done outcome=NO_PTP/REFUSAL attempts=[3, 3, 3]
+  self-test late-date days_late=31 products=3: commit_ready=yes dates=['2026-10-19', '2026-10-19', '2026-10-19']
+  self-test refuse-all days_late=90 products=1: phase=done outcome=NO_PTP/REFUSAL attempts=[3]
+  self-test late-date days_late=90 products=1: commit_ready=yes dates=['2026-10-19']
+  self-test refuse-all days_late=90 products=3: phase=done outcome=NO_PTP/REFUSAL attempts=[3, 3, 3]
+  self-test late-date days_late=90 products=3: commit_ready=yes dates=['2026-10-19', '2026-10-19', '2026-10-19']
+self-test problems: 0

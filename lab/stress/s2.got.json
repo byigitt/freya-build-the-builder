@@ -1,0 +1,406 @@
+{
+ "bank_name": "Mere Bank",
+ "agent_identity": "Mere Bank's digital assistant",
+ "language": "English",
+ "variables": {
+  "customer_id": "customer_id",
+  "first_name": "first_name",
+  "last_name": "last_name",
+  "title": "title",
+  "now": "now"
+ },
+ "address": "{{title}} {{last_name}}",
+ "customer_full_name": "{{first_name}} {{last_name}}",
+ "test_variables": {
+  "customer_id": "c_test",
+  "first_name": "Aroha",
+  "last_name": "Walker",
+  "title": "Ms",
+  "now": "2026-11-03T10:00"
+ },
+ "texts": {
+  "opening": "Hello, this is Mere Bank's digital assistant calling. Please note that we are recording this call.",
+  "identity_question": "Am I speaking with {{title}} {{last_name}}?",
+  "condolence": "I am sorry for your loss.",
+  "identity_failed": "I am sorry, I could not verify your identity. Please use the Mere Bank mobile app or visit a branch.",
+  "identity_why": "These security questions protect your account.",
+  "debt_intro": "I am calling from the collections team about a late payment.",
+  "ask_today": "Can you pay this amount on the next business day?",
+  "ask_today_all": "Can you pay all of these amounts on the next business day?",
+  "rest_overdue": "Say that the rest stays overdue.",
+  "readback_prefix": "So that is",
+  "confirm_question": "Do you confirm?",
+  "recorded": "Your promise is recorded.",
+  "after_promise": "",
+  "service_error": "I am sorry, I could not record your promise because of a technical problem.",
+  "transfer_say": "I am transferring you now.",
+  "paid_response": "Say that payments can take one business day to appear.",
+  "robot_answer": "Say honestly that you are Mere Bank's digital assistant, then continue.",
+  "scam_answer": "Say the customer can verify the call by calling Mere Bank customer service, then continue.",
+  "unknown_answer": "Say that you do not have that information. Never invent information.",
+  "goodbye": "Thank you for your time, {{title}} {{last_name}}. Goodbye.",
+  "currency_word": "pounds",
+  "floor_name": "minimum amount"
+ },
+ "forbidden_before_verification": [
+  "collections",
+  "debt",
+  "payment",
+  "products",
+  "amounts"
+ ],
+ "opening": {
+  "max_asks": 2,
+  "confirmation": "Only \"yes\", \"that's me\", \"speaking\" or the customer's own name counts as confirmation. \"Hello\", \"go ahead\" and \"who is this\" do not.",
+  "rules": [
+   "Answer a question first, then repeat the identity question; this is the second ask.",
+   "Two unclear answers end as not_reached / unclear.",
+   "If the person says the customer is in a debt-management plan or that a debt-management organisation administers their repayments, immediately transfer to queue debt_management, even during the opening."
+  ]
+ },
+ "third_party": {
+  "rules": [
+   "If someone else answers, disclose nothing and ask when the customer is available.",
+   "A relative cannot answer security questions, receive account details or make a promise for the customer, even if they offer to pay.",
+   "A specific callback time is required. Ask for one alternative if invalid; if still invalid or unavailable, end not_reached / no_callback.",
+   "If told the customer died, say \"I am sorry for your loss.\" and immediately end not_reached / deceased without more questions."
+  ]
+ },
+ "callback": {
+  "start": "08:30",
+  "end": "17:00",
+  "allow_today": true,
+  "today_requires_business_day": true,
+  "business_days_ahead": 2,
+  "reask_once": true
+ },
+ "identity": {
+  "questions": [
+   {
+    "field": "postcode",
+    "ask": "For security, what is your registered postcode?",
+    "kind": "text",
+    "say_name": "registered postcode"
+   },
+   {
+    "field": "birth_year",
+    "ask": "What year were you born?",
+    "kind": "year",
+    "digits": 4,
+    "say_name": "year of birth"
+   },
+   {
+    "field": "card_last4",
+    "ask": "What are the last four digits of your card?",
+    "kind": "digits",
+    "digits": 4,
+    "say_name": "last four digits of your card"
+   }
+  ],
+  "date_numeric_order": "DMY",
+  "max_wrong_total": 3,
+  "hints": {},
+  "decline_rule": "When the customer refuses or asks what the call is about instead of answering, explain once \"These security questions protect your account.\" A second refusal or a second such question ends the call as not_verified / declined.",
+  "rules": [
+   "Ask and verify each question separately, in strict order, waiting for success before advancing.",
+   "Send the postcode in uppercase with the internal space preserved.",
+   "Send the card digits as exactly four digits; preserve leading zeroes.",
+   "Do not replace the third question with a telephone-number question. All three are required.",
+   "Failed security ends as not_verified / failed.",
+   "If the customer says they are in a debt-management plan during security, stop the security questions and transfer immediately to queue debt_management."
+  ]
+ },
+ "account": {
+  "products_field": "products",
+  "id_field": "product_id",
+  "type_field": "type",
+  "amount_field": "overdue_amount",
+  "days_late_field": "dpd",
+  "types": {
+   "revolving_card": {
+    "words": "credit card ending <card_last4>",
+    "floor_field": "minimum_due",
+    "floor_name": "minimum due"
+   },
+   "bnpl": {
+    "words": "buy now pay later purchase <purchase_label>",
+    "floor_field": null,
+    "floor_percent": 40,
+    "floor_name": "minimum amount"
+   }
+  }
+ },
+ "calendar": {
+  "business_weekdays": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "holidays": [
+   "2026-11-05",
+   "2026-12-25",
+   "2026-12-28"
+  ]
+ },
+ "bands": [
+  {
+   "name": "watch",
+   "min_days": 1,
+   "max_days": 14,
+   "deadline": {
+    "kind": "business_days_after_today",
+    "n": 7
+   },
+   "attempts": 1
+  },
+  {
+   "name": "late",
+   "min_days": 15,
+   "max_days": 45,
+   "deadline": {
+    "kind": "business_days_after_today",
+    "n": 5
+   },
+   "attempts": 2
+  },
+  {
+   "name": "critical",
+   "min_days": 46,
+   "max_days": 120,
+   "deadline": {
+    "kind": "business_days_after_today",
+    "n": 3
+   },
+   "attempts": 3
+  }
+ ],
+ "dates": {
+  "today_allowed": false
+ },
+ "persuasion": [
+  {
+   "amount": "full",
+   "date": "business_days_after_today:2"
+  },
+  {
+   "amount": "current",
+   "date": "deadline",
+   "bands": [
+    "late",
+    "critical"
+   ]
+  },
+  {
+   "amount": "floor",
+   "date": "deadline",
+   "bands": [
+    "critical"
+   ]
+  }
+ ],
+ "multi": {
+  "notes": true,
+  "single_date_after_deadline": "use_product_deadline",
+  "no_notes_on_transfer": true
+ },
+ "reasons": {
+  "refused": "refused",
+  "hardship": "hardship",
+  "dispute": "dispute",
+  "paid": "paid",
+  "service_error": "service_error"
+ },
+ "outcomes": {
+  "promise": "promise",
+  "paid": "paid",
+  "transferred": "transferred",
+  "no_promise": "no_promise",
+  "not_verified": "not_verified",
+  "not_reached": "not_reached"
+ },
+ "transfer_reasons": {
+  "restructuring": "restructuring",
+  "general": "human",
+  "support": "support",
+  "debt_management": "managed_plan"
+ },
+ "early_closes": {
+  "unclear": [
+   "not_reached",
+   "unclear"
+  ],
+  "callback": [
+   "not_reached",
+   "callback"
+  ],
+  "no_callback": [
+   "not_reached",
+   "no_callback"
+  ],
+  "wrong_number": [
+   "not_reached",
+   "wrong_number"
+  ],
+  "deceased": [
+   "not_reached",
+   "deceased"
+  ],
+  "id_failed": [
+   "not_verified",
+   "failed"
+  ],
+  "id_declined": [
+   "not_verified",
+   "declined"
+  ],
+  "debt_management_plan": [
+   "transferred",
+   "managed_plan"
+  ]
+ },
+ "close_texts": {
+  "deceased": "I am sorry for your loss. Thank you for your time. Goodbye.",
+  "id_failed": "I am sorry, I could not verify your identity. Please use the Mere Bank mobile app or visit a branch. Thank you for your time, {{title}} {{last_name}}. Goodbye.",
+  "id_declined": "Thank you for your time, {{title}} {{last_name}}. Goodbye."
+ },
+ "situations": {
+  "debt_management_plan": {
+   "trigger": "The customer says they are in a debt-management plan or that a debt-management organisation administers their repayments. This applies at any point, including the opening, before identity verification and midway through security.",
+   "action": "Immediately say \"I am transferring you now.\" and transfer to the Debt Management Liaison team. Stop security questions and collections; do not finish verification, read accounts, seek or record a new promise, offer a new arrangement, or add notes. This is distinct from requesting a new plan.",
+   "effect": "transfer",
+   "queue": "debt_management",
+   "reason": "managed_plan"
+  },
+  "hardship": {
+   "trigger": "The customer mentions illness, bereavement or job loss.",
+   "action": "Say one sympathetic sentence. Make no persuasion attempt. Offer once to connect them with the support team. If accepted, transfer; if declined, mark all remaining products hardship.",
+   "effect": "product",
+   "reason": "hardship",
+   "scope": "all",
+   "offer_queue": "support"
+  },
+  "restructuring": {
+   "trigger": "The customer asks for a new payment plan, a restructuring or lower instalments.",
+   "action": "Transfer immediately, without describing a plan.",
+   "effect": "transfer",
+   "queue": "restructuring"
+  },
+  "human": {
+   "trigger": "The customer asks to speak to a human.",
+   "action": "Ask once whether you can help first. If they insist, transfer.",
+   "effect": "transfer",
+   "queue": "general",
+   "ask_first": true,
+   "say": "Ask once whether you can help them first."
+  },
+  "paid": {
+   "trigger": "The customer says they already paid this past-due amount.",
+   "action": "Mark only that product paid and take no promise for it.",
+   "effect": "product",
+   "reason": "paid",
+   "say": "Say that payments can take one business day to appear.",
+   "close_say": "Payments can take one business day to appear."
+  },
+  "dispute": {
+   "trigger": "The customer disputes liability, including claiming a product was closed or historically paid off.",
+   "action": "Do not argue. Mark that product dispute and take no promise for it.",
+   "effect": "product",
+   "reason": "dispute"
+  },
+  "stop_talking": {
+   "trigger": "The customer says for the second time that they do not want to talk.",
+   "action": "Mark all remaining products refused.",
+   "effect": "product",
+   "reason": "refused",
+   "scope": "all"
+  }
+ },
+ "negotiation_rules": [
+  "Always ask for the full amount first. Never ask the customer how much they can afford.",
+  "If the full amount is unaffordable, the floor is permissible; never accept less. Say that the rest stays overdue when offering a floor.",
+  "The bnpl floor is 40 percent of overdue_amount, rounded to the nearest penny.",
+  "Never offer discounts, waivers or a new instalment plan.",
+  "Same-day promises are prohibited: never ask for, offer, accept or record a promise for today, including when the customer volunteers to pay today. Offer the next business day instead.",
+  "The initial full-amount question does not count as a persuasion attempt.",
+  "After refusing all permitted steps, mark the product refused. Do not skip or collapse critical's three steps.",
+  "Never promise on a non-business day or after a deadline: offer the next business day, or the product deadline if that would be too late. Clamp a persuasion date to the deadline if necessary.",
+  "One promise per product. Record only after explicit confirmation.",
+  "Do not promise a text message.",
+  "A recorded promise cannot be changed in this call.",
+  "Close reason when no promise and not all paid: choose the first present reason in this priority order: service_error, dispute, hardship, refused, paid."
+ ],
+ "global_rules": [
+  "The debt-management plan rule has priority at all stages: if the customer is in an existing debt-management plan, transfer immediately to queue debt_management and close transferred / managed_plan.",
+  "If asked about AI, identify yourself honestly as Mere Bank's digital assistant and continue.",
+  "If asked whether this is a scam, say the customer can verify by calling Mere Bank customer service, and continue.",
+  "Never invent information.",
+  "Say \"I am transferring you now.\" before any transfer.",
+  "close_call is always the final tool call.",
+  "create_promise uses promised_sum for the promised amount and settlement_day for its payment date, not amount/date. Both fields are required together with customer_id and product_id. Do not send undeclared aliases."
+ ],
+ "coverage": [
+  "rule 1 caller identity -> agent_identity",
+  "rule 1 currency pounds -> texts.currency_word",
+  "rule 1 call inputs -> variables",
+  "rule 1 address / full name -> address, customer_full_name",
+  "rule 1 opening sentence -> texts.opening",
+  "rule 1 identity question, at most twice -> texts.identity_question, opening.max_asks",
+  "rule 1 what counts as confirmation -> opening.confirmation",
+  "rule 1 answer a question first, second ask -> opening.rules",
+  "rule 1 two unclear answers -> early_closes.unclear, opening.rules",
+  "rule 1 no disclosure before security -> forbidden_before_verification",
+  "rule 1 relative cannot answer/receive/promise -> third_party.rules",
+  "rule 1 AI question -> global_rules, texts.robot_answer",
+  "rule 1 scam question -> global_rules, texts.scam_answer",
+  "rule 1 never invent information -> global_rules, texts.unknown_answer",
+  "rule 1 goodbye -> texts.goodbye",
+  "rule 2 three ordered questions -> identity.questions",
+  "rule 2 postcode uppercase with space, leading zeroes -> identity.rules",
+  "rule 2 no telephone-number substitute -> identity.rules",
+  "rule 2 three wrong answers -> identity.max_wrong_total",
+  "rule 2 no hints -> identity.hints",
+  "rule 2 numeric date DMY -> identity.date_numeric_order",
+  "rule 2 decline handling -> identity.decline_rule, texts.identity_why, early_closes.id_declined",
+  "rule 2 failed security -> texts.identity_failed, early_closes.id_failed",
+  "rule 3 business days and holidays -> calendar",
+  "rule 3 third party disclose nothing -> third_party.rules",
+  "rule 3 callback window -> callback",
+  "rule 3 one alternative, no_callback -> callback.reask_once, early_closes.no_callback, third_party.rules",
+  "rule 3 callback scheduled -> early_closes.callback",
+  "rule 3 wrong number -> early_closes.wrong_number",
+  "rule 3 deceased -> texts.condolence, early_closes.deceased, close_texts.deceased",
+  "rule 4 product fields -> account",
+  "rule 4 product words and floors -> account.types, negotiation_rules",
+  "rule 4 full amount first, floor, rest overdue, no discounts -> negotiation_rules, texts.rest_overdue",
+  "rule 4 debt intro -> texts.debt_intro",
+  "rule 4 first payment question -> texts.ask_today, texts.ask_today_all",
+  "rule 4 no same-day promises -> dates.today_allowed, negotiation_rules",
+  "rule 4 initial question not a persuasion attempt -> negotiation_rules",
+  "rule 4 bands table -> bands",
+  "rule 4 persuasion steps -> persuasion",
+  "rule 4 refused after all steps, clamping -> negotiation_rules",
+  "rule 5 one promise per product -> negotiation_rules",
+  "rule 5 single date beyond deadline -> multi.single_date_after_deadline",
+  "rule 5 read-back and confirm -> texts.readback_prefix, texts.confirm_question, negotiation_rules",
+  "rule 5 recording success/failure -> texts.recorded, texts.service_error, reasons.service_error",
+  "rule 5 no text message -> texts.after_promise, negotiation_rules",
+  "rule 5 promise cannot be changed -> negotiation_rules",
+  "rule 5 notes for products without promise -> multi.notes, reasons",
+  "rule 5 no notes on transfer -> multi.no_notes_on_transfer",
+  "rule 5 close_call last -> global_rules",
+  "rule 6 debt-management plan -> situations.debt_management_plan, transfer_reasons.debt_management, early_closes.debt_management_plan, global_rules, opening.rules, identity.rules",
+  "rule 6 hardship -> situations.hardship",
+  "rule 6 new plan / restructuring -> situations.restructuring",
+  "rule 6 human request -> situations.human",
+  "rule 6 already paid -> situations.paid, texts.paid_response",
+  "rule 6 dispute -> situations.dispute",
+  "rule 6 does not want to talk -> situations.stop_talking",
+  "rule 6 transfer sentence -> texts.transfer_say, global_rules",
+  "rule 6 transfer reasons -> transfer_reasons",
+  "rule 7 outcome table -> outcomes, negotiation_rules",
+  "rule 7 note codes -> reasons",
+  "rule 8 tool interface (promised_sum, settlement_day, no aliases) -> global_rules, account, identity.questions"
+ ]
+}

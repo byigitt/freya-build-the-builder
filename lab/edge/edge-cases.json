@@ -1410,7 +1410,7 @@
     },
     "checks": [
       "Transfer to restructuring immediately; discard an agreed but unrecorded card promise.",
-      "No notes are added on a transfer.",
+      "No add_note calls or per-product notes are added on a transfer. The mandatory close_call with outcome transferred and reason restructuring is not an add_note and must still occur.",
       "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
     ]
   },
@@ -1932,7 +1932,7 @@
     },
     "checks": [
       "For early-band card October 26 holiday rolls to October 27; late personal loan clamps to October 23, not October 27.",
-      "Read both corrected dates together before one confirmation.",
+      "Before creating either promise, read both corrected dates together and obtain one final read-back confirmation. Asking whether the customer accepts a holiday-adjusted date during negotiation is allowed and is not a separate final promise confirmation.",
       "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
     ]
   }
@@ -2605,4 +2605,52 @@
       "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
     ]
   }
+,
+{
+  "id": "EDGE-51",
+  "session_case": "PUB-01",
+  "brief": "A",
+  "family": "Edge rules",
+  "level": "hard",
+  "title": "Security purpose questions are not refusals",
+  "variables": {
+    "first_name": "Daniel",
+    "last_name": "Reyes",
+    "title": "Mr",
+    "now": "2026-10-14T11:00"
+  },
+  "identity": {
+    "date_of_birth": "1988-03-14",
+    "phone_last4": "4471"
+  },
+  "products": [
+    {
+      "type": "credit_card",
+      "card_last4": "4821",
+      "past_due": 420.0,
+      "days_late": 6,
+      "minimum_payment": 126.0
+    }
+  ],
+  "script": "Confirm your name and answer both security questions correctly unless instructed otherwise. When first asked for your date of birth ask exactly \"Why do you need my date of birth?\". After the explanation ask again \"But why do you need my date of birth?\". You are not refusing to answer and are not asking what this call is about. After the second explanation give 14 March 1988 and then phone 4471 when asked. Agree to pay 420 today and confirm.",
+  "expected": {
+    "outcome": "promise",
+    "reason": null,
+    "promises": [
+      {
+        "product_id": "p1",
+        "amount": 420,
+        "date": "2026-10-14"
+      }
+    ],
+    "notes": [],
+    "callbacks": [],
+    "transfers": []
+  },
+  "checks": [
+    "Questions about why the birth-date security question is needed, without refusing or asking what the call is about, must not count as security declines.",
+    "Answer both security-purpose questions and continue verification; do not close declined.",
+    "The customer receives a polite goodbye. Bank close_call count and last-bank-tool ordering are checked separately in the ledger, not inferred from chat speech/event ordering or the engine end_call tool."
+  ]
+}
 ]

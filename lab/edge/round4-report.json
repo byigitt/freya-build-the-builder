@@ -1,0 +1,142 @@
+{
+  "suite_cases": 51,
+  "counts_by_execution": {
+    "round4-target-A": {
+      "EDGE-05": "3/3",
+      "EDGE-25": "3/3",
+      "EDGE-46": "3/3"
+    },
+    "round4-target-B": {
+      "EDGE-47": "1/3"
+    },
+    "round4-full-A": {
+      "EDGE-01": "1/1",
+      "EDGE-02": "1/1",
+      "EDGE-03": "1/1",
+      "EDGE-04": "1/1",
+      "EDGE-05": "1/1",
+      "EDGE-06": "1/1",
+      "EDGE-07": "1/1",
+      "EDGE-08": "1/1",
+      "EDGE-09": "1/1",
+      "EDGE-10": "1/1",
+      "EDGE-11": "1/1",
+      "EDGE-12": "1/1",
+      "EDGE-13": "1/1",
+      "EDGE-14": "1/1",
+      "EDGE-15": "1/1",
+      "EDGE-16": "1/1",
+      "EDGE-17": "1/1",
+      "EDGE-18": "1/1",
+      "EDGE-19": "1/1",
+      "EDGE-20": "1/1",
+      "EDGE-21": "1/1",
+      "EDGE-22": "1/1",
+      "EDGE-23": "1/1",
+      "EDGE-24": "1/1",
+      "EDGE-25": "1/1",
+      "EDGE-26": "1/1",
+      "EDGE-27": "1/1",
+      "EDGE-39": "1/1",
+      "EDGE-41": "1/1",
+      "EDGE-44": "1/1",
+      "EDGE-45": "1/1",
+      "EDGE-46": "1/1",
+      "EDGE-50": "1/1"
+    },
+    "round4-full-B": {
+      "EDGE-28": "1/1",
+      "EDGE-29": "1/1",
+      "EDGE-30": "0/1",
+      "EDGE-31": "1/1",
+      "EDGE-32": "1/1",
+      "EDGE-33": "1/1",
+      "EDGE-34": "1/1",
+      "EDGE-35": "1/1",
+      "EDGE-36": "1/1",
+      "EDGE-37": "1/1",
+      "EDGE-38": "0/1",
+      "EDGE-40": "1/1",
+      "EDGE-42": "1/1",
+      "EDGE-43": "1/1",
+      "EDGE-47": "0/1",
+      "EDGE-48": "1/1",
+      "EDGE-49": "1/1"
+    },
+    "round4-security-latest": {
+      "EDGE-05": "1/3",
+      "EDGE-51": "3/3"
+    }
+  },
+  "full_suite_raw": {
+    "A": "33/33",
+    "B": "14/17",
+    "total": "47/50"
+  },
+  "full_suite_triaged": "49/50 after excluding two judge artifacts; EDGE-47 remains real failure. This is analysis, not a rerun score.",
+  "targeted_initial": {
+    "EDGE-05": "3/3",
+    "EDGE-25": "3/3",
+    "EDGE-46": "3/3",
+    "EDGE-47": "1/3"
+  },
+  "latest_security_after_midround_redeploy": {
+    "EDGE-05": "1/3",
+    "EDGE-51": "3/3"
+  },
+  "failures": [
+    {
+      "case": "EDGE-30",
+      "class": "b",
+      "reason": "Judge treats mandatory close_call(outcome=transferred,reason=restructuring) as add_note. Ledger has no add_note, notes empty, correct transfer.",
+      "calls": [
+        "a5d4adf5-afb9-4edd-b71b-b2798f3f88dc"
+      ],
+      "action": "Clarified judge check to distinguish add_note from close_call; expected ledger unchanged. No post-clarification rerun."
+    },
+    {
+      "case": "EDGE-38",
+      "class": "b",
+      "reason": "Judge treats accepting the offered holiday-adjusted date as separate final confirmation. Agent subsequently reads both promises together and gets one final confirmation before recording; ledger correct.",
+      "calls": [
+        "7d2980ed-065d-495c-97db-a51c1637f9f8"
+      ],
+      "action": "Clarified judge criterion that negotiation acceptance is allowed; expected ledger unchanged. No post-clarification rerun."
+    },
+    {
+      "case": "EDGE-47",
+      "class": "c",
+      "reason": "Hardship car remains open/offered after support response proposes only card/loan payments. Policy clears pending_offer without settling the affected hardship products, then proposes car payment; ledger eventually correct only after customer repeats hardship.",
+      "root": "builder/runtime/policy.py:823-824 clears offer on propose; :832-835 stores situation only and no persistent affected-product hardship state; refusal guard :755 only helps if no_persuasion was set.",
+      "calls": [
+        "b4315deb-268c-4dff-8a9d-dd0ac43d2ac3",
+        "1f668555-4a74-4f60-8ee7-ffcb6fe7bb79",
+        "d562c9cd-1b12-430d-90ad-8b6b63d5377e"
+      ],
+      "patch": "# In run_assess, when setting pending_offer (policy.py:832-835):\naffected = (open_products(st) if target in (\"\", \"all\", \"every\", \"both\", \"everything\") or s.get(\"scope\") == \"all\"\n            else [prod_by_id(st, target)])\naffected = [p for p in affected if p is not None]\nst[\"pending_offer_products\"] = [p[\"id\"] for p in affected]\nfor p in affected:\n    p[\"no_persuasion\"] = True\n\n# Before generic pending-offer clearing at :823, when payment proposals resolve support:\nelif pend and ev in (\"propose\", \"propose_date\", \"propose_amount\", \"pay_today\"):\n    for pid in st.pop(\"pending_offer_products\", []):\n        p = prod_by_id(st, pid)\n        if p is not None and p[\"status\"] in (\"open\", \"offered\"):\n            p[\"status\"] = \"closed\"\n            p[\"reason\"] = (sits.get(pend) or {}).get(\"reason\") or pend\n            p[\"pending_q\"] = False\n    st[\"pending_offer\"] = \"\"\n# Continue normal proposal processing: existing reopen-on-voluntary-proposal logic\n# reopens only the specifically proposed product(s), retaining no_persuasion.\n",
+      "prompt_note": "After offer resolution, report each explicit payment clause sequentially before speaking the final next_step; otherwise the second promised product may be omitted when all hardship products have been settled."
+    },
+    {
+      "case": "EDGE-05",
+      "class": "c",
+      "reason": "Latest why-question exception takes precedence over refusal in the same utterance. No record_decline for “I am not comfortable ... Why do you need it?” or “I will not provide ... Why is this necessary?”. One run never closes and repeats goodbye to turn cap.",
+      "root": "builder/compile.py:428 and :445 unconditionally exempt messages containing a security-purpose question, even when refusal is also explicit.",
+      "calls": [
+        "13f7712e-c3b5-479a-a675-643db313ee8d",
+        "1968a81f-cc7a-4d9e-8267-8ce30b74b667"
+      ],
+      "patch": "In both id_common and record_decline tool description replace exception with: \"ONLY a question with no refusal, unwillingness or request to skip is not a decline. If the same message also says they will not answer, are not comfortable giving the required information, or want to proceed without it, call record_decline FIRST. An accompanying why-question does not cancel that refusal. After the tool follow the counter state; never announce an end or say goodbye yourself.\"",
+      "examples": [
+        "Why do you need my date of birth? -> clarification only",
+        "I will not provide the digits. Why is this necessary? -> record_decline",
+        "I am not comfortable giving that over the phone. Why do you need it? -> record_decline"
+      ]
+    }
+  ],
+  "notes": [
+    "EDGE-51 added on owner’s mid-round request; its 3-run supplemental test occurred after original full-A process loaded cases, so it is not in the 50-case full run.",
+    "Owner redeployed identity clarification change mid-round; initial EDGE-05 3/3 is not evidence for latest classifier. Latest dedicated results are 1/3.",
+    "All observed failures have transcript and show_call evidence saved in lab/edge/events-*-round4*.txt.",
+    "No expected ledger changes; two judge checks clarified for reuse. Only scratch directory modified; no workflows deployed by worker."
+  ]
+}

@@ -424,7 +424,8 @@ def compile_workflow(spec, openapi):
     decline_rule = spec.get("identity", {}).get("decline_rule", "")
     id_common = (
         "\nNever say why you are calling and never mention " + forbidden + " until every security answer is verified.\n" + decline_rule + "\n"
-        "Every time the customer refuses to answer, asks to skip a question, or asks what the call is about instead of answering, call record_decline first. "
+        "When the customer clearly refuses to answer, asks to skip a question, or asks what the call is about instead of answering, call record_decline first. "
+        "A question about the security question itself ('why do you need that?') on its own is not a refusal: answer it briefly and wait, without record_decline. If the same message also refuses, call record_decline. "
         "The bank's rules count these refusals for the whole call and end the call on the second one; after the first, explain once that the questions protect their account and ask again.\n"
         "If the customer asks for a human: the first time, ask whether you can help first. If they insist, call transfer_" + human_q + ".\n"
         + bullets(spec.get("identity", {}).get("rules", [])) + "\nIf the customer asked a question earlier in the call that has not been answered yet (for example whether this is a scam or whether you are a robot), answer it in one sentence before your next question.\nALWAYS (also while asking security questions):\n" + bullets(spec.get("global_rules", [])) + "\nDo not call any other tool."
@@ -440,7 +441,8 @@ def compile_workflow(spec, openapi):
     declined_tr = eq_any("identity_decline_state", ["close"], "close_id_declined", "second refusal of the security questions")
     decline_tool = {"type": "function", "function": {
         "name": "record_decline", "handler": "__function__:code_exec",
-        "description": "CALL it every time the customer refuses to answer a security question, asks to skip it, or asks what the call is about instead of answering. Then explain once that the questions protect their account and ask again.",
+        "description": "CALL it only when the customer clearly refuses to answer a security question ('I won't tell you that', 'skip it'), or asks what the call is about instead of answering. "
+                       "A question about the security question itself ('why do you need that?', 'which number?') is NOT a refusal when it comes alone. If the same message also refuses ('I won't give it, why do you need it?'), it IS a refusal: call record_decline.",
         "parameters": {"type": "object", "properties": {"code": {"type": "string", "default": check_code(
             "try:\n    n = int(float(vars.get('identity_declines') or 0)) + 1\nexcept Exception:\n    n = 1\n"
             "vars['identity_declines'] = str(n)\nvars['identity_decline_state'] = 'close' if n >= " + str(int(spec.get("identity", {}).get("max_declines", 2) or 2)) + " else 'explain'\n")}}, "required": []}}}
@@ -486,7 +488,9 @@ def compile_workflow(spec, openapi):
             how = "As soon as the customer has given the complete answer, call " + tool_name + " with the answer exactly as given (normalized: no extra words)."
             adesc = q.get("format", "The answer.")
         thanks = "Thank you, " + addr + ". " if i == 0 else "Thank you. "
-        task = ("Security question " + str(i + 1) + " of " + str(len(idq)) + ": you asked for the " + q.get("say_name", q["field"].replace("_", " ")) + ".\n" + how +
+        why = T.get("identity_why", "These questions protect your account.")
+        task = ("Security question " + str(i + 1) + " of " + str(len(idq)) + ": you asked for the " + q.get("say_name", q["field"].replace("_", " ")) + ".\n"
+                "If the customer asks why you need it (instead of answering), reply with exactly this and nothing more: \"" + why + "\" Do not ask the question again in that reply.\n" + how +
                 "\nIf the customer's message is cut off or has no answer in it, say something short like 'Go on, I am listening.' If you already said that and their next message is cut off again, briefly repeat the question.\nIf a message contains an answer together with a question or a complaint, FIRST call " + tool_name + " with the answer, then reply to the rest. Every answer given counts and must be checked.\n"
                 "After each result, follow what_to_do_next exactly. A wrong answer is asked again; the check counts wrong answers itself. "
                 "Never ask a question that was already verified again." + id_common)
@@ -518,7 +522,7 @@ def compile_workflow(spec, openapi):
 
     # ---------------- negotiation
     events = {
-        "pay_today": "they agree to pay TODAY / right now. Only when they say today or now. A named day (Friday, tomorrow, the 20th) is propose, even for all products",
+        "pay_today": "they clearly agree to pay TODAY / right now ('yes, today'). Only when they say today or now. A named day (Friday, tomorrow, the 20th) is propose; 'I will pay' without a day is not pay_today, ask which day",
         "propose": "they name a day and/or an amount themselves (pass what they said in date and amount)",
         "accept_offer": "they accept the offer you just made",
         "too_much": "they explicitly say the AMOUNT itself is too high for them or ask to pay a smaller part, without naming an amount. Not 'I cannot pay today' and not 'I cannot pay all of that today'",

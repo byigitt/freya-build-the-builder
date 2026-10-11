@@ -1,0 +1,3 @@
+["situation", "all", null, null, "hardship"]
+["propose", "p1", "220", "this Friday", ""]
+["accept_offer", "p2", "640", "2026-10-16", ""]

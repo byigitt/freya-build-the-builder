@@ -808,6 +808,16 @@ def run_assess(vars, params):
             else:
                 st["pending_offer"] = ""  # they want a different team: handle that situation on its own
                 pend = None
+        if pend and ev in ("propose", "propose_date", "propose_amount", "pay_today") and pend in sits:
+            # The offer is not accepted, but the customer names a payment themselves: products the proposal does not
+            # cover get no persuasion, then the proposal is handled.
+            st["pending_offer"] = ""
+            st["offer_done_" + pend] = True
+            named = [x.strip().lower() for x in str(target).split(",") if x.strip()]
+            for p in st["products"]:
+                if p["status"] in ("open", "offered") and named and "all" not in named and p["id"].lower() not in named:
+                    p["no_persuasion"] = True
+            pend = None
         if pend and accepting and pend in sits:
             st["pending_offer"] = ""
             set_outputs(vars, st, start_transfer(vars, st, sits[pend].get("offer_queue")))
@@ -866,7 +876,7 @@ def run_assess(vars, params):
             if ev == "accept_offer":
                 targets = [p for p in st["products"] if p["status"] == "offered"]
             else:
-                targets = [p for p in st["products"] if p["status"] in ("open", "offered") or (p["status"] == "closed" and p.get("reason") in (cfg("reasons.refused", "refused"), cfg("reasons.hardship", "hardship")))]
+                targets = [p for p in st["products"] if p["status"] in ("open", "offered", "agreed") or (p["status"] == "closed" and p.get("reason") in (cfg("reasons.refused", "refused"), cfg("reasons.hardship", "hardship")))]
         else:
             p0 = prod_by_id(st, target)
             targets = [p0] if p0 is not None else []
@@ -898,8 +908,10 @@ def run_assess(vars, params):
 def assess_one(p, st, ev, amt, dt, today, multi=False, raw_date=None):
     if p["status"] not in ("open", "offered"):
         hardship = cfg("reasons.hardship", "hardship")
-        if ev in ("propose", "propose_date", "propose_amount", "pay_today") and p["status"] == "agreed":
-            p["status"] = "open"
+        if p["status"] == "agreed" and ev in ("refuse", "refused", "no", "too_much", "vague", "propose", "propose_date", "propose_amount", "pay_today"):
+            p["status"] = "open"             # they take back or change an agreement that is not recorded yet
+            p["agreed_amount"] = None
+            p["agreed_date"] = None
         elif ev in ("propose", "propose_date", "propose_amount", "pay_today") and p["status"] == "closed" and p.get("reason") == cfg("reasons.refused", "refused"):
             p["status"] = "open"             # they refused earlier but now name a day or an amount themselves
             p["reason"] = None

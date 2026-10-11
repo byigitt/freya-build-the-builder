@@ -1,0 +1,203 @@
+{
+ "workflow_id": "723bc1ba-f766-4c11-badd-a618779a80c4",
+ "rows": [
+  {
+   "id": "EDGE-05",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": true,
+   "failed": [],
+   "tools": [
+    "verify_identity",
+    "close_call"
+   ],
+   "call_id": "0ecad9c0-2014-4264-a189-400dc69b968d",
+   "customer_id": "c_cf3ffb94-c4d",
+   "turns": 4,
+   "seconds": 27,
+   "slowest_turn_s": 5.2,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Mr Reyes?\nUSER: Yes, this is Daniel Reyes.\nAGENT: Thank you, Mr Reyes. For security, please tell me your date of birth.\nUSER: I'm not comfortable providing my date of birth over the phone.\nSYSTEM: call record_decline {\"timeout_ms\": null, \"code\": \"try:\\n    n = int(float(vars.get('identity_declines') or 0)) + 1\\nexcept Exception:\\n    n = 1\\nvars['identity_declines'] = str(n)\\nvars['identity_decline_state'] = 'close' if n >= 2 else 'explain'\\n\"}\nSYSTEM: result record_decline null\nAGENT: I understand, Mr Reyes, but these questions are necessary to protect your account. Could you please provide your date of birth?\nUSER: 14 March 1988.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1988-03-14\", \"customer_id\": \"c_cf3ffb94-c4d\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: I am not going to provide my phone digits.\nSYSTEM: call record_decline {\"timeout_ms\": null, \"code\": \"try:\\n    n = int(float(vars.get('identity_declines') or 0)) + 1\\nexcept Exception:\\n    n = 1\\nvars['identity_declines'] = str(n)\\nvars['identity_decline_state'] = 'close' if n >= 2 else 'explain'\\n\"}\nSYSTEM: result record_decline null\nAGENT: I understand. Without the security check I cannot continue this call. Thank you for your time, Mr Reyes. Goodbye.\nSYSTEM: call api_call {\"reason\": \"declined\", \"outcome\": \"not_verified\", \"customer_id\": \"c_cf3ffb94-c4d\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  },
+  {
+   "id": "EDGE-05",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": true,
+   "failed": [],
+   "tools": [
+    "verify_identity",
+    "close_call"
+   ],
+   "call_id": "5c60cbea-3f44-4713-9bdd-19f585f784d6",
+   "customer_id": "c_6707a9f5-1c8",
+   "turns": 4,
+   "seconds": 50,
+   "slowest_turn_s": 11.3,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Mr Reyes?\nUSER: Yes, this is Daniel Reyes.\nAGENT: Thank you, Mr Reyes. For security, please tell me your date of birth.\nUSER: I'm not comfortable giving that information over the phone. Why do you need it?\nSYSTEM: call record_decline {\"timeout_ms\": null, \"code\": \"try:\\n    n = int(float(vars.get('identity_declines') or 0)) + 1\\nexcept Exception:\\n    n = 1\\nvars['identity_declines'] = str(n)\\nvars['identity_decline_state'] = 'close' if n >= 2 else 'explain'\\n\"}\nSYSTEM: result record_decline null\nAGENT: I understand, Mr Reyes, but these questions are necessary to protect your account. Please, what is your date of birth?\nUSER: It is 14 March 1988.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1988-03-14\", \"customer_id\": \"c_6707a9f5-1c8\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: I don't want to provide my phone digits. I'm not giving that out.\nSYSTEM: call record_decline {\"timeout_ms\": null, \"code\": \"try:\\n    n = int(float(vars.get('identity_declines') or 0)) + 1\\nexcept Exception:\\n    n = 1\\nvars['identity_declines'] = str(n)\\nvars['identity_decline_state'] = 'close' if n >= 2 else 'explain'\\n\"}\nSYSTEM: result record_decline null\nAGENT: I understand. Without the security check I cannot continue this call. Thank you for your time, Mr Reyes. Goodbye.\nSYSTEM: call api_call {\"reason\": \"declined\", \"outcome\": \"not_verified\", \"customer_id\": \"c_6707a9f5-1c8\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  },
+  {
+   "id": "EDGE-05",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": true,
+   "failed": [],
+   "tools": [
+    "verify_identity",
+    "close_call"
+   ],
+   "call_id": "d3f0a916-753e-43bd-b9be-8201ba6f94c1",
+   "customer_id": "c_6aad8480-bae",
+   "turns": 4,
+   "seconds": 34,
+   "slowest_turn_s": 11.3,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Mr Reyes?\nUSER: Yes, this is Daniel Reyes.\nAGENT: Thank you, Mr Reyes. For security, please tell me your date of birth.\nUSER: I'm not comfortable giving my birth date over the phone. Why do you need it?\nSYSTEM: call record_decline {\"timeout_ms\": null, \"code\": \"try:\\n    n = int(float(vars.get('identity_declines') or 0)) + 1\\nexcept Exception:\\n    n = 1\\nvars['identity_declines'] = str(n)\\nvars['identity_decline_state'] = 'close' if n >= 2 else 'explain'\\n\"}\nSYSTEM: result record_decline null\nAGENT: These questions are necessary to protect your account, Mr Reyes. Could you please tell me your date of birth?\nUSER: Okay, it's 14 March 1988.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1988-03-14\", \"customer_id\": \"c_6aad8480-bae\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: I'm not willing to share those digits with you.\nSYSTEM: call record_decline {\"timeout_ms\": null, \"code\": \"try:\\n    n = int(float(vars.get('identity_declines') or 0)) + 1\\nexcept Exception:\\n    n = 1\\nvars['identity_declines'] = str(n)\\nvars['identity_decline_state'] = 'close' if n >= 2 else 'explain'\\n\"}\nSYSTEM: result record_decline null\nAGENT: I understand. Without the security check I cannot continue this call. Thank you for your time, Mr Reyes. Goodbye.\nSYSTEM: call api_call {\"reason\": \"declined\", \"outcome\": \"not_verified\", \"customer_id\": \"c_6aad8480-bae\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  },
+  {
+   "id": "EDGE-25",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": true,
+   "failed": [],
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "get_account",
+    "get_account",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "call_id": "62fe4f19-e53c-4eb2-a1a4-fd6afe5540f8",
+   "customer_id": "c_b167bb96-112",
+   "turns": 7,
+   "seconds": 81,
+   "slowest_turn_s": 16.0,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Ms Hoffmann?\nUSER: Yes, this is Lena Hoffmann.\nAGENT: Thank you, Ms Hoffmann. For security, please tell me your date of birth.\nUSER: 30 January 1984.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1984-01-30\", \"customer_id\": \"c_b167bb96-112\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: 2219.\nSYSTEM: call verify_phone_last4 {\"field\": \"phone_last4\", \"answer\": \"2219\", \"customer_id\": \"c_b167bb96-112\"}\nSYSTEM: result verify_phone_last4 {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": true, \"what_to_do_next\": \"Correct. Move on now.\"}\nSYSTEM: call api_call {\"customer_id\": \"c_b167bb96-112\"}\nSYSTEM: result api_call {\"ok\": true, \"products\": [{\"product_id\": \"p1\", \"type\": \"car_loan\", \"past_due\": 1250, \"days_late\": 14, \"instalment_amount\": 400}]}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nAGENT: Thank you, Ms Hoffmann. I am calling from the collections team about a late payment. Your car loan has 1250 dollars past due and is 14 days late. Can you make this payment today?\nUSER: I would like to pay the full 1250 on November 6.\nSYSTEM: call assess {\"customer_id\": \"c_b167bb96-112\"}\nSYSTEM: result assess {\"next_step\": \"Say the latest date you can record is Friday 23 October, and offer 1250 dollars for your car loan on Friday 23 October (2026-10-23). Ask if they can do that.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said i\nAGENT: The latest date I can record is Friday 23 October, Ms Hoffmann. Can you pay the 1250 dollars for your car loan on Friday 23 October instead?\nUSER: No, I can't pay by October 23.\nSYSTEM: call assess {\"customer_id\": \"c_b167bb96-112\"}\nSYSTEM: result assess {\"next_step\": \"Persuasion attempt 1 of 2: propose exactly 1250 dollars for your car loan on Friday 16 October (2026-10-16). Ask if they can do that.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said it in this turn, say some\nAGENT: I understand, Ms Hoffmann. Could you instead pay the 1250 dollars for your car loan this Friday, 16 October?\nUSER: Yes, I can pay the full 1250 this Friday, October 16. I confirm.\nSYSTEM: call assess {\"customer_id\": \"c_b167bb96-112\"}\nSYSTEM: result assess {\"next_step\": \"Agreed (not recorded yet: never say it is recorded) for the car loan: 1250 dollars on Friday 16 October. Every product is settled. Read back exactly this and wait for the answer: \\\"So that is 1250 dollars for your car loan on Friday 16 October. Do you confirm?\\\" When the customer clea\nAGENT: So that is 1250 dollars for your car loan on Friday 16 October. Do you confirm?\nUSER: Yes, I confirm.\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nSYSTEM: call api_call {\"date\": \"2026-10-16\", \"amount\": 1250.0, \"product_id\": \"p1\", \"customer_id\": \"c_b167bb96-112\"}\nSYSTEM: result api_call {\"ok\": true, \"promise_id\": \"pr1\"}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nAGENT: Your promise is recorded. You will receive a text message confirming this promise. Thank you for your time, Ms Hoffmann. Goodbye.\nSYSTEM: call api_call {\"outcome\": \"promise\", \"customer_id\": \"c_b167bb96-112\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  },
+  {
+   "id": "EDGE-25",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": true,
+   "failed": [],
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "get_account",
+    "get_account",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "call_id": "fb5f419b-73db-4114-ab02-b9c5c044df8d",
+   "customer_id": "c_558a9a4e-159",
+   "turns": 7,
+   "seconds": 59,
+   "slowest_turn_s": 9.3,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Ms Hoffmann?\nUSER: Yes, this is Lena Hoffmann.\nAGENT: Thank you, Ms Hoffmann. For security, please tell me your date of birth.\nUSER: 30 January 1984.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1984-01-30\", \"customer_id\": \"c_558a9a4e-159\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: 2219.\nSYSTEM: call verify_phone_last4 {\"field\": \"phone_last4\", \"answer\": \"2219\", \"customer_id\": \"c_558a9a4e-159\"}\nSYSTEM: result verify_phone_last4 {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": true, \"what_to_do_next\": \"Correct. Move on now.\"}\nSYSTEM: call api_call {\"customer_id\": \"c_558a9a4e-159\"}\nSYSTEM: result api_call {\"ok\": true, \"products\": [{\"product_id\": \"p1\", \"type\": \"car_loan\", \"past_due\": 1250, \"days_late\": 14, \"instalment_amount\": 400}]}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nAGENT: Thank you, Ms Hoffmann. I am calling from the collections team about a late payment. Your car loan has 1250 dollars past due and is 14 days late. Can you make this payment today?\nUSER: I can pay the full 1250 on November 6.\nSYSTEM: call assess {\"customer_id\": \"c_558a9a4e-159\"}\nSYSTEM: result assess {\"next_step\": \"Say the latest date you can record is Friday 23 October, and offer 1250 dollars for your car loan on Friday 23 October (2026-10-23). Ask if they can do that.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said i\nAGENT: The latest date I can record is Friday 23 October, Ms Hoffmann. Can you pay 1250 dollars for your car loan on Friday 23 October instead?\nUSER: No, I cannot make that date.\nSYSTEM: call assess {\"customer_id\": \"c_558a9a4e-159\"}\nSYSTEM: result assess {\"next_step\": \"Persuasion attempt 1 of 2: propose exactly 1250 dollars for your car loan on Friday 16 October (2026-10-16). Ask if they can do that.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said it in this turn, say some\nAGENT: Could you make the payment of 1250 dollars for your car loan this Friday, 16 October, Ms Hoffmann?\nUSER: Yes, I can pay 1250 dollars on Friday 16 October.\nSYSTEM: call assess {\"customer_id\": \"c_558a9a4e-159\"}\nSYSTEM: result assess {\"next_step\": \"Agreed (not recorded yet: never say it is recorded) for the car loan: 1250 dollars on Friday 16 October. Every product is settled. Read back exactly this and wait for the answer: \\\"So that is 1250 dollars for your car loan on Friday 16 October. Do you confirm?\\\" When the customer clea\nAGENT: So that is 1250 dollars for your car loan on Friday 16 October. Do you confirm?\nUSER: Yes, I confirm.\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nSYSTEM: call api_call {\"date\": \"2026-10-16\", \"amount\": 1250.0, \"product_id\": \"p1\", \"customer_id\": \"c_558a9a4e-159\"}\nSYSTEM: result api_call {\"ok\": true, \"promise_id\": \"pr1\"}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nAGENT: Your promise is recorded. You will receive a text message confirming this promise. Thank you for your time, Ms Hoffmann. Goodbye.\nSYSTEM: call api_call {\"outcome\": \"promise\", \"customer_id\": \"c_558a9a4e-159\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  },
+  {
+   "id": "EDGE-25",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": true,
+   "failed": [],
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "get_account",
+    "get_account",
+    "get_account",
+    "create_promise",
+    "close_call"
+   ],
+   "call_id": "793e4ae3-4153-49e1-bdaa-a170513bde9b",
+   "customer_id": "c_d8e8b017-4c2",
+   "turns": 7,
+   "seconds": 62,
+   "slowest_turn_s": 8.9,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Ms Hoffmann?\nUSER: Yes, this is Lena Hoffmann.\nAGENT: Thank you, Ms Hoffmann. For security, please tell me your date of birth.\nUSER: My date of birth is the thirtieth of January nineteen eighty-four.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1984-01-30\", \"customer_id\": \"c_d8e8b017-4c2\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: two two one nine.\nSYSTEM: call verify_phone_last4 {\"field\": \"phone_last4\", \"answer\": \"2219\", \"customer_id\": \"c_d8e8b017-4c2\"}\nSYSTEM: result verify_phone_last4 {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": true, \"what_to_do_next\": \"Correct. Move on now.\"}\nSYSTEM: call api_call {\"customer_id\": \"c_d8e8b017-4c2\"}\nSYSTEM: result api_call {\"ok\": true, \"products\": [{\"product_id\": \"p1\", \"type\": \"car_loan\", \"past_due\": 1250, \"days_late\": 14, \"instalment_amount\": 400}]}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nAGENT: Thank you, Ms Hoffmann. I am calling from the collections team about a late payment. Your car loan has 1250 dollars past due and is 14 days late. Can you make this payment today?\nUSER: I cannot pay today. I would like to pay the full twelve hundred and fifty dollars on November sixth.\nSYSTEM: call assess {\"customer_id\": \"c_d8e8b017-4c2\"}\nSYSTEM: result assess {\"next_step\": \"Say the latest date you can record is Friday 23 October, and offer 1250 dollars for your car loan on Friday 23 October (2026-10-23). Ask if they can do that.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said i\nAGENT: The latest date I can record is Friday 23 October, Ms Hoffmann. Can you pay the 1250 dollars for your car loan on Friday 23 October instead?\nUSER: No, I cannot pay on October twenty-third.\nSYSTEM: call assess {\"customer_id\": \"c_d8e8b017-4c2\"}\nSYSTEM: result assess {\"next_step\": \"Persuasion attempt 1 of 2: propose exactly 1250 dollars for your car loan on Friday 16 October (2026-10-16). Ask if they can do that.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said it in this turn, say some\nAGENT: Could you possibly pay the 1250 dollars for your car loan this Friday, 16 October, Ms Hoffmann?\nUSER: Yes, I can pay the full twelve hundred and fifty dollars this Friday, October sixteenth.\nSYSTEM: call assess {\"customer_id\": \"c_d8e8b017-4c2\"}\nSYSTEM: result assess {\"next_step\": \"Agreed (not recorded yet: never say it is recorded) for the car loan: 1250 dollars on Friday 16 October. Every product is settled. Read back exactly this and wait for the answer: \\\"So that is 1250 dollars for your car loan on Friday 16 October. Do you confirm?\\\" When the customer clea\nAGENT: So that is 1250 dollars for your car loan on Friday 16 October. Do you confirm?\nUSER: Yes, I confirm.\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nSYSTEM: call api_call {\"date\": \"2026-10-16\", \"amount\": 1250.0, \"product_id\": \"p1\", \"customer_id\": \"c_d8e8b017-4c2\"}\nSYSTEM: result api_call {\"ok\": true, \"promise_id\": \"pr1\"}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nAGENT: Your promise is recorded. You will receive a text message confirming this promise. Thank you for your time, Ms Hoffmann. Goodbye.\nSYSTEM: call api_call {\"outcome\": \"promise\", \"customer_id\": \"c_d8e8b017-4c2\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  },
+  {
+   "id": "EDGE-46",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": true,
+   "failed": [],
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "get_account",
+    "get_account",
+    "get_account",
+    "transfer_to_agent",
+    "close_call"
+   ],
+   "call_id": "26cab467-4c25-4288-96ef-b0132dd6aa87",
+   "customer_id": "c_ea0edb14-d8c",
+   "turns": 6,
+   "seconds": 69,
+   "slowest_turn_s": 15.7,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Mr Novak?\nUSER: Yes, this is Tomas Novak.\nAGENT: Thank you, Mr Novak. For security, please tell me your date of birth.\nUSER: Ninth of September nineteen ninety.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1990-09-09\", \"customer_id\": \"c_ea0edb14-d8c\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: Eight eight four six.\nSYSTEM: call verify_phone_last4 {\"field\": \"phone_last4\", \"answer\": \"8846\", \"customer_id\": \"c_ea0edb14-d8c\"}\nSYSTEM: result verify_phone_last4 {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": true, \"what_to_do_next\": \"Correct. Move on now.\"}\nSYSTEM: call api_call {\"customer_id\": \"c_ea0edb14-d8c\"}\nSYSTEM: result api_call {\"ok\": true, \"products\": [{\"product_id\": \"p1\", \"type\": \"personal_loan\", \"past_due\": 780, \"days_late\": 21, \"instalment_amount\": 260}]}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nAGENT: Thank you, Mr Novak. I am calling from the collections team about a late payment. Your personal loan has 780 dollars past due and is 21 days late. Can you make this payment today?\nUSER: I lost my job and cannot pay.\nSYSTEM: call assess {\"customer_id\": \"c_ea0edb14-d8c\"}\nSYSTEM: result assess {\"next_step\": \"Say one short sentence of sympathy. Make NO persuasion attempt. Offer once to connect them with the customer support team. Offer it once and wait for the answer. Make no persuasion attempt.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your \nAGENT: I am very sorry to hear that, Mr Novak. Would you like me to connect you with our customer support team?\nUSER: No, not support. I want a general customer-service person instead.\nSYSTEM: call assess {\"customer_id\": \"c_ea0edb14-d8c\"}\nSYSTEM: result assess {\"next_step\": \"Ask once whether you can help them first.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said it in this turn, say something short like Take your time. Never reply with nothing, and do not add other offers.\"}\nAGENT: Before I do that, is there anything I can help you with first, Mr Novak?\nUSER: No, I insist on a human in general customer service.\nSYSTEM: call assess {\"customer_id\": \"c_ea0edb14-d8c\"}\nSYSTEM: result assess {\"next_step\": \"I am transferring you now.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said it in this turn, say something short like Take your time. Never reply with nothing, and do not add other offers.\"}\nSYSTEM: call api_call {\"queue\": \"general\", \"customer_id\": \"c_ea0edb14-d8c\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nAGENT: I am transferring you now. Thank you for your time, Mr Novak. Goodbye.\nSYSTEM: call api_call {\"reason\": \"human\", \"outcome\": \"transferred\", \"customer_id\": \"c_ea0edb14-d8c\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  },
+  {
+   "id": "EDGE-46",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": true,
+   "failed": [],
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "get_account",
+    "get_account",
+    "get_account",
+    "transfer_to_agent",
+    "close_call"
+   ],
+   "call_id": "b2c5721a-3d23-4dea-94f1-fd971ddb197b",
+   "customer_id": "c_da6a93fe-15b",
+   "turns": 6,
+   "seconds": 62,
+   "slowest_turn_s": 15.4,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Mr Novak?\nUSER: Yes, this is Tomas Novak.\nAGENT: Thank you, Mr Novak. For security, please tell me your date of birth.\nUSER: Nine September nineteen ninety.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1990-09-09\", \"customer_id\": \"c_da6a93fe-15b\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: Eight eight four six.\nSYSTEM: call verify_phone_last4 {\"field\": \"phone_last4\", \"answer\": \"8846\", \"customer_id\": \"c_da6a93fe-15b\"}\nSYSTEM: result verify_phone_last4 {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": true, \"what_to_do_next\": \"Correct. Move on now.\"}\nSYSTEM: call api_call {\"customer_id\": \"c_da6a93fe-15b\"}\nSYSTEM: result api_call {\"ok\": true, \"products\": [{\"product_id\": \"p1\", \"type\": \"personal_loan\", \"past_due\": 780, \"days_late\": 21, \"instalment_amount\": 260}]}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nAGENT: Thank you, Mr Novak. I am calling from the collections team about a late payment. Your personal loan has 780 dollars past due and is 21 days late. Can you make this payment today?\nUSER: I lost my job and cannot pay.\nSYSTEM: call assess {\"customer_id\": \"c_da6a93fe-15b\"}\nSYSTEM: result assess {\"next_step\": \"Say one short sentence of sympathy. Make NO persuasion attempt. Offer once to connect them with the customer support team. Offer it once and wait for the answer. Make no persuasion attempt.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your \nAGENT: I am sorry to hear about your situation, Mr Novak. Would you like me to connect you with our customer support team?\nUSER: No, not support. I want a general customer-service person instead.\nSYSTEM: call assess {\"customer_id\": \"c_da6a93fe-15b\"}\nSYSTEM: result assess {\"next_step\": \"Ask once whether you can help them first.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said it in this turn, say something short like Take your time. Never reply with nothing, and do not add other offers.\"}\nAGENT: Before I do that, is there anything I can help you with first, Mr Novak?\nUSER: No, I insist on a human in general customer service.\nSYSTEM: call assess {\"customer_id\": \"c_da6a93fe-15b\"}\nSYSTEM: result assess {\"next_step\": \"I am transferring you now.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said it in this turn, say something short like Take your time. Never reply with nothing, and do not add other offers.\"}\nSYSTEM: call api_call {\"queue\": \"general\", \"customer_id\": \"c_da6a93fe-15b\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nAGENT: I am transferring you now. Thank you for your time, Mr Novak. Goodbye.\nSYSTEM: call api_call {\"reason\": \"human\", \"outcome\": \"transferred\", \"customer_id\": \"c_da6a93fe-15b\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  },
+  {
+   "id": "EDGE-46",
+   "level": "hard",
+   "family": "Edge rules",
+   "style": null,
+   "pass": true,
+   "failed": [],
+   "tools": [
+    "verify_identity",
+    "verify_identity",
+    "get_account",
+    "get_account",
+    "get_account",
+    "get_account",
+    "transfer_to_agent",
+    "close_call"
+   ],
+   "call_id": "5f88f8a4-67d1-4996-ab56-d6c5336fdc57",
+   "customer_id": "c_8826968f-373",
+   "turns": 6,
+   "seconds": 59,
+   "slowest_turn_s": 8.3,
+   "transcript": "AGENT: Hello, this is Freya Bank's digital assistant calling. Please note that we are recording this call. Am I speaking with Mr Novak?\nUSER: Yes, this is Tomas Novak.\nAGENT: Thank you, Mr Novak. For security, please tell me your date of birth.\nUSER: Ninth of September nineteen ninety.\nSYSTEM: call verify_date_of_birth {\"field\": \"date_of_birth\", \"answer\": \"1990-09-09\", \"customer_id\": \"c_8826968f-373\"}\nSYSTEM: result verify_date_of_birth {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": false, \"what_to_do_next\": \"Correct. Move on now.\"}\nAGENT: Thank you. Now please tell me the last four digits of the phone number on file.\nUSER: Eight eight four six.\nSYSTEM: call verify_phone_last4 {\"field\": \"phone_last4\", \"answer\": \"8846\", \"customer_id\": \"c_8826968f-373\"}\nSYSTEM: result verify_phone_last4 {\"ok\": true, \"verified\": true, \"wrong_answers_left\": 3, \"all_verified\": true, \"what_to_do_next\": \"Correct. Move on now.\"}\nSYSTEM: call api_call {\"customer_id\": \"c_8826968f-373\"}\nSYSTEM: result api_call {\"ok\": true, \"products\": [{\"product_id\": \"p1\", \"type\": \"personal_loan\", \"past_due\": 780, \"days_late\": 21, \"instalment_amount\": 260}]}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nAGENT: Thank you, Mr Novak. I am calling from the collections team about a late payment. Your personal loan has 780 dollars past due and is 21 days late. Can you make this payment today?\nUSER: I lost my job and cannot pay.\nSYSTEM: call assess {\"customer_id\": \"c_8826968f-373\"}\nSYSTEM: result assess {\"next_step\": \"Say one short sentence of sympathy. Make NO persuasion attempt. Offer once to connect them with the customer support team. Offer it once and wait for the answer. Make no persuasion attempt.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your \nAGENT: I am very sorry to hear that, Mr Novak. Would you like me to connect you with our customer support team?\nUSER: No, not support. I want a general customer-service person instead.\nSYSTEM: call assess {\"customer_id\": \"c_8826968f-373\"}\nSYSTEM: result assess {\"next_step\": \"Ask once whether you can help them first.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said it in this turn, say something short like Take your time. Never reply with nothing, and do not add other offers.\"}\nAGENT: Before I do that, is there anything I can help you with first, Mr Novak?\nUSER: No, I insist on a human in general customer service.\nSYSTEM: call assess {\"customer_id\": \"c_8826968f-373\"}\nSYSTEM: result assess {\"next_step\": \"I am transferring you now.\", \"say_it\": \"Now reply out loud with at least one short sentence: what next_step says, in your own words. If you already said it in this turn, say something short like Take your time. Never reply with nothing, and do not add other offers.\"}\nSYSTEM: call api_call {\"queue\": \"general\", \"customer_id\": \"c_8826968f-373\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call code_exec {\"timeout_ms\": 15000, \"code\": \"import datetime\\nimport json\\nimport re\\nCFG = json.loads('\\\\x7b\\\"variables\\\":\\\\x7b\\\"customer_id\\\":\\\"customer_id\\\",\\\"first_name\\\":\\\"first_name\\\",\\\"last_name\\\":\\\"last_name\\\",\\\"title\\\":\\\"title\\\",\\\"now\\\":\\\"now\\\"\\\\x7d,\\\"texts\\\":\\\\x7b\\\"opening\\\":\\\"Hello, this is Freya Bank\\\nSYSTEM: result code_exec null\nAGENT: I am transferring you now. Thank you for your time, Mr Novak. Goodbye.\nSYSTEM: call api_call {\"reason\": \"human\", \"outcome\": \"transferred\", \"customer_id\": \"c_8826968f-373\"}\nSYSTEM: result api_call {\"ok\": true}\nSYSTEM: call end_call {\"message_mode\": \"none\"}"
+  }
+ ]
+}

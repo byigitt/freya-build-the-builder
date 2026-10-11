@@ -842,6 +842,9 @@ def run_assess(vars, params):
             if s.get("offer_queue") and not st.get("offer_done_" + sid):
                 st["offer_done_" + sid] = True
                 st["pending_offer"] = sid
+                for p in st["products"]:
+                    if p["status"] in ("open", "offered"):
+                        p["no_persuasion"] = True
                 set_outputs(vars, st, (s.get("action") or "") + " Offer it once and wait for the answer. Make no persuasion attempt.")
                 return
             if effect == "transfer":
@@ -861,10 +864,11 @@ def run_assess(vars, params):
             if effect == "none":
                 set_outputs(vars, st, (s.get("say") or s.get("action") or "") + " " + next_step_instruction(st))
                 return
+            named_one = target not in ("all", "every", "both", "everything", "")
+            targets = [p for p in targets if p["status"] in ("open", "offered") or (p["status"] == "agreed" and named_one)]
             for p in targets:
-                if p["status"] in ("open", "offered", "agreed"):
-                    p["status"] = "closed"
-                    p["reason"] = s.get("reason") or sid
+                p["status"] = "closed"
+                p["reason"] = s.get("reason") or sid
             say = s.get("say") or ""
             if s.get("close_say"):
                 st.setdefault("close_say", []).append(s.get("close_say"))

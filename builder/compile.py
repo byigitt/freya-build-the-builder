@@ -870,7 +870,7 @@ def audit(wf, openapi):
                 if req not in body:
                     problems.append(key + ": " + tool + " misses required field " + req)
             for name in body:
-                if name not in api.props(tool) and not name.startswith("a_"):
+                if name not in api.props(tool) and not name.startswith(("a_", "b_")):   # assess-only fields, stripped by its pre-hook
                     problems.append(key + ": " + tool + " sends a field the API does not declare: " + name)
     return problems
 

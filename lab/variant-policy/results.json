@@ -953,7 +953,7 @@
                 "no_persuasion": true
               }
             ],
-            "instruction": "Say one short sentence of sympathy. Make no persuasion attempt. Offer a connection to the care team once. If accepted, transfer. If declined, mark all unresolved products as hardship. Still handle a date or amount the customer volunteers as a proposal; a valid promise replaces that product's hardship status. This takes precedence over flat-refusal persuasion and requests for new payment arrangements. It never cancels a recorded promise. Offer it once and wait for the answer. Make no persuasion attempt.",
+            "instruction": "Say one short sentence of sympathy and make no persuasion attempt. Offer a connection to the care team once. If accepted, transfer. If declined, mark all unresolved products as hardship. Still handle a date or amount the customer volunteers as a proposal; any valid promise replaces that product's hardship status. This takes precedence over flat-refusal persuasion and requests for new payment arrangements. It never cancels a recorded promise. Offer it once and wait for the answer. Make no persuasion attempt.",
             "phase": "offer"
           },
           {
@@ -1228,27 +1228,13 @@
       ],
       "got": [
         {
-          "state": "ask",
-          "say": "I am sorry, I can only call back Tuesday 20 October between 09:00 and 17:30 or Wednesday 21 October between 09:00 and 17:30. Is there another day and time that works?"
+          "state": "book",
+          "say": null,
+          "date": "2026-10-18",
+          "time": "17:30"
         }
       ],
-      "mismatches": [
-        {
-          "path": "callback.0.state",
-          "expected": "book",
-          "got": "ask"
-        },
-        {
-          "path": "callback.0.date",
-          "expected": "2026-10-18",
-          "got": null
-        },
-        {
-          "path": "callback.0.time",
-          "expected": "17:30",
-          "got": null
-        }
-      ]
+      "mismatches": []
     },
     {
       "id": "v1-incomplete-correction",
@@ -1269,17 +1255,11 @@
           "say": "I am sorry, I can only call back today until 17:30 or Tuesday 20 October between 09:00 and 17:30 or Wednesday 21 October between 09:00 and 17:30. Is there another day and time that works?"
         },
         {
-          "state": "ask",
-          "say": "At what time on Wednesday 21 October? I can call between 09:00 and 17:30."
+          "state": "give_up",
+          "say": ""
         }
       ],
-      "mismatches": [
-        {
-          "path": "callback.1.state",
-          "expected": "give_up",
-          "got": "ask"
-        }
-      ]
+      "mismatches": []
     },
     {
       "id": "v1-transfer-discards-unrecorded",
@@ -1700,7 +1680,7 @@
                 "pending_floor": true
               }
             ],
-            "instruction": "Offer the card minimum of 25 euros instead, once. Say exactly: \"The remaining balance stays overdue.\" Ask on which day they can pay 25 euros.",
+            "instruction": "Offer the card minimum of 25 euros instead, once. The remaining balance stays overdue. Ask on which day they can pay 25 euros.",
             "phase": "negotiating"
           },
           {
@@ -1740,7 +1720,7 @@
                 "offer_kind": "persuasion"
               }
             ],
-            "instruction": "Persuasion attempt 1 of 2: propose exactly 25 euros for your business card ending 1234 on Friday 20 November (2026-11-20). Say exactly: \"The remaining balance stays overdue.\" Ask if they can do that.",
+            "instruction": "Persuasion attempt 1 of 2: propose exactly 25 euros for your business card ending 1234 on Friday 20 November (2026-11-20). The remaining balance stays overdue. Ask if they can do that.",
             "phase": "negotiating"
           },
           {
@@ -1780,7 +1760,7 @@
                 "offer_kind": "persuasion"
               }
             ],
-            "instruction": "Persuasion attempt 2 of 2: propose exactly 25 euros for your business card ending 1234 on Monday 30 November (2026-11-30). Say exactly: \"The remaining balance stays overdue.\" Ask if they can do that.",
+            "instruction": "Persuasion attempt 2 of 2: propose exactly 25 euros for your business card ending 1234 on Monday 30 November (2026-11-30). The remaining balance stays overdue. Ask if they can do that.",
             "phase": "negotiating"
           },
           {
@@ -2443,27 +2423,13 @@
       ],
       "got": [
         {
-          "state": "ask",
-          "say": "I am sorry, I can only call back Tuesday 24 November between 08:30 and 16:45 or Wednesday 25 November between 08:30 and 16:45 or Thursday 26 November between 08:30 and 16:45. Is there another day and time that works?"
+          "state": "book",
+          "say": null,
+          "date": "2026-11-21",
+          "time": "16:45"
         }
       ],
-      "mismatches": [
-        {
-          "path": "callback.0.state",
-          "expected": "book",
-          "got": "ask"
-        },
-        {
-          "path": "callback.0.date",
-          "expected": "2026-11-21",
-          "got": null
-        },
-        {
-          "path": "callback.0.time",
-          "expected": "16:45",
-          "got": null
-        }
-      ]
+      "mismatches": []
     },
     {
       "id": "v2-amended-end-correction",
@@ -2687,7 +2653,7 @@
                 "asked": false
               }
             ],
-            "instruction": "Say exactly: \"Payments can take two business days to appear.\" Take no promise for the business card ending 1234. Now the working capital loan (p2). Do NOT ask about paying today again. Persuasion attempt 1 of 1: propose exactly 100 euros for your working capital loan on Friday 20 November (2026-11-20). Ask if they can do that.",
+            "instruction": "Payments can take two business days to appear. Take no promise for the business card ending 1234. Now the working capital loan (p2). Do NOT ask about paying today again. Persuasion attempt 1 of 1: propose exactly 100 euros for your working capital loan on Friday 20 November (2026-11-20). Ask if they can do that.",
             "phase": "negotiating"
           },
           {
@@ -4420,27 +4386,13 @@
       ],
       "got": [
         {
-          "state": "ask",
-          "say": "I am sorry, I can only call back Monday 2 November between 09:30 and 16:30. Is there another day and time that works?"
+          "state": "book",
+          "say": null,
+          "date": "2026-10-31",
+          "time": "16:30"
         }
       ],
-      "mismatches": [
-        {
-          "path": "callback.0.state",
-          "expected": "book",
-          "got": "ask"
-        },
-        {
-          "path": "callback.0.date",
-          "expected": "2026-10-31",
-          "got": null
-        },
-        {
-          "path": "callback.0.time",
-          "expected": "16:30",
-          "got": null
-        }
-      ]
+      "mismatches": []
     },
     {
       "id": "v3-saturday-horizon",
@@ -4556,7 +4508,7 @@
                 "asked": true
               }
             ],
-            "instruction": "Say exactly \"Payments can take two business days to appear.\" Take no promise for the personal loan. Every product is settled and no promise was agreed. Say one short polite sentence. Do not offer anything else.",
+            "instruction": "Payments can take two business days to appear. Take no promise for the personal loan. Every product is settled and no promise was agreed. Say one short polite sentence. Do not offer anything else.",
             "phase": "done"
           }
         ],
@@ -4567,7 +4519,7 @@
           "notes": [],
           "commit_ready": "no",
           "transfer_requested": null,
-          "final_say": "Payments can take two business days to appear."
+          "final_say": ""
         }
       },
       "mismatches": []

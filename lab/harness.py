@@ -56,8 +56,15 @@ def opening_line(workflow_id, variables):
 def transcript_of(call, first_line=""):
     lines = []
     pending_close = []
+    skipped_hello = False
     for m in call.get("messages", []):
         role, text = m.get("role"), m.get("message") or ""
+        if role == "user" and not skipped_hello:
+            skipped_hello = True              # the hidden "Hello?" that opened the chat
+            continue
+        if role == "assistant" and not lines and first_line:
+            lines.append("AGENT: " + first_line)
+            continue
         if role in ("assistant", "user"):
             if role == "user" and not lines and first_line:
                 lines.append("AGENT: " + first_line)
@@ -72,8 +79,12 @@ def transcript_of(call, first_line=""):
                 continue
             target = pending_close if (pending_close or ev.get("function") in ("close_call", "end_call") or "close_call" in json.dumps(ev.get("args") or "")) else lines
             if ev.get("event") == "function_call_start":
-                body = ((ev.get("args") or {}).get("body")) if isinstance(ev.get("args"), dict) else None
-                target.append(f"SYSTEM: call {ev.get('function')} {json.dumps(body if body is not None else ev.get('args'))[:300]}")
+                args = ev.get("args") if isinstance(ev.get("args"), dict) else {}
+                body = args.get("body")
+                name = ev.get("function")
+                if name == "api_call" and args.get("url"):
+                    name = str(args["url"]).rstrip("/").split("/")[-1]     # engine-run bank calls: show the bank tool's name
+                target.append(f"SYSTEM: call {name} {json.dumps(body if body is not None else ev.get('args'))[:300]}")
             elif ev.get("event") == "function_call_complete":
                 res = ev.get("result")
                 data = res.get("data") if isinstance(res, dict) else res
@@ -87,12 +98,14 @@ def run_case(workflow_id, case, style=None, max_turns=40):
     system = persona["prompt"]
     history = []                       # from the customer's point of view: agent = user, customer = assistant
     first = opening_line(workflow_id, sess)
-    if first:                           # a simulation starts with the agent's opening line; the customer answers it
-        history.append({"role": "user", "content": first})
-        customer_says = llm.call([{"role": "system", "content": system}, {"role": "user", "content": first}], model=SIM_MODEL, purpose=f"customer {case['id']}").strip() or "Hello?"
-    else:
-        customer_says = "Hello?"
-    call_id, ended, turns = None, False, 0
+    # A simulation starts with the agent's opening line. The chat API needs a first message to open the call and does not
+    # route that message, so a hidden "Hello?" opens it; the customer then answers the opening line.
+    r0 = chat(workflow_id, "Hello?", sess, None)
+    call_id = r0.get("callId")
+    first = first or (r0.get("response") or "")
+    history.append({"role": "user", "content": first})
+    customer_says = llm.call([{"role": "system", "content": system}, {"role": "user", "content": first}], model=SIM_MODEL, purpose=f"customer {case['id']}").strip() or "Hello?"
+    ended, turns = False, 0
     t0 = time.time()
     slowest = 0.0
     while turns < max_turns:
@@ -103,6 +116,13 @@ def run_case(workflow_id, case, style=None, max_turns=40):
         except RuntimeError as e:
             ended = True
             break
+        if r.get("error"):
+            # a 5xx often means a long chain of steps is still running: give it time instead of talking over it
+            for _ in range(10):
+                time.sleep(3)
+                led = http("/v1/practice/ledger/" + sess["customer_id"])
+                if led.get("calls") and led["calls"][-1]["tool"] == "close_call":
+                    break
         slowest = max(slowest, time.time() - t1)
         call_id = r.get("callId") or call_id
         agent = (r.get("response") or "").strip()

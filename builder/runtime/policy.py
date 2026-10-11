@@ -728,6 +728,20 @@ def run_callback(vars, params):
         vars["cb_error"] = str(e)[:120]
 
 
+def side_answer(vars):
+    """A question asked together with an answer (robot? scam? why?) is answered at the start of the next fixed line."""
+    kind = str(vars.get("side_question") or "").strip().lower()
+    vars["side_question"] = ""
+    reply = ""
+    if kind == "robot":
+        reply = cfg("texts.robot_reply", "") or ("I am " + str(cfg("agent_identity", "the bank's digital assistant")) + ".")
+    elif kind == "scam":
+        reply = cfg("texts.scam_reply", "") or ("You can verify this call by phoning " + str(cfg("bank_name", "the bank")) + "'s customer service number.")
+    elif kind == "purpose":
+        reply = cfg("texts.identity_why", "")
+    vars["qa_prefix"] = (reply.strip() + " ") if reply.strip() else ""
+
+
 def run_prepare(vars):
     try:
         run_setup(vars)
@@ -751,6 +765,8 @@ def run_prepare(vars):
                                        offer_amount=None, offer_date=None, reason=None, clamped=False, asked=(i == 0)))
         vars["products_count"] = str(len(st["products"]))
         vars["debt_statement"] = debt_statement(st)
+        if vars.get("qa_prefix") is None:
+            vars["qa_prefix"] = ""
         vars["account_state"] = "ok" if st["products"] else "empty"
         set_outputs(vars, st, "You just stated the debt and asked the first question about paying. Wait for the answer.")
     except Exception as e:
@@ -868,10 +884,13 @@ def run_assess(vars, params):
             ev = "situation"
             sid = pend
             st["offer_done_" + sid] = True
+        elif pend and ev == "question":
+            set_outputs(vars, st, "Answer their question in one short sentence, using only your facts and rules. Then ask once more whether they would like to be connected.")
+            return
         elif pend and ev in ("cut_off", "no_answer"):
             set_outputs(vars, st, "Their answer was cut off or did not answer your offer. Do not repeat the offer: just say something short like 'Go on, I am listening.'")
             return
-        elif pend and ev not in ("situation", "no_answer", "cut_off"):
+        elif pend and ev not in ("situation", "no_answer", "cut_off", "question"):
             st["pending_offer"] = ""
         if ev == "situation":
             s = sits.get(sid) or dict()
@@ -1006,6 +1025,14 @@ def assess_one(p, st, ev, amt, dt, today, multi=False, raw_date=None):
         p["status"] = "closed"
         p["reason"] = cfg("reasons.hardship", "hardship")
         return "Acknowledge kindly. Take no promise for the " + p["words"] + "."
+    if ev == "question":
+        if p["status"] == "offered" and p.get("offer_date"):
+            again = "ask again whether they can pay " + offer_text(p, p["offer_amount"], datetime.date.fromisoformat(p["offer_date"])) + "."
+        elif p["status"] == "agreed":
+            again = "continue with the read-back."
+        else:
+            again = "repeat your last question."
+        return ask(p, "Answer their question in one short sentence, using only your facts and rules (never invent anything). Then " + again)
     if ev == "no_answer" and cfg("negotiation.non_answer_is_refusal", True):
         p["noans"] = 0
         return refused_or_next(p, st, today)      # the brief counts a non-answer like a flat refusal
@@ -1164,6 +1191,9 @@ def refused_or_next(p, st, today):
 def run_commit_check(vars):
     try:
         st = load_state(vars)
+        if st and st.get("committed"):
+            vars["commit_ready"] = "done"         # the promises were already sent: never record them twice
+            return
         if st and (st.get("transfer_queue") or vars.get("transfer_now")):
             vars["commit_ready"] = "no"
             for i in range(3):
@@ -1177,6 +1207,7 @@ def run_commit_check(vars):
                 save_state(vars, st)
             return
         vars["commit_ready"] = "yes"
+        st["committed"] = True
         for i in range(3):
             k = str(i + 1)
             if i < len(agreed):

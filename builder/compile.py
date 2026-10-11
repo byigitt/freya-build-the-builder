@@ -155,23 +155,67 @@ def strip_source(src):
     return "\n".join(out)
 
 
-POLICY_KEYS = ("variables", "texts", "calendar", "bands", "dates", "persuasion", "multi", "reasons", "outcomes", "transfer_reasons",
+POLICY_KEYS = ("bank_name", "agent_identity", "variables", "texts", "calendar", "bands", "dates", "persuasion", "multi", "reasons", "outcomes", "transfer_reasons",
                "account", "callback", "situations", "closing", "promise_reasons")
+
+
+def _prune(src, entry):
+    """Keep only the top-level definitions the entry code can reach (smaller code steps run faster and more reliably)."""
+    import ast
+    tree = ast.parse(src)
+    defs, other = {}, []
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+            defs[node.name] = node
+        elif isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            defs[node.targets[0].id] = node
+        else:
+            other.append(node)
+    def names(n):
+        return {x.id for x in ast.walk(n) if isinstance(x, ast.Name)} | {x.attr for x in ast.walk(n) if isinstance(x, ast.Attribute)}
+    need, todo = set(), list(names(ast.parse(entry)) | {"CFG"})
+    while todo:
+        k = todo.pop()
+        if k in defs and k not in need:
+            need.add(k)
+            todo.extend(names(defs[k]))
+    keep = [n for n in tree.body if n in other or any(defs.get(k) is n for k in need)]
+    for n in keep:
+        if isinstance(n, ast.FunctionDef) and n.body and isinstance(n.body[0], ast.Expr) and isinstance(getattr(n.body[0], "value", None), ast.Constant) and isinstance(n.body[0].value.value, str) and len(n.body) > 1:
+            n.body = n.body[1:]                               # drop docstrings
+    return ast.unparse(ast.Module(body=keep, type_ignores=[]))
 
 
 def policy_code(spec, entry):
     cfg = json.dumps({k: spec[k] for k in POLICY_KEYS if k in spec}, separators=(",", ":"))
-    src = strip_source(POLICY_SRC).replace("CFG = dict()  # replaced by the compiler", "CFG = json.loads(" + py_literal(cfg) + ")")
+    src = strip_source(POLICY_SRC)
+    try:
+        src = _prune(src, entry)                         # the config is injected after pruning: unparse would decode its escapes
+    except Exception:
+        pass
+    src = src.replace("CFG = dict()  # replaced by the compiler", "CFG = dict()").replace("CFG = dict()", "CFG = json.loads(" + py_literal(cfg) + ")", 1)
     return check_code(src + "\n" + entry + "\n")
 
 
 def code_node(key, code, nxt, transitions=None):
     return {"name": key, "node_type": "code", "passthrough": True, "passthrough_default_transition": nxt,
             "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
-            "pre_actions": [{"type": "function", "function": {"name": "code_exec", "handler": "__function__:code_exec",
+            "pre_actions": [{"type": "function", "config": {"timeoutMs": 20000, "maxRetries": 2},
+                             "function": {"name": "code_exec", "handler": "__function__:code_exec",
                              "parameters": {"type": "object", "properties": {"code": {"type": "string", "default": code},
                                                                              "timeout_ms": {"type": "number", "default": 15000}}}}}],
             "transitions": (transitions or []) + [always(nxt)]}
+
+
+def add_retry(nodes, key):
+    """If the code sandbox fails (seen: 'Failed to reach snekbox'), run the same code step once more before moving on."""
+    node = nodes[key]
+    twin = json.loads(json.dumps(node))
+    twin["name"] = key + "_again"
+    nodes[key + "_again"] = twin
+    node["transitions"] = [{"target_node": key + "_again", "description": "the code step failed", "condition": {"logic": "or", "conditions": [
+        {"variable": key + "_failure_count", "operator": "greater_than", "operand": 0},
+        {"variable": key + "_response.status", "operator": "equals", "operand": "error"}]}}] + node["transitions"]
 
 
 def always(target):
@@ -211,7 +255,19 @@ def post(body):
     return POST_HEAD + "\n".join("        " + l for l in body.strip("\n").split("\n")) + "\n" + POST_TAIL
 
 
-def verify_post(what, hints, tool_name):
+def side_snippet(spec):
+    """Python (no braces) that turns the extracted side_question into qa_prefix, the answer spoken before the next fixed line."""
+    T = spec.get("texts", {})
+    robot = T.get("robot_reply") or ("I am " + spec.get("agent_identity", "the bank's digital assistant") + ".")
+    scam = T.get("scam_reply") or ("You can verify this call by phoning " + spec.get("bank_name", "the bank") + "'s customer service number.")
+    why = T.get("identity_why") or ""
+    return check_code(
+        "k = str(vars.get('side_question') or '').strip().lower()\nvars['side_question'] = ''\n"
+        "r = dict(robot=" + py_literal(robot) + ", scam=" + py_literal(scam) + ", purpose=" + py_literal(why) + ").get(k, '')\n"
+        "vars['qa_prefix'] = (r + ' ') if r else ''\n")
+
+
+def verify_post(what, hints, tool_name, side=""):
     """Turn whatever the identity tool returns into what_to_do_next plus a stable `<tool>_state` variable for routing."""
     hint_lines = ""
     for h, txt in (hints or {}).items():
@@ -245,7 +301,7 @@ else:
     s = 'wrong'
 d['what_to_do_next'] = n
 vars['TOOL_state'] = s
-""".replace("WHAT", what).replace("TOOL", tool_name))
+""".replace("WHAT", what).replace("TOOL", tool_name) + side)
 
 
 def verify_pre(kind, order, digits):
@@ -346,34 +402,62 @@ def compile_workflow(spec, openapi):
     first_line = T.get("opening", "Hello, this is " + agent_id + ".") + " " + T.get("identity_question", "Am I speaking with " + addr + "?")
     max_asks = max(1, int(op.get("max_asks", 2) or 2))
     idq_text = T.get("identity_question", "Am I speaking with " + addr + "?")
-    for k in range(1, max_asks + 1):
-        key = "opening" if k == 1 else "opening_" + str(k)
-        nxt = ("opening_" + str(k + 1)) if k < max_asks else "close_unclear"
-        task = (
-            ("The opening line was already said: \"" + first_line + "\"\n" if k == 1 else "") +
-            "You have asked \"" + idq_text + "\" " + str(k) + " time(s) now.\n\n"
-            "Your only job in this step: find out whether " + addr + " is the person on the line. Never say why you are calling. "
-            "If asked what it is about, say you can only discuss it with " + addr + " personally.\n"
-            + op.get("confirmation", "Only a clear yes or their own name counts as confirmation.") + "\n"
-            "Decide on the person's latest message:\n"
-            "1. CONFIRMED (a clear yes, \"that's me\", \"speaking\", or their own name): call transition_to_identity. Say nothing else.\n"
-            "2. Someone else is on the line (a relative or colleague, the customer is not there or not available, the number is not the customer's, "
-            "they do not know the customer, or the customer has died): call transition_to_third_party. Say nothing else.\n"
-            "3. Anything else is NOT a confirmation (\"hello\", \"go ahead\", \"who is this?\", \"why?\", a question, silence): call transition_to_" + nxt + ". Say nothing else."
-            + (" (That ends the call: you may not ask again.)" if nxt == "close_unclear" else "") + "\n"
-            "4. If the person asks for a human: the first time, ask whether you can help first. If they insist, call transfer_" + human_q + ".\n"
-            "5. If the person says for the second time that they do not want to talk, call transition_to_close_id_declined.\n"
-            + bullets(op.get("rules", [])) + "\nALWAYS:\n" + bullets(spec.get("global_rules", []))
-        )
-        enter = {"type": "tts", "text": first_line} if k == 1 else {"type": "llm", "prompt": (
-            "The person did not confirm. If their last message asked a question (who you are, whether you are a robot, whether this is a scam), answer it in one short sentence following the rules, "
-            "without saying why you are calling. Then ask exactly: \"" + idq_text + "\" Say nothing else and call no tool.")}
-        nodes[key] = conv(key, task, [human_tr] if human_tr else [], human_exit() + [
-            tool_transition("identity", "The person clearly confirmed they are the customer."),
-            tool_transition("third_party", "Someone other than the customer is on the line, the customer is not available, the number is not the customer's, or the customer died."),
-            tool_transition(nxt, "The latest answer is not a confirmation and not someone else."),
-            tool_transition("close_id_declined", "The person said twice that they do not want to talk."),
-        ], on_enter=enter)
+    # Who is on the line is extracted before the reply and routed in code, and the asks are counted in code: a model
+    # tool-call transition in the same turn as a reply does not reliably move the call on.
+    who_extract = [
+        {"name": "who_answer", "type": "string", "min_confidence": 0.4,
+         "enum_values": ["confirmed", "someone_else", "not_confirmed"],
+         "description": "How the person's LATEST message answers whether they are " + full + ". "
+                        "confirmed: a clear yes, 'that's me', 'speaking', or their own name (" + op.get("confirmation", "") + "). "
+                        "someone_else: they say they are someone else (a relative, flatmate, colleague), the customer is not there or not available, "
+                        "the number is not the customer's, they do not know the customer, or the customer has died. "
+                        "not_confirmed: anything else ('hello', 'who is this?', 'why?', 'what is this about?', a question, a refusal to say)."},
+        {"name": "other_kind", "type": "string", "min_confidence": 0.4,
+         "enum_values": ["deceased", "wrong_number", "other"],
+         "description": "Only when someone else answers: deceased if they say the customer has died; wrong_number if they say the number does not belong to the customer or they do not know the customer; otherwise other."},
+    ]
+    side_q = [{"name": "side_question", "type": "string", "min_confidence": 0.4, "enum_values": ["none", "robot", "scam", "purpose"],
+               "description": "Did the person's LATEST message also ask a question? robot: whether they talk to a robot, an AI or a real person; "
+                              "scam: whether this is a scam or a real call from the bank; purpose: why you need this or what the call is about; none: no such question."}]
+    who_extract.append(side_q[0])
+    who_trans = [
+        eq_any("who_answer", ["confirmed"], "to_identity", "the person confirmed they are the customer"),
+        {"target_node": "close_deceased", "description": "the customer has died", "condition": {"logic": "or", "conditions": [{"logic": "and", "conditions": [
+            {"variable": "who_answer", "operator": "equals", "operand": "someone_else"}, {"variable": "other_kind", "operator": "equals", "operand": "deceased"}]}]}},
+        {"target_node": "close_wrong_number", "description": "wrong number", "condition": {"logic": "or", "conditions": [{"logic": "and", "conditions": [
+            {"variable": "who_answer", "operator": "equals", "operand": "someone_else"}, {"variable": "other_kind", "operator": "equals", "operand": "wrong_number"}]}]}},
+        eq_any("who_answer", ["someone_else"], "third_party", "someone else is on the line"),
+        eq_any("who_answer", ["not_confirmed"], "opening_count", "not a confirmation"),
+    ]
+    open_task = (
+        "The opening line was already said: \"" + first_line + "\"\n"
+        "Your only job in this step: find out whether " + addr + " is the person on the line. Never say why you are calling. "
+        "If asked what it is about, say you can only discuss it with " + addr + " personally. If asked whether you are a robot or whether this is a scam, answer per the rules.\n"
+        "If the person asks for a human: the first time, ask whether you can help first. If they insist, call transfer_" + human_q + ".\n"
+        "If the person says for the second time that they do not want to talk, call transition_to_close_id_declined.\n"
+        "Otherwise: if they clearly confirmed, call transition_to_to_identity; if someone else is on the line, call transition_to_third_party; "
+        "if it is not a confirmation, call transition_to_opening_count. Say nothing yourself in those cases.\n"
+        + bullets(op.get("rules", [])) + "\nALWAYS:\n" + bullets(spec.get("global_rules", []))
+    )
+    extra_open = human_exit() + [
+        # fallbacks the model can use if the deterministic routing above did not run for this message
+        tool_transition("to_identity", "The person clearly confirmed they are the customer."),
+        tool_transition("third_party", "Someone other than the customer is on the line, the customer is not available or not known, or has died."),
+        tool_transition("opening_count", "The latest answer is not a confirmation and not someone else."),
+        tool_transition("close_id_declined", "The person said twice that they do not want to talk.")]
+    nodes["opening"] = conv("opening", open_task, [human_tr] if human_tr else [], who_trans + extra_open, on_enter={"type": "tts", "text": first_line})
+    nodes["opening"]["extraction_schema"] = list(who_extract)
+    nodes["to_identity"] = code_node("to_identity", policy_code(spec, "side_answer(vars)"), "identity")
+    nodes["opening_count"] = code_node("opening_count", check_code(
+        "try:\n    n = int(float(vars.get('opening_asks') or 1)) + 1\nexcept Exception:\n    n = 2\n"
+        "vars['opening_asks'] = str(n)\nvars['who_answer'] = ''\nvars['other_kind'] = ''\n"
+        "vars['opening_state'] = 'close' if n > " + str(max_asks) + " else 'ask'\n"), "opening_retry",
+        [eq_any("opening_state", ["close"], "close_unclear", "the identity question was asked the allowed number of times")])
+    retry_enter = {"type": "llm", "prompt": (
+        "The person did not confirm. If their last message asked a question (who you are, whether you are a robot, whether this is a scam, what it is about), "
+        "answer it in one short sentence following the rules, without saying why you are calling. Then ask exactly: \"" + idq_text + "\" Say nothing else and call no tool.")}
+    nodes["opening_retry"] = conv("opening_retry", open_task, [human_tr] if human_tr else [], who_trans + extra_open, on_enter=retry_enter, first_only=False)
+    nodes["opening_retry"]["extraction_schema"] = list(who_extract)
 
     # ---------------- third party
     cb = spec.get("callback", {})
@@ -402,7 +486,11 @@ def compile_workflow(spec, openapi):
         "3. Otherwise ask when " + addr + " can be reached: which day and at what time. The bank's rules check every day and time they give. Never promise or book a time yourself.\n"
         "4. If they say they cannot say when, or refuse to give a time, call transition_to_close_no_callback.\n"
     )
+    tp_kind = [{"name": "tp_kind", "type": "string", "min_confidence": 0.4, "enum_values": ["deceased", "wrong_number", "none"],
+                "description": "deceased if the person's LATEST message says the customer has died; wrong_number if it says the number does not belong to the customer or they do not know the customer; otherwise none."}]
     cb_trans = [
+        eq_any("tp_kind", ["deceased"], "close_deceased", "the customer has died"),
+        eq_any("tp_kind", ["wrong_number"], "close_wrong_number", "wrong number"),
         {"target_node": "cb_check", "description": "the person gave a day or a time", "condition": {"logic": "or", "conditions": [{"logic": "and", "conditions": [
             {"variable": "cb_offer", "operator": "is_set"}, {"variable": "cb_offer", "operator": "not_equals", "operand": ""}]}]}},
         tool_transition("close_wrong_number", "The number does not belong to the customer."),
@@ -413,16 +501,16 @@ def compile_workflow(spec, openapi):
         {"target_node": "cb_check", "description": "a day or time was already given", "condition": {"logic": "or", "conditions": [{"logic": "and", "conditions": [
             {"variable": "cb_offer", "operator": "is_set"}, {"variable": "cb_offer", "operator": "not_equals", "operand": ""}]}]}}])
     nodes["third_party_call"] = conv("third_party_call", tp_task, [], cb_trans)
-    nodes["third_party_call"]["extraction_schema"] = cb_extract
+    nodes["third_party_call"]["extraction_schema"] = cb_extract + tp_kind
     for k in list(nodes):
-        if k == "opening" or k.startswith("opening_"):
-            nodes[k]["extraction_schema"] = cb_extract      # a day or time said in the first answer is not lost
+        if k in ("opening", "opening_retry"):
+            nodes[k]["extraction_schema"] = nodes[k]["extraction_schema"] + cb_extract   # a day or time said in the first answer is not lost
     nodes["cb_check"] = code_node("cb_check", cb_check_code, "third_party_ask", [
         eq_any("cb_state", ["book"], "cb_book", "a callback time inside the window was given"),
         eq_any("cb_state", ["give_up"], "close_no_callback", "no callback inside the window"),
     ])
     nodes["third_party_ask"] = conv("third_party_ask", tp_task, [], cb_trans, on_enter={"type": "tts", "text": "{{cb_say}}"}, first_only=False)
-    nodes["third_party_ask"]["extraction_schema"] = cb_extract
+    nodes["third_party_ask"]["extraction_schema"] = cb_extract + tp_kind
     nodes["cb_book"] = {"name": "cb_book", "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "close_no_callback",
                         "on_enter": {"type": "silent"}, "disable_inactivity_monitor": True,
                         "pre_actions": [api_fn(api, "schedule_callback", {cid_field: CID, d_f: leaf("string", "{{cb_date}}"), t_f: leaf("string", "{{cb_time}}")}, desc="Book the callback.")],
@@ -473,11 +561,11 @@ def compile_workflow(spec, openapi):
                 "Convert spoken dates to YYYY-MM-DD (a numbers-only date is " + ("day, month, year" if order == "DMY" else "month, day, year") + "). "
                 "If an answer is incomplete, ask for the missing part first. After the result, follow what_to_do_next exactly." + id_common)
         tool = api_fn(api, "verify_identity", body, desc="Check the security answers. CALL it once you have every answer. Then follow what_to_do_next.",
-                      post=verify_post("the answers", hints, "verify_identity"))
+                      post=verify_post("the answers", hints, "verify_identity", side_snippet(spec)))
         failed_tr["condition"]["conditions"].append({"variable": "verify_identity_state", "operator": "equals", "operand": "failed"})
         nodes["identity"] = conv("identity", task, [tool, decline_tool] + ([human_tr] if human_tr else []), [
             eq_any("verify_identity_state", ["verified"], "load_account", "answers verified"), failed_tr] + human_exit() + [declined_tr],
-            on_enter={"type": "tts", "text": "Thank you, " + addr + ". " + idq[0].get("ask", "")})
+            on_enter={"type": "tts", "text": "{{qa_prefix}}Thank you, " + addr + ". " + idq[0].get("ask", "")})
         idq = []
     for i, q in enumerate(idq):
         key = "identity" if i == 0 else "identity_" + str(i + 1)
@@ -510,7 +598,7 @@ def compile_workflow(spec, openapi):
         tool = api_fn(api, "verify_identity", {cid_field: CID, f_field: leaf("string", q["field"]), a_field: leaf("string", "{{answer}}", adesc)}, name=tool_name,
                       desc="Check the " + q.get("say_name", q["field"]) + ". CALL it every time the customer gives a complete answer. Then follow what_to_do_next.",
                       pre=verify_pre(kind, order, q.get("digits")).replace("ANSWER", a_field),
-                      post=verify_post("the " + q.get("say_name", q["field"]), hints, tool_name))
+                      post=verify_post("the " + q.get("say_name", q["field"]), hints, tool_name, side_snippet(spec)))
         ok_var = tool_name + "_response.data."
         nodes[key] = conv(key, task, [tool, decline_tool] + ([human_tr] if human_tr else []), [
             {"target_node": nxt, "description": "answer verified", "condition": {"logic": "or", "conditions": [
@@ -520,7 +608,8 @@ def compile_workflow(spec, openapi):
                 {"variable": ok_var + "all_verified", "operator": "equals", "operand": "true"},
                 {"variable": ok_var + "all_verified", "operator": "equals", "operand": "True"}]}},
             failed_tr,
-        ] + human_exit() + [declined_tr], on_enter={"type": "tts", "text": thanks + q.get("ask", "")})
+        ] + human_exit() + [declined_tr], on_enter={"type": "tts", "text": "{{qa_prefix}}" + thanks + q.get("ask", "")})
+        nodes[key]["extraction_schema"] = list(side_q)
 
     # ---------------- account
     products_field = spec.get("account", {}).get("products_field", "products")
@@ -542,7 +631,8 @@ def compile_workflow(spec, openapi):
         "refuse": "a clear no with no day and no amount: 'no', 'I can't pay', 'not today', 'I cannot pay all of that today', 'not that day'. These are refusals, not too_much",
         "vague": "they give a vague period (next week, end of the month, when my salary comes) instead of a day",
         "cut_off": "their message breaks off in the middle of a sentence (it is clearly unfinished, for example 'I can pay the')",
-        "no_answer": "a complete message that does not answer your question at all ('hmm', 'I don't know', or only talk about something else). Not for unfinished messages",
+        "question": "they ask you something instead of answering (a question back, 'which account?', 'is that acceptable?', 'are you still there?')",
+        "no_answer": "a complete reply that avoids your question without asking anything ('hmm', 'I don't know', only talk about something else). Not for unfinished messages and not for questions",
         "situation": "one of the PRIORITY SITUATIONS below (give its name in situation)",
     }
     sit_ids = list(situations)
@@ -583,9 +673,10 @@ def compile_workflow(spec, openapi):
         "LAST INSTRUCTION FROM THE BANK'S RULES: {{next_instruction}}\n\n"
         "FACTS (computed for you; trust them):\n- Today: {{today_say}}.\n{{facts}}\n- Weekday words:\n{{week_table}}\n\n"
         "HOW TO WORK\n"
-        "1. After EVERY customer message about paying, a day, an amount, your offer or the debt, FIRST call assess (a_event, a_product, a_date, a_amount as they said it). "
+        "1. After EVERY customer message, whatever it says, FIRST call assess (a_event, a_product, a_date, a_amount as they said it). "
         "The result's next_step is what you say next, in your own short words. Say only that: never decide dates, amounts or offers yourself, never add an offer of your own, and never skip assess.\n"
-        "   Call assess ONCE per customer message, never several at the same time. Products are handled one at a time: report the answer for the product the last instruction is about "
+        "   A PRIORITY SITUATION is reported every time it comes up, also when the customer repeats it (for example a second request for a human). "
+        "Call assess ONCE per customer message, never several at the same time. Products are handled one at a time: report the answer for the product the last instruction is about "
         "(now: {{current_product}}), or a_product all when the answer covers every product. What they say about later products is taken up when their turn comes. "
         "A PRIORITY SITUATION about any product may be reported at once. When one message says different things about different products "
         "(for example 'I paid the card this morning, and the loan was closed years ago'), report each product separately, one assess call after the other "
@@ -604,13 +695,15 @@ def compile_workflow(spec, openapi):
         "RULES\n" + bullets(spec.get("negotiation_rules", [])) + "\n\nALWAYS:\n" + bullets(spec.get("global_rules", []))
     )
     neg_trans = [
+        {"target_node": "finalize", "description": "the call was already transferred", "condition": {"logic": "or", "conditions": [{"logic": "and", "conditions": [
+            {"variable": "transfer_queue_done", "operator": "is_set"}, {"variable": "transfer_queue_done", "operator": "not_equals", "operand": ""}]}]}},
         eq_any("policy_phase", ["offer"], "offer_decision", "an offer to connect the customer was made"),
         eq_any("policy_phase", ["transfer"], "transfer_exec", "the policy asks for a transfer"),
         eq_any("policy_phase", ["done"], "finalize", "nothing left to agree"),
         tool_transition("confirm_promises", "The customer clearly said yes to the read-back of every agreed promise."),
     ]
     nodes["negotiate"] = conv("negotiate", neg_task, [assess_tool], neg_trans,
-                              on_enter={"type": "tts", "text": "Thank you, " + addr + ". {{debt_statement}}"})
+                              on_enter={"type": "tts", "text": "{{qa_prefix}}Thank you, " + addr + ". {{debt_statement}}"})
     # An offer (for example to connect a customer in hardship with a support team) gets its own step: the model only decides yes or no.
     offer_task = (
         "The customer is verified and told you about their situation. Do this now, in one or two short sentences: {{next_instruction}}\n"
@@ -667,7 +760,8 @@ def compile_workflow(spec, openapi):
         commit_node(k, False)
         commit_node(k, True)
     nodes["confirm_promises"] = code_node("confirm_promises", policy_code(spec, "run_commit_check(vars)"), "negotiate",
-                                      [eq_any("commit_ready", ["yes"], "commit_1", "ready to record")])
+                                      [eq_any("commit_ready", ["yes"], "commit_1", "ready to record"),
+                                       eq_any("commit_ready", ["done"], "finalize", "already recorded")])
 
     # ---------------- finalize, notes, close
     nodes["finalize"] = code_node("finalize", policy_code(spec, "run_finalize(vars)"), "close_final",
@@ -698,6 +792,9 @@ def compile_workflow(spec, openapi):
     for need in ("close_unclear", "close_callback", "close_no_callback", "close_wrong_number", "close_deceased", "close_id_failed"):
         if need not in nodes:
             close_node(need, outcomes.get("not_reached", "not_reached"), need[len("close_"):], bye)
+
+    for key in [k for k, n in list(nodes.items()) if n.get("node_type") == "code"]:
+        add_retry(nodes, key)
 
     # No test_variables: in a chat they override the call's own variables (customer_id included).
     wf = {"initial_node": "opening", "system_prompt": system, "nodes": nodes, "global_nodes": {}}

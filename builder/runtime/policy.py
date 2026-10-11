@@ -434,7 +434,32 @@ def band_for(days_late):
     return bands[-1] if bands else dict(name="default", deadline=dict(kind="business_days_after_today", n=7), attempts=1)
 
 
+def field_date(p, field):
+    """A product field holding a date (YYYY-MM-DD, or DD.MM.YYYY / DD/MM/YYYY)."""
+    raw = str((p or dict()).get(field) or "").strip()[:10]
+    for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y"):
+        try:
+            return datetime.datetime.strptime(raw, fmt).date()
+        except ValueError:
+            pass
+    return None
+
+
 def deadline_for(band, today, p):
+    d = base_deadline(band, today, p)
+    dl = band.get("deadline") or dict()
+    cap_f = dl.get("cap_field") or cfg("account.due_date_field", "")
+    if cap_f and (dl.get("cap_field") or dl.get("cap_days_after_field") is not None):
+        base = field_date(p, cap_f)
+        if base:
+            cap = base + datetime.timedelta(days=int(to_float(dl.get("cap_days_after_field"), 0)))
+            cap = prev_bd_on_or_before(cap) if dl.get("adjust", "previous_business_day") == "previous_business_day" else cap
+            if cap >= today and cap < d:
+                d = cap
+    return d
+
+
+def base_deadline(band, today, p):
     dl = band.get("deadline") or dict(kind="business_days_after_today", n=7)
     kind = dl.get("kind", "business_days_after_today")
     n = int(to_float(dl.get("n"), 7))
@@ -446,6 +471,14 @@ def deadline_for(band, today, p):
         return prev_bd_on_or_before(nm - datetime.timedelta(days=1))
     if kind == "business_days_after_today_inclusive":
         return nth_bd_after(today - datetime.timedelta(days=1), n)
+    if kind in ("calendar_days_after_field", "business_days_after_field"):
+        base = field_date(p, dl.get("field") or cfg("account.due_date_field", ""))
+        if base:
+            if kind == "business_days_after_field":
+                return max(today, nth_bd_after(base, n))
+            d = base + datetime.timedelta(days=n)
+            d = prev_bd_on_or_before(d) if dl.get("adjust", "previous_business_day") == "previous_business_day" else next_bd_on_or_after(d)
+            return max(today, d)
     return nth_bd_after(today, n)
 
 
@@ -859,7 +892,10 @@ def run_prepare(vars):
         late_f = cfg("account.days_late_field", "days_late")
         for i, p in enumerate(prods):
             full = to_float(p.get(amt_f), 0.0)
-            late = int(to_float(p.get(late_f), 0))
+            late = int(to_float(p.get(late_f), -1))
+            if late < 0:                                   # no days-late field: count from the due date when there is one
+                due = field_date(p, cfg("account.due_date_field", ""))
+                late = max(0, (today - due).days) if due else 0
             band = band_for(late)
             dl = deadline_for(band, today, p)
             floor, floor_name = product_floor(p)
@@ -997,12 +1033,20 @@ def run_assess(vars, params):
             return
         elif pend and ev not in ("situation", "no_answer", "cut_off", "question"):
             st["pending_offer"] = ""
+        if st.get("collect_pending") and ev not in ("cut_off", "no_answer", "question") and (ev != "situation" or sid == st["collect_pending"]):
+            ev, sid = "situation", st["collect_pending"]       # the answer to the question asked for that situation
+            st["collect_pending"] = ""
         if ev == "situation":
             s = sits.get(sid) or dict()
             effect = s.get("effect", "product")
             if s.get("ask_first") and not st.get("asked_" + sid):
                 st["asked_" + sid] = True
                 set_outputs(vars, st, s.get("say") or "Ask once whether you can help them first.")
+                return
+            if s.get("collect") and not st.get("collected_" + sid):
+                st["collected_" + sid] = True
+                st["collect_pending"] = sid
+                set_outputs(vars, st, "Ask exactly this and wait for the answer: \"" + str(s.get("collect")) + "\" When they answer, report it again as the same PRIORITY SITUATION.")
                 return
             if s.get("offer_queue") and not st.get("offer_done_" + sid):
                 st["offer_done_" + sid] = True

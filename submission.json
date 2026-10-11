@@ -8,7 +8,7 @@
   ],
   "repo": "https://github.com/byigitt/freya-build-the-builder",
   "commit": "9e3c90e",
-  "run_command": "python3 builder/build.py {case_folder} {mock_url}",
+  "run_command": "BUILDER_MODE=simple python3 builder/build.py {case_folder} {mock_url}",
   "workflow": "submission/final.workflow.json",
   "trace": "traces/final.log",
   "mock_url": "https://wired-bank-mock.barisbayburtlu33.workers.dev"

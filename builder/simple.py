@@ -144,7 +144,8 @@ def simple_workflow(case_text, openapi, base_url, trace):
         if nm in nodes:
             continue
         # the sentence is spoken by a pass-through step, then a silent end step closes the call (an end step does not speak)
-        nodes[nm] = {"name": nm, "node_type": "code", "passthrough": True, "passthrough_default_transition": "end",
+        # (a request-type step speaks its entry sentence and moves on in the same turn; a code-type step does not)
+        nodes[nm] = {"name": nm, "node_type": "api_request", "passthrough": True, "passthrough_default_transition": "end", "response_mapping": [],
                      "on_enter": {"type": "tts", "text": str(e.get("say", ""))}, "disable_inactivity_monitor": True,
                      "pre_actions": [{"type": "function", "config": {"timeoutMs": 10000, "maxRetries": 1},
                                       "function": {"name": "code_exec", "handler": "__function__:code_exec",
